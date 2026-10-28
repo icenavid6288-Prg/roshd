@@ -9,8 +9,8 @@ import { radius, spacing, typography } from '../theme';
 export function LoginScreen({ onGoRegister }: { onGoRegister: () => void }) {
     const { login } = useAuth();
     const { colors } = useTheme();
-    const [identifier, setIdentifier] = useState('amir@markazbidi.ir');
-    const [password, setPassword] = useState('12345678');
+    const [identifier, setIdentifier] = useState('');
+    const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
 

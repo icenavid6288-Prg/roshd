@@ -1,4 +1,3 @@
-import { Link } from '@inertiajs/react';
 import { Download, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import BrandLogo from '@/Components/BrandLogo';
