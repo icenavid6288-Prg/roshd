@@ -33,15 +33,6 @@ jobs:
           cp .env.example .env
           php artisan key:generate
 
-      - name: Run tests
-        run: php artisan test
-
-  frontend-build:
-    name: Frontend build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
           version: 11.25.0
@@ -57,3 +48,7 @@ jobs:
 
       - name: Build frontend
         run: pnpm run build
+
+      - name: Run tests against the production asset manifest
+        run: php artisan test
+
