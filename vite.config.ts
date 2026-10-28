@@ -1,6 +1,7 @@
 import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import laravel from 'laravel-vite-plugin';
 import path from 'path';
 import { resolveInertiaRoute } from './resources/js/lib/inertiaServerRoutes';
 
@@ -99,11 +100,13 @@ function inertiaDevPlugin(): Plugin {
     };
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     plugins: [
         react(),
         tailwindcss(),
-        inertiaDevPlugin(),
+        ...(mode === 'laravel'
+            ? [laravel({ input: ['resources/js/app.tsx'], refresh: true })]
+            : [inertiaDevPlugin()]),
     ],
     resolve: {
         alias: {
@@ -126,4 +129,4 @@ export default defineConfig({
             },
         },
     },
-});
+}));

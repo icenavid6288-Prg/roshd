@@ -3,7 +3,8 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
+        "build": "vite build --mode laravel",
+        "build:preview": "vite build",
         "visual:test": "playwright test",
         "visual:update": "playwright test --update-snapshots",
         "desktop:install": "npm --prefix desktop install",

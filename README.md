@@ -18,7 +18,19 @@
 
 ## استقرار روی هاست بدون Composer
 
-پوشهٔ `vendor` و باندل فرانت (`public/build`) داخل همین مخزن هستند. بعد از `git pull` فقط `public/install.php` را باز کنید؛ نیازی به `composer install` روی هاست نیست.
+بستهٔ کامل انتشار را از خروجی workflow «Build deployment package» دریافت کنید. این بسته `vendor` کامل و باندل Laravel در `public/build` را دارد و به Composer یا Node روی هاست نیاز ندارد. کپیِ صرف فایل `vendor/autoload.php` یا پوشهٔ ناقص vendor کافی نیست.
+
+برای به‌روزرسانی سایت موجود، فایل `.env`، کلید `APP_KEY` و داده‌های `storage` را حفظ کنید؛ نصب‌کننده را دوباره اجرا نکنید. برای نصب تازه، `public/install.php` را باز کنید.
+
+ساخت محلی بسته:
+
+```bash
+composer install --no-dev --prefer-dist --optimize-autoloader
+pnpm install --frozen-lockfile
+pnpm run build
+```
+
+دستور build، `public/build/manifest.json` موردنیاز Blade را می‌سازد. `pnpm run build:preview` فقط برای پیش‌نمایش مستقل است و خروجی آن جایگزین build لاراول نمی‌شود. نسخه‌های وابستگی‌ها در `composer.lock` و `pnpm-lock.yaml` قفل شده‌اند.
 
 ## اجرای محلی
 

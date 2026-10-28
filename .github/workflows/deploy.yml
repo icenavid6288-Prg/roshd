@@ -20,22 +20,31 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, dom, fileinfo, openssl, pdo, pdo_mysql
+          extensions: mbstring, dom, fileinfo, openssl, pdo, pdo_mysql, gd, zip
           coverage: none
 
       - name: Install PHP dependencies
         run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
+          node-version: 24
+          cache: pnpm
 
       - name: Build frontend
         run: |
-          npm ci
-          npm run build
+          pnpm install --frozen-lockfile
+          pnpm run build
+
+      - name: Verify deployment runtime
+        run: |
+          php -r "require 'vendor/autoload.php'; if (!class_exists(Illuminate\Foundation\Application::class)) exit(1);"
+          test -s public/build/manifest.json
 
       - name: Create deployment archive
         run: |
@@ -52,7 +61,7 @@ jobs:
             --exclude='*.zip' --exclude='*.tar.gz' --exclude='*.log' --exclude='*.ps1' \
             --exclude='composer.phar' \
             ./ deployment/
-          mkdir -p deployment/storage/logs deployment/storage/framework/cache deployment/storage/framework/sessions deployment/storage/framework/views
+          mkdir -p deployment/bootstrap/cache deployment/storage/logs deployment/storage/framework/cache deployment/storage/framework/sessions deployment/storage/framework/views
           cd deployment
           zip -r ../markaz-deployment-${GITHUB_SHA::7}.zip . -x '*.DS_Store'
 

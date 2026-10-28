@@ -39,6 +39,13 @@ if (typeof window !== 'undefined') {
 
 // Fallback & resolution for Inertia initial page
 function getInitialPage() {
+    // Production uses Laravel's authoritative Inertia payload, including its
+    // version and empty collections. Preview defaults must never replace it.
+    if (import.meta.env.MODE === 'laravel') {
+        const payload = document.getElementById('app')?.dataset.page;
+        if (!payload) throw new Error('Missing Inertia page from Laravel');
+        return JSON.parse(payload);
+    }
     let pageData: any = null;
     const path = typeof window !== 'undefined'
         ? (window.location.pathname.replace(/\/$/, '') || '/')
