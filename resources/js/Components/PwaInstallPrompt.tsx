@@ -37,13 +37,19 @@ export default function PwaInstallPrompt() {
     const [pushEnabled, setPushEnabled] = useState(false);
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState('');
+    const [dismissed, setDismissed] = useState(false);
 
     const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
 
     useEffect(() => {
         if (isStandalone()) return;
 
-        const dismissedUntil = Number(window.localStorage.getItem(DISMISS_KEY) ?? 0);
+        let dismissedUntil = 0;
+        try { dismissedUntil = Number(window.localStorage.getItem(DISMISS_KEY) ?? 0); } catch { /* Storage may be unavailable in private browsing. */ }
+        setDismissed(dismissedUntil > Date.now());
+        const timer = window.setTimeout(() => {
+            if (dismissedUntil < Date.now()) setIsVisible(true);
+        }, 2500);
         const onBeforeInstallPrompt = (event: Event) => {
             event.preventDefault();
             setInstallEvent(event as InstallPromptEvent);
@@ -55,8 +61,14 @@ export default function PwaInstallPrompt() {
         setIsIos(ios);
         if (ios && dismissedUntil < Date.now()) setIsVisible(true);
         window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+        const onInstalled = () => { setIsVisible(false); setInstallEvent(null); setMessage(''); };
+        window.addEventListener('appinstalled', onInstalled);
 
-        return () => window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+        return () => {
+            window.clearTimeout(timer);
+            window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+            window.removeEventListener('appinstalled', onInstalled);
+        };
     }, []);
 
     useEffect(() => {
@@ -73,22 +85,29 @@ export default function PwaInstallPrompt() {
     }, [auth?.user, vapidKey]);
 
     const dismiss = () => {
-        window.localStorage.setItem(DISMISS_KEY, String(Date.now() + 7 * 24 * 60 * 60 * 1000));
+        try { window.localStorage.setItem(DISMISS_KEY, String(Date.now() + 7 * 24 * 60 * 60 * 1000)); } catch { /* Dismiss for this visit when storage is unavailable. */ }
+        setDismissed(true);
         setIsVisible(false);
+        setMessage('');
     };
 
     const install = async () => {
         if (!installEvent) {
-            setMessage('در آیفون، از منوی Share گزینه Add to Home Screen را انتخاب کنید.');
+            setMessage(isIos
+                ? 'در Safari، دکمه اشتراک‌گذاری (Share) و سپس «افزودن به صفحه اصلی» (Add to Home Screen) را بزنید.'
+                : 'از منوی مرورگر گزینه «نصب برنامه» یا «افزودن به صفحه اصلی» را انتخاب کنید. اگر این گزینه را نمی‌بینید، سایت را در Chrome یا Edge باز کنید.');
             return;
         }
 
         setBusy(true);
-        await installEvent.prompt();
-        const choice = await installEvent.userChoice;
-        if (choice.outcome === 'accepted') setIsVisible(false);
-        setInstallEvent(null);
-        setBusy(false);
+        try {
+            await installEvent.prompt();
+            const choice = await installEvent.userChoice;
+            if (choice.outcome === 'accepted') setIsVisible(false);
+            setInstallEvent(null);
+        } catch {
+            setMessage('نصب انجام نشد؛ از منوی مرورگر گزینه «نصب برنامه» را امتحان کنید.');
+        } finally { setBusy(false); }
     };
 
     const enablePush = async () => {
@@ -127,17 +146,17 @@ export default function PwaInstallPrompt() {
         }
     };
 
-    const showInstall = isVisible && !isStandalone() && (Boolean(installEvent) || isIos);
+    const showInstall = isVisible && !isStandalone();
     const showPush = Boolean(auth?.user) && pushAvailable && !pushEnabled;
-    if (!showInstall && !showPush && !message) return null;
+    if (dismissed || (!showInstall && !showPush && !message)) return null;
 
     return (
         <aside className="pwa-prompt" dir="rtl" aria-live="polite">
             <div className="pwa-prompt-icon" aria-hidden><BrandLogo src="/app-icon" alt="" className="size-full rounded-[0.8rem] object-contain" /></div>
             <div className="min-w-0 flex-1">
                 {showInstall && <>
-                    <strong className="block text-sm font-black text-navy">مرکز رشد را نصب کنید</strong>
-                    <p className="mt-1 text-xs leading-5 text-navy/60">برای دسترسی سریع‌تر، سایت را مثل یک اپلیکیشن روی موبایل اضافه کنید.</p>
+                    <strong className="block text-sm font-black text-navy">اپلیکیشن مرکز رشد همراه شماست</strong>
+                    <p className="mt-1 text-xs leading-5 text-navy/60">نسخه وب اپلیکیشن را نصب کنید و از صفحه اصلی گوشی به دوره‌ها و پنل خود دسترسی داشته باشید.</p>
                 </>}
                 {showPush && !showInstall && <>
                     <strong className="block text-sm font-black text-navy">اعلان‌های مسیر رشد</strong>
@@ -145,7 +164,7 @@ export default function PwaInstallPrompt() {
                 </>}
                 {message && <p className="mt-1 text-xs font-bold leading-5 text-brand-700">{message}</p>}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {showInstall && <button type="button" onClick={install} disabled={busy} className="pwa-prompt-primary"><Download className="size-3.5" /> نصب اپلیکیشن</button>}
+                    {showInstall && <button type="button" onClick={install} disabled={busy} className="pwa-prompt-primary"><Download className="size-3.5" /> {installEvent ? 'نصب اپلیکیشن' : 'راهنمای نصب اپلیکیشن'}</button>}
                     {showPush && <button type="button" onClick={enablePush} disabled={busy} className="pwa-prompt-secondary"><Bell className="size-3.5" /> فعال‌سازی اعلان</button>}
                     {showInstall && <button type="button" onClick={dismiss} className="pwa-prompt-dismiss">بعداً</button>}
                 </div>

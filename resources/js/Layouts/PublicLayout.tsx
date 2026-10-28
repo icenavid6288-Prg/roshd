@@ -178,13 +178,6 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                     </nav>
 
                     <div className="reference-actions hidden items-center gap-2.5 lg:flex">
-                        <Link
-                            href="/mobile-app"
-                            prefetch="hover"
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-400/40 bg-brand-500/20 px-3.5 py-2 text-xs font-black text-brand-200 transition-all hover:bg-brand-500 hover:text-white"
-                        >
-                            📱 پیش‌نمایش اپ موبایل
-                        </Link>
                         <ThemeToggle compact />
                         {auth.user ? (
                             <Link
