@@ -18,7 +18,8 @@ import type {
 
 // Default base URL — override via EXPO_PUBLIC_API_URL at build time or from the
 // in-app Settings screen (stored in AsyncStorage).
-const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://saradars.ir';
+const DEMO_ENABLED = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 
 const TOKEN_KEY = 'markaz_auth_token';
 const BASE_URL_KEY = 'markaz_api_base_url';
@@ -42,7 +43,7 @@ export async function setBaseUrl(url: string): Promise<void> {
 
 export async function getToken(): Promise<string | null> {
     if (cachedToken === undefined) {
-        cachedToken = (await AsyncStorage.getItem(TOKEN_KEY)) || 'demo-mobile-token';
+        cachedToken = (await AsyncStorage.getItem(TOKEN_KEY)) || (DEMO_ENABLED ? 'demo-mobile-token' : null);
     }
     return cachedToken;
 }
@@ -953,7 +954,8 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
         });
     } catch {
         // Automatic offline/demo mode fallback when server is not reachable
-        return resolveOfflineApi<T>(path, options);
+        if (DEMO_ENABLED) return resolveOfflineApi<T>(path, options);
+        throw new ApiError('اتصال به سرور برقرار نشد. اتصال اینترنت را بررسی کنید.', 0);
     }
 
     const text = await response.text();
@@ -963,13 +965,14 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
             payload = JSON.parse(text);
         } catch {
             // If server returned HTML or non-JSON, fallback to offline data seamlessly
-            return resolveOfflineApi<T>(path, options);
+            if (DEMO_ENABLED) return resolveOfflineApi<T>(path, options);
+            throw new ApiError('پاسخ معتبر از سرور دریافت نشد.', response.status);
         }
     }
 
     if (!response.ok) {
         // For custom mobile endpoints that might 404 on older servers, resolve from offline state
-        if (response.status === 404) {
+        if (response.status === 404 && DEMO_ENABLED) {
             return resolveOfflineApi<T>(path, options);
         }
         const message =
