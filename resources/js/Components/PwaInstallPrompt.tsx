@@ -1,4 +1,5 @@
 import axios from 'axios';
+import '../../css/pwa-install.css';
 import { Bell, Download, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { usePage } from '@inertiajs/react';

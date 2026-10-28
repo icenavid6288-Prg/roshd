@@ -1,0 +1,8 @@
+html.dark .pwa-prompt {
+    background: rgb(12 37 28 / 0.97);
+    border-color: rgb(255 255 255 / 0.16);
+}
+html.dark .pwa-prompt strong { color: #f2fff8; }
+html.dark .pwa-prompt p { color: #c2d9cd; }
+html.dark .pwa-prompt-dismiss,
+html.dark .pwa-prompt-close { color: #c2d9cd; }
