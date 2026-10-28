@@ -39,13 +39,6 @@ if (typeof window !== 'undefined') {
 
 // Fallback & resolution for Inertia initial page
 function getInitialPage() {
-    // Production uses Laravel's authoritative Inertia payload, including its
-    // version and empty collections. Preview defaults must never replace it.
-    if (import.meta.env.MODE === 'laravel') {
-        const payload = document.getElementById('app')?.dataset.page;
-        if (!payload) throw new Error('Missing Inertia page from Laravel');
-        return JSON.parse(payload);
-    }
     let pageData: any = null;
     const path = typeof window !== 'undefined'
         ? (window.location.pathname.replace(/\/$/, '') || '/')
@@ -122,7 +115,9 @@ function getInitialPage() {
     return result;
 }
 
-const initialPage = getInitialPage();
+// In production let Inertia read Laravel's payload itself. Inertia 3 uses an
+// application/json script, while the standalone preview uses data-page.
+const initialPage = import.meta.env.MODE === 'laravel' ? undefined : getInitialPage();
 const pages = import.meta.glob('./Pages/**/*.tsx');
 
 createInertiaApp({
@@ -151,3 +146,4 @@ createInertiaApp({
         root.render(<App {...props} />);
     },
 });
+
