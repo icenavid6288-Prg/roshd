@@ -1,0 +1,491 @@
+import { Link, router, usePage } from '@inertiajs/react';
+import {
+    ArrowLeft,
+    ArrowUp,
+    ChevronLeft,
+    Clock3,
+    Compass,
+    GraduationCap,
+    HeartHandshake,
+    Home,
+    Share2,
+    Mail,
+    MapPin,
+    Menu as MenuIcon,
+    Newspaper,
+    Phone,
+    Send,
+    ShoppingBag,
+    ShieldCheck,
+    Sparkles,
+    Radio,
+    Search as SearchIcon,
+    Users,
+    UsersRound,
+    UserRound,
+    X,
+    type LucideIcon,
+} from 'lucide-react';
+import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import BrandLogo from '@/Components/BrandLogo';
+import CelebrateFlash from '@/Components/CelebrateFlash';
+import FlashToast from '@/Components/FlashToast';
+import ThemeToggle from '@/Components/ThemeToggle';
+import SitePopup from '@/Components/SitePopup';
+import ChatWidget from '@/Components/ChatWidget';
+import MobileAppNav from '@/Components/MobileAppNav';
+import PwaInstallPrompt from '@/Components/PwaInstallPrompt';
+import { SeoHead } from '@/Components/SeoHead';
+import { formatNumber } from '@/lib/format';
+import type { PageProps } from '@/types';
+
+const AuthModal = lazy(() => import('@/Components/AuthModal'));
+
+function menuIconFor(url: string): LucideIcon {
+    if (url === '/') return Home;
+    if (url.startsWith('/courses')) return GraduationCap;
+    if (url.startsWith('/coaching')) return HeartHandshake;
+    if (url.startsWith('/services')) return Compass;
+    if (url.startsWith('/shop')) return ShoppingBag;
+    if (url.startsWith('/blog')) return Newspaper;
+    if (url.startsWith('/about')) return Users;
+    if (url.startsWith('/team')) return UsersRound;
+    if (url.startsWith('/contact')) return Phone;
+    return ChevronLeft;
+}
+
+export default function PublicLayout({ children }: { children: ReactNode }) {
+    const { site, menus, auth, seo, liveWebinar, authModal: sharedAuthModal } = usePage<PageProps & { liveWebinar?: { slug: string; title: string; event_date?: string; url: string } | null }>().props;
+    const [scrolled, setScrolled] = useState(false);
+    const [atBottom, setAtBottom] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [authModal, setAuthModal] = useState<'login' | 'register' | null>(null);
+
+    useEffect(() => {
+        let raf = 0;
+        const onScroll = () => {
+            cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+                const y = window.scrollY;
+                setScrolled(y > 140);
+                const max = document.documentElement.scrollHeight - window.innerHeight;
+                setAtBottom(max > 120 && max - y <= 36);
+            });
+        };
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll, { passive: true });
+        return () => {
+            cancelAnimationFrame(raf);
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+        };
+    }, []);
+
+    useEffect(() => {
+        document.body.style.overflow = mobileOpen || authModal ? 'hidden' : '';
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [mobileOpen, authModal]);
+
+    useEffect(() => {
+        if (sharedAuthModal) {
+            setAuthModal(sharedAuthModal.mode ?? 'login');
+        }
+    }, [sharedAuthModal]);
+
+    const submitGlobalSearch = (event: FormEvent) => {
+        event.preventDefault();
+        const query = searchQuery.trim();
+        if (!query) return;
+        setSearchOpen(false);
+        router.get('/search', { q: query }, { preserveState: false, replace: true });
+    };
+
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    };
+
+    return (
+        <>
+            <SeoHead seo={seo} />
+            <div className="mobile-app-shell flex min-h-screen flex-col bg-[#fafbf7] text-navy dark:bg-[#061811] dark:text-white" dir="rtl">
+            <header className="site-header">
+                <div className={`header-pill ${scrolled ? 'is-scrolled' : ''} ${atBottom ? 'is-at-end' : ''}`}>
+                    <Link href="/" prefetch="hover" className="reference-logo flex items-center gap-2.5">
+                        <BrandLogo className="reference-logo-mark" />
+                        <span className="flex flex-col leading-tight">
+                            <span className="text-sm font-black text-white md:text-base">مرکز رشد و کارآفرینی</span>
+                            <span className="text-xs font-bold text-brand-300">دکتر بیدی</span>
+                        </span>
+                    </Link>
+
+                    <form className={`header-search ${searchOpen ? 'is-open' : ''}`} onSubmit={submitGlobalSearch} role="search">
+                        <button
+                            type="button"
+                            onClick={() => setSearchOpen((open) => !open)}
+                            className="header-search-toggle"
+                            aria-label={searchOpen ? 'بستن جستجو' : 'جستجو در سایت'}
+                            title={searchOpen ? 'بستن جستجو' : 'جستجو در سایت'}
+                            aria-expanded={searchOpen}
+                        >
+                            <SearchIcon className="size-4" aria-hidden />
+                        </button>
+                        <div className="header-search-panel">
+                            <SearchIcon className="size-4 shrink-0 text-brand-600" aria-hidden />
+                            <input
+                                type="search"
+                                value={searchQuery}
+                                onChange={(event) => setSearchQuery(event.target.value)}
+                                placeholder="جستجو در سایت..."
+                                aria-label="جستجو در سایت"
+                            />
+                            <button type="submit" className="header-search-submit" aria-label="انجام جستجو">
+                                <ArrowLeft className="size-4" aria-hidden />
+                            </button>
+                        </div>
+                    </form>
+
+                    <nav className="reference-nav hidden items-center gap-1 lg:flex" aria-label="منوی اصلی">
+                        {menus.header.map((item) => (
+                            <Link
+                                key={item.url + item.title}
+                                href={item.url}
+                                prefetch="hover"
+                                className={`rounded-xl px-3.5 py-2 text-sm font-bold text-white/80 transition-colors hover:bg-white/10 hover:text-white ${item.url === '/' ? 'header-nav-home' : ''} ${['/about', '/team', '/contact'].includes(item.url) ? 'header-nav-secondary' : ''}`}
+                            >
+                                {item.title}
+                            </Link>
+                        ))}
+                        <Link
+                            href="/events?type=webinar"
+                            prefetch="hover"
+                            className="header-nav-secondary inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-bold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                        >
+                            <Radio className="size-3.5 text-red-300" aria-hidden />
+                            وبینارها
+                        </Link>
+                        <Link
+                            href="/events?type=seminar"
+                            prefetch="hover"
+                            className="header-nav-secondary rounded-xl px-3.5 py-2 text-sm font-bold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                        >
+                            سمینارها
+                        </Link>
+                    </nav>
+
+                    <div className="reference-actions hidden items-center gap-2.5 lg:flex">
+                        <Link
+                            href="/mobile-app"
+                            prefetch="hover"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-400/40 bg-brand-500/20 px-3.5 py-2 text-xs font-black text-brand-200 transition-all hover:bg-brand-500 hover:text-white"
+                        >
+                            📱 پیش‌نمایش اپ موبایل
+                        </Link>
+                        <ThemeToggle compact />
+                        {auth.user ? (
+                            <Link
+                                href="/dashboard"
+                                prefetch="hover"
+                                className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-bold text-white shadow-soft transition-all hover:bg-brand-400"
+                            >
+                                پنل کاربری
+                            </Link>
+                        ) : (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => setAuthModal('register')}
+                                    className="reference-header-cta inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold transition-all active:scale-[0.97]"
+                                >
+                                    شروع مسیر رشد
+                                </button>
+                            </>
+                        )}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setMobileOpen((v) => !v)}
+                        className="flex size-10 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20 lg:hidden"
+                        aria-label={mobileOpen ? 'بستن منو' : 'باز کردن منو'}
+                        aria-expanded={mobileOpen}
+                    >
+                        {mobileOpen ? <X className="size-5" /> : <MenuIcon className="size-5" />}
+                    </button>
+                </div>
+
+                {/* ── Slide-out mobile panel ── */}
+                <div
+                    className={`drawer-backdrop ${mobileOpen ? 'is-open' : ''}`}
+                    onClick={() => setMobileOpen(false)}
+                    aria-hidden={!mobileOpen}
+                />
+                <aside
+                    className={`mobile-drawer ${mobileOpen ? 'is-open' : ''}`}
+                    aria-hidden={!mobileOpen}
+                    aria-label="منوی موبایل"
+                >
+                    <div className="drawer-head">
+                        <div className="flex items-center gap-2.5">
+                            <BrandLogo className="reference-logo-mark" />
+                            <div className="leading-tight text-white">
+                                <div className="text-sm font-black">مرکز رشد و کارآفرینی</div>
+                                <div className="text-xs font-bold text-brand-300">دکتر بیدی</div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <ThemeToggle compact />
+                            <button
+                                type="button"
+                                onClick={() => setMobileOpen(false)}
+                                className="drawer-close"
+                                aria-label="بستن منو"
+                            >
+                                <X className="size-5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <nav className="drawer-nav" aria-label="منوی اصلی">
+                        {menus.header.map((item, i) => {
+                            const Icon = menuIconFor(item.url);
+                            return (
+                                <div key={item.url + item.title} className="drawer-item" style={{ transitionDelay: `${40 + i * 30}ms` }}>
+                                    <Link
+                                        href={item.url}
+                                        prefetch="hover"
+                                        onClick={() => setMobileOpen(false)}
+                                        className="drawer-link"
+                                    >
+                                        <span className="drawer-link-icon">
+                                            <Icon className="size-4" aria-hidden />
+                                        </span>
+                                        <span>{item.title}</span>
+                                        <span className="drawer-link-index">{formatNumber(i + 1)}</span>
+                                        <ChevronLeft className="drawer-link-arrow size-4" aria-hidden />
+                                    </Link>
+                                </div>
+                            );
+                        })}
+                        <div className="drawer-item" style={{ transitionDelay: `${40 + menus.header.length * 30}ms` }}>
+                            <Link href="/events?type=webinar" prefetch="hover" onClick={() => setMobileOpen(false)} className="drawer-link">
+                                <span className="drawer-link-icon"><Radio className="size-4 text-red-300" aria-hidden /></span>
+                                <span>وبینارها</span>
+                                <span className="drawer-link-index">{formatNumber(menus.header.length + 1)}</span>
+                                <ChevronLeft className="drawer-link-arrow size-4" aria-hidden />
+                            </Link>
+                            <Link href="/events?type=seminar" prefetch="hover" onClick={() => setMobileOpen(false)} className="drawer-link">
+                                <span className="drawer-link-icon"><Radio className="size-4 text-brand-300" aria-hidden /></span>
+                                <span>سمینارها</span>
+                                <span className="drawer-link-index">{formatNumber(menus.header.length + 2)}</span>
+                                <ChevronLeft className="drawer-link-arrow size-4" aria-hidden />
+                            </Link>
+                        </div>
+                    </nav>                        <div className="drawer-foot">
+                        <div className="drawer-btns">
+                            {auth.user ? (
+                                <Link
+                                    href="/dashboard"
+                                    prefetch="hover"
+                                    onClick={() => setMobileOpen(false)}
+                                    className="drawer-btn drawer-btn-solid"
+                                >
+                                    پنل کاربری
+                                </Link>
+                            ) : (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setMobileOpen(false); setAuthModal('login'); }}
+                                        className="drawer-btn drawer-btn-ghost"
+                                    >
+                                        ورود
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setMobileOpen(false); setAuthModal('register'); }}
+                                        className="drawer-btn drawer-btn-solid"
+                                    >
+                                        شروع مسیر رشد
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </aside>
+
+                {atBottom && (
+                    <button
+                        type="button"
+                        onClick={scrollToTop}
+                        className="scroll-top-float"
+                        aria-label="بازگشت به بالای صفحه"
+                        title="بالا رفتن"
+                    >
+                        <ArrowUp className="size-5" aria-hidden />
+                        <span>بالا</span>
+                    </button>
+                )}
+            </header>
+
+            <main className="public-page-content flex-1">{children}</main>
+
+            <footer className="site-footer bg-deep-gradient text-white">
+                <div className="container-site">
+                    <div className="footer-callout">
+                        <div className="footer-callout-mark" aria-hidden>
+                            <Sparkles className="size-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <span className="footer-eyebrow">یک قدم برای آینده روشن‌تر</span>
+                            <h2>مسیر رشد فرزندتان را آگاهانه طراحی کنید.</h2>
+                            <p>از کشف استعداد تا ساخت مهارت‌های آینده، کنار شما هستیم.</p>
+                        </div>
+                        <div className="footer-callout-actions">
+                            <Link href="/contact" className="footer-primary-action">
+                                {site.hero.cta_primary || 'دریافت مشاوره رایگان'}
+                                <ArrowLeft className="size-4" aria-hidden />
+                            </Link>
+                            <Link href="/courses" className="footer-secondary-action">مشاهده دوره‌ها</Link>
+                        </div>
+                    </div>
+
+                    {liveWebinar && (
+                        <a
+                            href={liveWebinar.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="footer-live-webinar"
+                        >
+                            <span className="footer-live-webinar-icon"><Radio className="size-4" aria-hidden /></span>
+                            <span className="footer-live-webinar-copy">
+                                <strong><span className="footer-live-dot" /> وبینار زنده</strong>
+                                <span>{liveWebinar.title}</span>
+                            </span>
+                            <span className="footer-live-webinar-action">ورود به لایو <ArrowLeft className="size-4" aria-hidden /></span>
+                        </a>
+                    )}
+
+                    <div className="footer-main-grid">
+                        <div className="footer-brand-column">
+                            <div className="flex items-center gap-2.5">
+                                <BrandLogo className="footer-brand-mark" />
+                                <div className="leading-tight">
+                                    <div className="text-sm font-black">مرکز رشد و کارآفرینی</div>
+                                    <div className="text-xs font-bold text-brand-300">دکتر بیدی</div>
+                                </div>
+                            </div>
+                            <p className="footer-brand-description">{site.slogan || 'همراه خانواده‌ها برای ساختن مسیر رشد، یادگیری و آینده‌ای روشن‌تر.'}</p>
+                            <div className="footer-socials">
+                                {site.social.instagram && (
+                                    <a href={site.social.instagram} target="_blank" rel="noopener noreferrer" className="footer-social-link" aria-label="اینستاگرام">
+                                        <Share2 className="size-4" aria-hidden />
+                                        <span>اینستاگرام</span>
+                                    </a>
+                                )}
+                                {site.social.eitaa && (
+                                    <a href={site.social.eitaa} target="_blank" rel="noopener noreferrer" className="footer-social-link" aria-label="ایتا">
+                                        <Send className="size-4" aria-hidden />
+                                        <span>ایتا</span>
+                                    </a>
+                                )}
+                            </div>
+                            {site.enamad?.enabled && (
+                                <div className="footer-enamad">
+                                    <span className="footer-enamad-title">{site.enamad.title}</span>
+                                    {site.enamad.image_url ? (
+                                        site.enamad.link_url ? (
+                                            <a href={site.enamad.link_url} target="_blank" rel="noopener noreferrer" className="footer-enamad-link">
+                                                <img src={site.enamad.image_url} alt={site.enamad.title} loading="lazy" />
+                                            </a>
+                                        ) : (
+                                            <img src={site.enamad.image_url} alt={site.enamad.title} loading="lazy" />
+                                        )
+                                    ) : (
+                                        <span className="footer-enamad-placeholder">تصویر نشان در تنظیمات وارد نشده است</span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="footer-link-column">
+                            <h3 className="footer-column-title">دسترسی سریع</h3>
+                            <ul className="footer-link-list">
+                                {menus.footer.map((item, index) => (
+                                    <li key={item.url + item.title}>
+                                        <Link href={item.url} prefetch="hover" className="footer-nav-link">
+                                            <span className="footer-nav-index">{formatNumber(index + 1)}</span>
+                                            <span>{item.title}</span>
+                                            <ChevronLeft className="footer-nav-arrow size-3.5" aria-hidden />
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div className="footer-link-column">
+                            <h3 className="footer-column-title">همراهی در مسیر</h3>
+                            <ul className="footer-link-list">
+                                <li><Link href="/coaching" className="footer-nav-link"><span className="footer-nav-dot" /><span>کوچینگ تخصصی نوجوان</span><ChevronLeft className="footer-nav-arrow size-3.5" aria-hidden /></Link></li>
+                                <li><Link href="/services" className="footer-nav-link"><span className="footer-nav-dot" /><span>خدمات رشد و استعداد</span><ChevronLeft className="footer-nav-arrow size-3.5" aria-hidden /></Link></li>
+                                <li><Link href="/blog" className="footer-nav-link"><span className="footer-nav-dot" /><span>مجله مسیر رشد</span><ChevronLeft className="footer-nav-arrow size-3.5" aria-hidden /></Link></li>
+                                <li><Link href="/contact" className="footer-nav-link"><span className="footer-nav-dot" /><span>گفتگو با کارشناسان</span><ChevronLeft className="footer-nav-arrow size-3.5" aria-hidden /></Link></li>
+                            </ul>
+                        </div>
+
+                        <div className="footer-contact-column">
+                            <h3 className="footer-column-title">با ما در تماس باشید</h3>
+                            <ul className="footer-contact-list">
+                                {site.contact.phone && <li><a href={`tel:${site.contact.phone}`} dir="ltr"><Phone className="size-4" aria-hidden /><span>{site.contact.phone}</span></a></li>}
+                                {site.contact.email && <li><a href={`mailto:${site.contact.email}`} dir="ltr"><Mail className="size-4" aria-hidden /><span>{site.contact.email}</span></a></li>}
+                                {site.contact.eitaa && <li>{site.social.eitaa ? <a href={site.social.eitaa} target="_blank" rel="noopener noreferrer" dir="ltr"><Send className="size-4" aria-hidden /><span>{site.contact.eitaa}</span></a> : <span dir="ltr"><Send className="size-4" aria-hidden /><span>{site.contact.eitaa}</span></span>}</li>}
+                                {site.contact.address && <li><span><MapPin className="size-4" aria-hidden /><span>{site.contact.address}</span></span></li>}
+                            </ul>
+                            {site.contact.working_hours && <div className="footer-hours"><Clock3 className="size-4" aria-hidden /><span>{site.contact.working_hours}</span></div>}
+                        </div>
+                    </div>
+
+                    <div className="footer-bottom-bar">
+                        <div className="flex items-center gap-2"><ShieldCheck className="size-4 text-brand-300" aria-hidden /><span>اطلاعات شما نزد ما امن است</span></div>
+                        <div className="footer-bottom-links"><Link href="/about">درباره ما</Link><Link href="/contact">تماس با ما</Link><Link href="/courses">دوره‌ها</Link></div>
+                        <span dir="rtl">© {new Date().getFullYear()} {site.name} — تمامی حقوق محفوظ است.</span>
+                    </div>
+                </div>
+            </footer>
+
+            <MobileAppNav
+                ariaLabel="ناوبری اصلی موبایل"
+                items={[
+                    { label: 'خانه', href: '/', icon: Home },
+                    { label: 'دوره‌ها', href: '/courses', icon: GraduationCap },
+                    { label: 'خدمات', href: '/services', icon: Compass },
+                    { label: 'فروشگاه', href: '/shop', icon: ShoppingBag },
+                    auth.user
+                        ? { label: 'حساب', href: '/dashboard', icon: UserRound }
+                        : { label: 'حساب', icon: UserRound, onClick: () => setAuthModal('login') },
+                ]}
+            />
+            </div>
+
+            <PwaInstallPrompt />
+            <CelebrateFlash />
+            <FlashToast />
+            <SitePopup paused={Boolean(authModal || mobileOpen)} />
+            <ChatWidget />
+
+            {authModal && (
+                <Suspense fallback={null}>
+                    <AuthModal
+                        initialMode={authModal}
+                        sharedState={sharedAuthModal}
+                        onClose={() => setAuthModal(null)}
+                    />
+                </Suspense>
+            )}
+        </>
+    );
+}
