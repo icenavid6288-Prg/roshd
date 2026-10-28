@@ -23,6 +23,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - run: npm install --no-audit --no-fund
         working-directory: mobile
       - run: npx expo prebuild --platform android --no-install
