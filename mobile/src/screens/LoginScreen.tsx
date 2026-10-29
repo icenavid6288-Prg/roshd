@@ -70,7 +70,7 @@ export function LoginScreen() {
                 {challenge ? <>
                     <Pressable onPress={() => { setChallenge(null); setCode(''); setError(''); }} disabled={busy} accessibilityRole="button" style={styles.editButton}><Ionicons name="create-outline" size={16} color="#34704b" /><Text style={styles.editText}>ویرایش شماره موبایل</Text></Pressable>
                     <Text style={styles.label}>کد تأیید پیامکی</Text>
-                    <TextInput ref={codeInput} value={code} onChangeText={v => { setCode(normalizeCode(v)); setError(''); }} style={[styles.input, styles.codeInput, !!error && styles.inputError]} placeholder="— — — — — —" placeholderTextColor="#a1afa6" keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="sms-otp" maxLength={6} editable={!busy} accessibilityLabel="کد تأیید شش رقمی" onSubmitEditing={verify} />
+                    <TextInput ref={codeInput} value={code} onChangeText={v => { setCode(normalizeCode(v)); setError(''); }} style={[styles.input, styles.codeInput, !!error && styles.inputError]} placeholder="------" placeholderTextColor="#a1afa6" keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="sms-otp" maxLength={6} editable={!busy} accessibilityLabel="کد تأیید شش رقمی" onSubmitEditing={verify} />
                 </> : <>
                     <Text style={styles.label}>شماره موبایل</Text>
                     <View style={[styles.phoneBox, !!error && styles.inputError]}>
