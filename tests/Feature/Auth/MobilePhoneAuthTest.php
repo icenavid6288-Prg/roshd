@@ -89,4 +89,13 @@ class MobilePhoneAuthTest extends TestCase
         $this->postJson('/api/v1/auth/otp/request', ['phone' => '09123456789'])->assertStatus(503)->assertJsonMissingPath('data.challenge');
         $this->assertDatabaseMissing('users', ['phone' => '09123456789']);
     }
+
+    public function test_production_log_driver_cannot_pretend_to_send_an_otp(): void
+    {
+        $this->app->detectEnvironment(fn () => 'production');
+        $sms = Mockery::mock(SmsSender::class);
+        $sms->shouldNotReceive('sendOtp');
+        $this->app->instance(SmsSender::class, $sms);
+        $this->postJson('/api/v1/auth/otp/request', ['phone' => '09123456789'])->assertStatus(503);
+    }
 }

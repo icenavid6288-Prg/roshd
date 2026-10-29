@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Setting;
 use App\Services\Sms\SmsSender;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,9 @@ class PhoneAuthController extends Controller
     {
         $data = $request->validate(['phone' => ['required', 'string', 'regex:/^09[0-9]{9}$/']]);
         $phone = $data['phone'];
+        if (app()->environment('production') && Setting::get('sms_driver', 'log') === 'log' && ! Setting::get('sms_backup_driver')) {
+            return response()->json(['message' => 'ارسال پیامک در دسترس نیست. با پشتیبانی تماس بگیرید.'], 503);
+        }
         $key = 'mobile-otp-request:'.hash('sha256', $phone);
         $ipKey = 'mobile-otp-request-ip:'.$request->ip();
         if (RateLimiter::tooManyAttempts($key, 3) || RateLimiter::tooManyAttempts($ipKey, 20)) {
