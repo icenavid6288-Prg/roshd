@@ -40,6 +40,9 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response, \Throwable $exception, \Illuminate\Http\Request $request): \Symfony\Component\HttpFoundation\Response {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $response;
+            }
             if ($response->getStatusCode() >= 400) {
                 $status = $response->getStatusCode();
                 $component = $status === 404 ? 'NotFound' : 'Error';
