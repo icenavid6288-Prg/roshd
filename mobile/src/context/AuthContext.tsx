@@ -6,8 +6,7 @@ interface AuthContextValue {
     user: UserPayload | null;
     token: string | null;
     loading: boolean;
-    login: (identifier: string, password: string) => Promise<void>;
-    register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
+    completePhoneLogin: (challenge: string, code: string) => Promise<void>;
     logout: () => Promise<void>;
     refreshUser: () => Promise<void>;
     updateProfile: (payload: Partial<UserPayload>) => Promise<void>;
@@ -47,35 +46,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     }, [refreshUser]);
 
-    const login = useCallback(async (identifier: string, password: string) => {
-        const result = await api<AuthData>('/api/v1/auth/login', {
-            method: 'POST',
-            auth: false,
-            body: { [identifier.includes('@') ? 'email' : 'phone']: identifier, password, device_name: 'markaz-mobile' },
+    const completePhoneLogin = useCallback(async (challenge: string, code: string) => {
+        const result = await api<AuthData>('/api/v1/auth/otp/verify', {
+            method: 'POST', auth: false, body: { challenge, code },
         });
         await setToken(result.token);
         setTokenState(result.token);
         setUser(result.user);
     }, []);
-
-    const register = useCallback(async (name: string, email: string, password: string, phone?: string) => {
-        const result = await api<AuthData>('/api/v1/auth/register', {
-            method: 'POST',
-            auth: false,
-            body: {
-                name,
-                email,
-                phone,
-                password,
-                password_confirmation: password,
-                device_name: 'markaz-mobile',
-            },
-        });
-        await setToken(result.token);
-        setTokenState(result.token);
-        setUser(result.user);
-    }, []);
-
     const updateProfile = useCallback(async (payload: Partial<UserPayload>) => {
         const updated = await api<UserPayload>('/api/v1/auth/me', {
             method: 'PUT',
@@ -96,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser, updateProfile }}>
+        <AuthContext.Provider value={{ user, token, loading, completePhoneLogin, logout, refreshUser, updateProfile }}>
             {children}
         </AuthContext.Provider>
     );
@@ -107,3 +85,4 @@ export function useAuth(): AuthContextValue {
     if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
     return ctx;
 }
+

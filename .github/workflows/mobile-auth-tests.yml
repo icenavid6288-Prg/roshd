@@ -1,0 +1,20 @@
+name: Mobile phone authentication checks
+on:
+  push:
+    paths: ['app/Http/Controllers/Api/V1/PhoneAuthController.php', 'routes/api.php', 'tests/Feature/Auth/MobilePhoneAuthTest.php', 'database/migrations/2026_10_29*', '.github/workflows/mobile-auth-tests.yml']
+permissions:
+  contents: read
+jobs:
+  phone-auth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: sqlite3, pdo_sqlite, mbstring, gd, zip, intl
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env
+      - run: php artisan key:generate
+      - run: php artisan test --filter=MobilePhoneAuthTest

@@ -24,8 +24,10 @@ Route::prefix('v1')->middleware('throttle:60,1')->group(function (): void {
     Route::get('/products/{product:slug}', [CatalogController::class, 'product'])->name('api.v1.products.show');
 
     Route::prefix('auth')->name('auth.')->group(function (): void {
-        Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register');
-        Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login');
+        Route::post('/register', [\App\Http\Controllers\Api\V1\PhoneAuthController::class, 'requestCode'])->middleware('throttle:5,1')->name('register');
+        Route::post('/login', [\App\Http\Controllers\Api\V1\PhoneAuthController::class, 'requestCode'])->middleware('throttle:5,1')->name('login');
+        Route::post('/otp/request', [\App\Http\Controllers\Api\V1\PhoneAuthController::class, 'requestCode'])->middleware('throttle:5,1');
+        Route::post('/otp/verify', [\App\Http\Controllers\Api\V1\PhoneAuthController::class, 'verify'])->middleware('throttle:20,1');
         Route::get('/me', [AuthController::class, 'me'])->middleware('auth:sanctum')->name('me');
         Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
     });

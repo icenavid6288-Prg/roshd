@@ -1,7 +1,7 @@
 import React from 'react';
 import { I18nManager, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer, useNavigation } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -10,10 +10,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { Loading } from './src/components';
-import type { RootStackNavigation, RootStackParamList } from './src/navigation/types';
+import type { RootStackParamList } from './src/navigation/types';
 
 import { LoginScreen } from './src/screens/LoginScreen';
-import { RegisterScreen } from './src/screens/RegisterScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { CoursesScreen } from './src/screens/CoursesScreen';
 import { ShopScreen } from './src/screens/ShopScreen';
@@ -34,16 +33,6 @@ I18nManager.allowRTL(true);
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
-
-function LoginRoute() {
-    const navigation = useNavigation<RootStackNavigation>();
-    return <LoginScreen onGoRegister={() => navigation.navigate('Register')} />;
-}
-
-function RegisterRoute() {
-    const navigation = useNavigation<RootStackNavigation>();
-    return <RegisterScreen onGoLogin={() => navigation.goBack()} />;
-}
 
 function MainTabs() {
     const { colors } = useTheme();
@@ -149,8 +138,7 @@ function RootNavigator() {
                     </>
                 ) : (
                     <>
-                        <Stack.Screen name="Login" component={LoginRoute} options={{ headerShown: false }} />
-                        <Stack.Screen name="Register" component={RegisterRoute} options={{ headerShown: false }} />
+                        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
                     </>
                 )}
             </Stack.Navigator>
@@ -185,3 +173,4 @@ const styles = StyleSheet.create({
     },
     tabLabel: { fontSize: 11, fontWeight: '600' },
 });
+
