@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const result = await api<AuthData>('/api/v1/auth/login', {
             method: 'POST',
             auth: false,
-            body: { identifier, password, device_name: 'markaz-mobile' },
+            body: { [identifier.includes('@') ? 'email' : 'phone']: identifier, password, device_name: 'markaz-mobile' },
         });
         await setToken(result.token);
         setTokenState(result.token);

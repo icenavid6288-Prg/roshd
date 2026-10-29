@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking } from 'react-native';
+import { normalizeApiPayload } from './normalize';
 import type {
     CertificatePayload,
     CoachingSessionPayload,
@@ -983,7 +984,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
         throw new ApiError(message, response.status, payload);
     }
 
-    return payload as T;
+    return normalizeApiPayload(path, payload) as T;
 }
 
 export async function resolveAssetUrl(asset: string | null | undefined): Promise<string | null> {

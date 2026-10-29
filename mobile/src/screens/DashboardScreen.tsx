@@ -26,7 +26,7 @@ export function DashboardScreen() {
         {data && <><View style={{ backgroundColor: colors.surface, padding: 20, borderRadius: 18, gap: 12 }}>
             <Text style={{ color: colors.text, textAlign: 'right' }}>دوره‌های من: {data.stats.enrolled_count.toLocaleString('fa-IR')}</Text>
             <Text style={{ color: colors.text, textAlign: 'right' }}>دوره‌های تکمیل‌شده: {data.stats.completed_count.toLocaleString('fa-IR')}</Text>
-            <Text style={{ color: colors.text, textAlign: 'right' }}>سفارش‌ها: {data.stats.orders_count.toLocaleString('fa-IR')}</Text>
+            <Text style={{ color: colors.text, textAlign: 'right' }}>سفارش‌های اخیر: {data.recent_orders.length.toLocaleString('fa-IR')}</Text>
         </View><Text style={{ color: colors.text, fontSize: 20, textAlign: 'right' }}>ادامه یادگیری</Text>
         {!data.enrollments.length && <EmptyState title="هنوز در دوره‌ای ثبت‌نام نکرده‌اید" />}
         {data.enrollments.map(enrollment => enrollment.course && <View key={enrollment.id} style={{ backgroundColor: colors.surface, padding: 18, borderRadius: 18, gap: 12 }}>
