@@ -1,7 +1,7 @@
 name: Mobile phone authentication checks
 on:
   push:
-    paths: ['app/Http/Controllers/Api/V1/PhoneAuthController.php', 'routes/api.php', 'tests/Feature/Auth/MobilePhoneAuthTest.php', 'database/migrations/2026_10_29*', '.github/workflows/mobile-auth-tests.yml']
+    paths: ['app/Http/Controllers/Api/V1/PhoneAuthController.php', 'routes/api.php', 'bootstrap/app.php', 'tests/Feature/Auth/MobilePhoneAuthTest.php', 'database/migrations/2026_10_29*', '.github/workflows/mobile-auth-tests.yml']
 permissions:
   contents: read
 jobs:
