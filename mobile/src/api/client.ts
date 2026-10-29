@@ -26,19 +26,20 @@ const BASE_URL_KEY = 'markaz_api_base_url';
 const OFFLINE_STATE_KEY = 'markaz_offline_demo_state_v1';
 
 let cachedToken: string | null | undefined;
-let cachedBaseUrl: string | null | undefined;
+let cachedBaseUrl: string | undefined;
 
 export async function getBaseUrl(): Promise<string> {
     if (cachedBaseUrl === undefined) {
         cachedBaseUrl = (await AsyncStorage.getItem(BASE_URL_KEY)) || DEFAULT_BASE_URL;
     }
-    return cachedBaseUrl.replace(/\/+$/, '');
+    return (cachedBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 }
 
 export async function setBaseUrl(url: string): Promise<void> {
     const clean = url.trim().replace(/\/+$/, '');
-    cachedBaseUrl = clean || DEFAULT_BASE_URL;
-    await AsyncStorage.setItem(BASE_URL_KEY, cachedBaseUrl);
+    const normalizedUrl = clean || DEFAULT_BASE_URL;
+    cachedBaseUrl = normalizedUrl;
+    await AsyncStorage.setItem(BASE_URL_KEY, normalizedUrl);
 }
 
 export async function getToken(): Promise<string | null> {
