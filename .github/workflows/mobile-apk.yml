@@ -8,11 +8,12 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 30
     env:
       EXPO_PUBLIC_API_URL: https://saradars.ir
       EXPO_PUBLIC_DEMO_MODE: 'false'
       CI: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,34 +21,26 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: mobile/package-lock.json
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            mobile/android/.gradle
-          key: gradle-\${{ runner.os }}-\${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/**/gradle-wrapper.properties', 'mobile/package-lock.json') }}
-          restore-keys: gradle-\${{ runner.os }}-
-      - uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
-      - run: npm install --no-audit --no-fund
+      - name: Install mobile dependencies
+        run: npm install --no-audit --no-fund
         working-directory: mobile
-      - run: npx expo install --fix --npm
+      - name: Link or initialize Expo project
+        run: npx eas init --non-interactive
         working-directory: mobile
-      - run: npx expo prebuild --platform android --no-install
+      - name: Build Android APK with EAS
+        id: eas-build
+        run: |
+          npx eas build --platform android --profile preview --non-interactive --wait --json > eas-build.json
+          cat eas-build.json
         working-directory: mobile
-      - run: npx expo-modules-autolinking resolve --platform android --json
-        working-directory: mobile
-      - run: ./gradlew :app:assembleRelease --no-daemon --stacktrace -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
-        working-directory: mobile/android
+      - name: Download APK
+        run: |
+          APK_URL=$(node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('mobile/eas-build.json','utf8')); const b=Array.isArray(d)?d[0]:d; process.stdout.write(b.artifacts?.buildUrl || b.artifacts?.applicationArchiveUrl || '')")
+          test -n "$APK_URL"
+          curl --fail --location "$APK_URL" --output mobile/roshd.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: markaz-android-installable
-          path: mobile/android/app/build/outputs/apk/release/*.apk
+          name: roshd-android-eas
+          path: mobile/roshd.apk
           if-no-files-found: error
           retention-days: 14
