@@ -3,6 +3,9 @@
     "name": "Roshd",
     "slug": "markaz-mobile",
     "version": "1.1.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "icon": "./assets/roshd-logo.png",
     "userInterfaceStyle": "light",
@@ -26,7 +29,8 @@
       "favicon": "./assets/roshd-logo.png"
     },
     "plugins": [
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-updates"
     ]
   }
 }
