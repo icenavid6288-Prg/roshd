@@ -7,7 +7,6 @@
       "policy": "appVersion"
     },
     "orientation": "portrait",
-    "icon": "./assets/roshd-logo.png",
     "userInterfaceStyle": "light",
     "scheme": "markaz",
     "ios": {
