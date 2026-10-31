@@ -42,6 +42,11 @@ Thumbs.db
 /desktop/node_modules
 /desktop/release
 
+# Expo web preview/build artifacts (generated locally)
+/mobile/.expo-export*/
+/mobile/.expo-preview*.zip
+/mobile/android/
+
 /public/images/surveys/*
 !/public/images/surveys/.gitkeep
 

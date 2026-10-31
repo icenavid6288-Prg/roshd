@@ -2,7 +2,7 @@
   "expo": {
     "name": "Roshd",
     "slug": "markaz-mobile",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ir.markaz.mobile",
-      "buildNumber": "2"
+      "buildNumber": "3"
     },
     "android": {
       "package": "ir.markaz.mobile",
@@ -22,7 +22,7 @@
       },
       "predictiveBackGestureEnabled": true,
       "edgeToEdgeEnabled": true,
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/roshd-logo.png"

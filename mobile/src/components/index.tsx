@@ -11,6 +11,7 @@ import {
     type TextInputProps,
     type ViewStyle,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { faNum, price, radius, spacing, typography } from '../theme';
 import { useTheme } from '../context/ThemeContext';
@@ -30,8 +31,10 @@ export function Loading({ label = 'در حال بارگذاری…' }: { label?:
     const { colors } = useTheme();
     return (
         <View style={[styles.center, { backgroundColor: colors.bg }]}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.muted }]}>{label}</Text>
+            <View style={[styles.loadingMark, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Image source={require('../../assets/roshd-logo.png')} style={styles.loadingLogo} accessibilityLabel="لوگوی Roshd" />
+            </View>
+            <ActivityIndicator size="small" color={colors.primary} style={styles.loadingSpinner} />
         </View>
     );
 }
@@ -116,7 +119,7 @@ export function SearchBar({
     const { colors } = useTheme();
     return (
         <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Ionicons name="search-outline" size={21} color={colors.muted} />
             <TextInput
                 value={value}
                 onChangeText={onChangeText}
@@ -461,7 +464,7 @@ export function Field({
 }
 
 const styles = StyleSheet.create({
-    screen: { flex: 1 },
+    screen: { flex: 1, minHeight: 0 },
     center: {
         flex: 1,
         alignItems: 'center',
@@ -469,6 +472,9 @@ const styles = StyleSheet.create({
         padding: spacing.xl,
     },
     loadingText: { ...typography.small, marginTop: spacing.md },
+    loadingMark: { width: 104, height: 104, borderRadius: 32, borderWidth: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#0B3B2B', shadowOpacity: 0.12, shadowRadius: 22, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
+    loadingLogo: { width: 78, height: 78, borderRadius: 23 },
+    loadingSpinner: { marginTop: 20 },
     empty: {
         alignItems: 'center',
         justifyContent: 'center',
@@ -482,7 +488,7 @@ const styles = StyleSheet.create({
         marginTop: spacing.xs,
     },
     sectionHeader: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: spacing.lg,
@@ -499,12 +505,12 @@ const styles = StyleSheet.create({
     },
     chipText: { fontSize: 11, fontWeight: '700' },
     searchBox: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         alignItems: 'center',
         borderWidth: 1,
         borderRadius: radius.md,
         paddingHorizontal: spacing.md,
-        height: 44,
+        minHeight: 54,
         gap: spacing.sm,
     },
     searchIcon: { fontSize: 15 },
@@ -530,7 +536,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '700',
     },
-    priceRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    priceRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: spacing.sm },
     priceMain: { fontWeight: '800' },
     priceFree: { fontWeight: '800' },
     priceStrike: {
@@ -557,8 +563,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         overflow: 'hidden',
     },
-    cardCompact: { width: 260 },
-    cardThumb: { width: '100%', height: 140 },
+    cardCompact: { width: 280 },
+    cardThumb: { width: '100%', height: 170 },
     cardThumbPlaceholder: {
         alignItems: 'center',
         justifyContent: 'center',
@@ -570,20 +576,20 @@ const styles = StyleSheet.create({
         fontSize: 14,
         textAlign: 'center',
     },
-    cardBody: { padding: spacing.md, gap: 6 },
-    cardMetaRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+    cardBody: { padding: 18, gap: 10 },
+    cardMetaRow: { flexDirection: 'row-reverse', gap: 6, flexWrap: 'wrap' },
     cardTitle: { ...typography.subtitle },
     cardMeta: { ...typography.small },
     cardFooter: {
         marginTop: spacing.xs,
         paddingTop: spacing.sm,
         borderTopWidth: 1,
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
     productCard: {
-        width: 170,
+        width: 180,
         borderRadius: radius.lg,
         borderWidth: 1,
         overflow: 'hidden',
@@ -591,6 +597,7 @@ const styles = StyleSheet.create({
     productImage: { width: '100%', height: 150 },
     pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
     button: {
+        minHeight: 52,
         paddingVertical: 14,
         paddingHorizontal: spacing.xl,
         borderRadius: radius.md,

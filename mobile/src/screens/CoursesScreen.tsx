@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { CourseCard, EmptyState, FilterChips, Loading, Screen, SearchBar } from '../components';
 import { api, ApiError } from '../api/client';
@@ -69,7 +70,7 @@ export function CoursesScreen() {
     return (
         <Screen>
             <View style={styles.header}>
-                <Text style={[styles.title, { color: colors.text }]}>دوره‌های آموزشی</Text>
+                <View style={styles.headingRow}><View style={styles.headingCopy}><Text style={[styles.title, { color: colors.text }]}>آکادمی رشد</Text><Text style={[styles.subtitle, { color: colors.muted }]}>مهارتی که قدم بعدی تو را می‌سازد</Text></View><View style={[styles.headerIcon, { backgroundColor: colors.primarySoft }]}><Ionicons name="school-outline" size={28} color={colors.primary} /></View></View>
                 <SearchBar
                     value={search}
                     onChangeText={setSearch}
@@ -83,19 +84,20 @@ export function CoursesScreen() {
             {loading ? (
                 <Loading label="در حال دریافت دوره‌ها…" />
             ) : error && courses.length === 0 ? (
-                <EmptyState icon="📡" title="خطا در دریافت دوره‌ها" subtitle={error} />
+                <View style={styles.state}><Ionicons name="cloud-offline-outline" size={40} color={colors.muted} /><Text style={[styles.subtitle, { color: colors.text }]}>{error}</Text><Pressable accessibilityRole="button" onPress={() => load(1, true)} style={styles.retry}><Text style={styles.retryText}>دریافت دوباره دوره‌ها</Text></Pressable></View>
             ) : (
                 <FlatList
                     data={courses}
                     keyExtractor={(item) => String(item.id)}
                     contentContainerStyle={styles.list}
+                    ListHeaderComponent={<View style={styles.catalogBanner}><View style={styles.bannerMark}><Ionicons name="play" size={23} color="#D5F58A" /></View><View style={styles.headingCopy}><Text style={styles.bannerTitle}>زمانی برای یادگیری خودت</Text><Text style={styles.bannerCopy}>یک دوره انتخاب کن و با ریتم خودت پیش برو.</Text></View></View>}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
                     }
                     onEndReached={onEndReached}
                     onEndReachedThreshold={0.4}
-                    ListEmptyComponent={<EmptyState icon="🎓" title="دوره‌ای متناسب با جستجوی شما یافت نشد" />}
+                    ListEmptyComponent={<View style={styles.state}><Ionicons name="search-outline" size={36} color={colors.muted} /><Text style={[styles.subtitle, { color: colors.text }]}>دوره‌ای با این انتخاب پیدا نشد</Text><Text style={[styles.subtitle, { color: colors.muted }]}>عنوان دیگری بنویس یا دسته‌بندی را تغییر بده.</Text></View>}
                     ListFooterComponent={
                         loadingMore ? (
                             <Loading label="در حال دریافت…" />
@@ -124,8 +126,12 @@ const styles = StyleSheet.create({
         paddingBottom: spacing.xs,
         gap: spacing.sm,
     },
-    title: { ...typography.title },
-    list: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xxl, gap: spacing.md },
+    title: { fontFamily: 'VazirmatnBlack', fontSize: 27, lineHeight: 44, textAlign: 'right' },
+    subtitle: { fontFamily: 'Vazirmatn', fontSize: 14, lineHeight: 25, textAlign: 'right' },
+    headingRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 16, marginBottom: 14 }, headingCopy: { flex: 1, minWidth: 0 }, headerIcon: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    catalogBanner: { backgroundColor: '#153F31', padding: 22, borderRadius: 26, marginBottom: 22, flexDirection: 'row-reverse', alignItems: 'center', gap: 16 }, bannerMark: { width: 54, height: 54, borderRadius: 27, backgroundColor: '#315A47', alignItems: 'center', justifyContent: 'center' }, bannerTitle: { fontFamily: 'VazirmatnBold', fontSize: 18, lineHeight: 31, textAlign: 'right', color: '#FFFFFF' }, bannerCopy: { fontFamily: 'Vazirmatn', fontSize: 13, lineHeight: 23, textAlign: 'right', color: '#C5DCCF' },
+    state: { alignItems: 'center', padding: 28, gap: 14 }, retry: { paddingVertical: 14, paddingHorizontal: 22, backgroundColor: '#153F31', borderRadius: 16 }, retryText: { fontFamily: 'VazirmatnBold', color: '#FFFFFF', fontSize: 14 },
+    list: { paddingHorizontal: 22, paddingTop: 16, paddingBottom: 40, width: '100%', maxWidth: 820, alignSelf: 'center' },
     itemWrap: { marginBottom: spacing.md },
     endText: { textAlign: 'center', fontSize: 12, paddingVertical: spacing.lg },
 });

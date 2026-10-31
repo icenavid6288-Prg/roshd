@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { EmptyState, FilterChips, Loading, ProductCard, Screen, SearchBar } from '../components';
 import { api, ApiError } from '../api/client';
@@ -11,6 +12,8 @@ import type { TabStackNavigation } from '../navigation/types';
 const PRODUCT_CATEGORIES = ['همه', 'کتاب چاپی', 'ابزار برنامه‌ریزی', 'محصول دیجیتال'];
 
 export function ShopScreen() {
+    const { width } = useWindowDimensions();
+    const columns = width < 380 ? 1 : 2;
     const navigation = useNavigation<TabStackNavigation>();
     const { colors } = useTheme();
     const [products, setProducts] = useState<ProductPayload[]>([]);
@@ -69,8 +72,7 @@ export function ShopScreen() {
     return (
         <Screen>
             <View style={styles.header}>
-                <Text style={[styles.title, { color: colors.text }]}>فروشگاه مرکز رشد</Text>
-                <Text style={[styles.subtitle, { color: colors.muted }]}>کتاب‌ها، پلنرهای OKR و ابزارهای مدیریتی</Text>
+                <View style={styles.headingRow}><View style={styles.headingCopy}><Text style={[styles.title, { color: colors.text }]}>فروشگاه رشد</Text><Text style={[styles.subtitle, { color: colors.muted }]}>ابزارهای کوچک برای تغییرهای ماندگار</Text></View><View style={styles.headerIcon}><Ionicons name="bag-handle-outline" size={28} color="#264D35" /></View></View>
                 <SearchBar
                     value={search}
                     onChangeText={setSearch}
@@ -84,21 +86,23 @@ export function ShopScreen() {
             {loading ? (
                 <Loading label="در حال دریافت محصولات…" />
             ) : error && products.length === 0 ? (
-                <EmptyState icon="📡" title="خطا در دریافت محصولات" subtitle={error} />
+                <View style={styles.state}><Ionicons name="cloud-offline-outline" size={40} color={colors.muted} /><Text style={[styles.subtitle, { color: colors.text }]}>{error}</Text><Pressable accessibilityRole="button" onPress={() => load(1, true)} style={styles.retry}><Text style={styles.retryText}>دریافت دوباره محصولات</Text></Pressable></View>
             ) : (
                 <FlatList
+                    key={columns}
                     data={products}
                     keyExtractor={(item) => String(item.id)}
                     contentContainerStyle={styles.list}
+                    ListHeaderComponent={<View style={styles.catalogBanner}><Ionicons name="book-outline" size={38} color="#34563A" /><View style={styles.headingCopy}><Text style={styles.bannerTitle}>همراهِ روزهای رشد</Text><Text style={styles.bannerCopy}>کتاب، برنامه‌ریز و ابزارهایی برای مسیر تو</Text></View></View>}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
                     }
                     onEndReached={onEndReached}
                     onEndReachedThreshold={0.4}
-                    numColumns={2}
-                    columnWrapperStyle={styles.row}
-                    ListEmptyComponent={<EmptyState icon="🛍" title="محصولی یافت نشد" />}
+                    numColumns={columns}
+                    columnWrapperStyle={columns > 1 ? styles.row : undefined}
+                    ListEmptyComponent={<View style={styles.state}><Ionicons name="bag-outline" size={36} color={colors.muted} /><Text style={[styles.subtitle, { color: colors.text }]}>محصولی با این انتخاب پیدا نشد</Text><Text style={[styles.subtitle, { color: colors.muted }]}>جستجو یا دسته‌بندی را تغییر بده.</Text></View>}
                     ListFooterComponent={
                         loadingMore ? (
                             <Loading label="در حال دریافت…" />
@@ -127,9 +131,12 @@ const styles = StyleSheet.create({
         paddingBottom: spacing.xs,
         gap: 6,
     },
-    title: { ...typography.title },
-    subtitle: { ...typography.small },
-    list: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xxl },
+    title: { fontFamily: 'VazirmatnBlack', fontSize: 27, lineHeight: 44, textAlign: 'right' },
+    subtitle: { fontFamily: 'Vazirmatn', fontSize: 14, lineHeight: 25, textAlign: 'right' },
+    headingRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 16, marginBottom: 14 }, headingCopy: { flex: 1, minWidth: 0 }, headerIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: '#E5F0D2', alignItems: 'center', justifyContent: 'center' },
+    catalogBanner: { backgroundColor: '#E7EED9', padding: 22, borderRadius: 26, marginBottom: 22, flexDirection: 'row-reverse', alignItems: 'center', gap: 18 }, bannerTitle: { fontFamily: 'VazirmatnBold', fontSize: 20, lineHeight: 34, textAlign: 'right', color: '#264D35' }, bannerCopy: { fontFamily: 'Vazirmatn', fontSize: 14, lineHeight: 25, textAlign: 'right', color: '#52694A' },
+    state: { alignItems: 'center', padding: 28, gap: 14 }, retry: { paddingVertical: 14, paddingHorizontal: 22, backgroundColor: '#153F31', borderRadius: 16 }, retryText: { fontFamily: 'VazirmatnBold', color: '#FFFFFF', fontSize: 14 },
+    list: { paddingHorizontal: 22, paddingTop: 16, paddingBottom: 40, width: '100%', maxWidth: 820, alignSelf: 'center' },
     row: { gap: spacing.md },
     itemWrap: { flex: 1, marginBottom: spacing.md },
     endText: { textAlign: 'center', fontSize: 12, paddingVertical: spacing.lg },

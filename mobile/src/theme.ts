@@ -79,12 +79,12 @@ export const radius = {
 } as const;
 
 export const typography = {
-    hero: { fontSize: 24, fontWeight: '800' as const, lineHeight: 32 },
-    title: { fontSize: 18, fontWeight: '700' as const, lineHeight: 26 },
-    subtitle: { fontSize: 15, fontWeight: '600' as const, lineHeight: 22 },
-    body: { fontSize: 14, fontWeight: '400' as const, lineHeight: 22 },
-    small: { fontSize: 12, fontWeight: '500' as const, lineHeight: 18 },
-    tiny: { fontSize: 11, fontWeight: '500' as const, lineHeight: 16 },
+    hero: { fontFamily: 'VazirmatnBlack', fontSize: 24, fontWeight: '800' as const, lineHeight: 36 },
+    title: { fontFamily: 'VazirmatnBold', fontSize: 18, fontWeight: '700' as const, lineHeight: 29 },
+    subtitle: { fontFamily: 'VazirmatnBold', fontSize: 15, fontWeight: '600' as const, lineHeight: 26 },
+    body: { fontFamily: 'Vazirmatn', fontSize: 14, fontWeight: '400' as const, lineHeight: 25 },
+    small: { fontFamily: 'Vazirmatn', fontSize: 12, fontWeight: '500' as const, lineHeight: 22 },
+    tiny: { fontFamily: 'Vazirmatn', fontSize: 11, fontWeight: '500' as const, lineHeight: 20 },
 };
 
 // Format numbers using Persian digits for a native feel.

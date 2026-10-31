@@ -1,11 +1,13 @@
 import React from 'react';
-import { I18nManager, StyleSheet, View } from 'react-native';
+import { I18nManager, StyleSheet, Platform, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { RoshdTabBar } from './src/navigation/RoshdTabBar';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -36,17 +38,25 @@ const Tab = createBottomTabNavigator();
 
 function MainTabs() {
     const { colors } = useTheme();
+    const insets = useSafeAreaInsets();
     return (
-        <Tab.Navigator
+        <Tab.Navigator tabBar={(props) => <RoshdTabBar {...props} />}
             screenOptions={{
                 headerShown: false,
                 tabBarActiveTintColor: colors.primary,
                 tabBarInactiveTintColor: colors.muted,
                 tabBarStyle: [
                     styles.tabBar,
-                    { backgroundColor: colors.surface, borderTopColor: colors.border },
+                    { backgroundColor: colors.surface, borderTopColor: colors.border, height: 66 + insets.bottom, paddingBottom: Math.max(insets.bottom, 8) },
                 ],
                 tabBarLabelStyle: styles.tabLabel,
+                tabBarItemStyle: styles.tabItem,
+                tabBarActiveBackgroundColor: colors.primarySoft,
+                tabBarHideOnKeyboard: true,
+                tabBarShowLabel: true,
+                tabBarIconStyle: styles.tabIcon,
+                tabBarLabelPosition: 'below-icon',
+                tabBarBackground: () => <View style={[StyleSheet.absoluteFill, styles.tabBarBackground, { backgroundColor: colors.surface }]} />,
             }}
         >
             <Tab.Screen
@@ -89,16 +99,7 @@ function MainTabs() {
                     ),
                 }}
             />
-            <Tab.Screen
-                name="ProfileTab"
-                component={ProfileScreen}
-                options={{
-                    title: 'پروفایل',
-                    tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
-                    ),
-                }}
-            />
+            <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'پروفایل', tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} /> }} />
         </Tab.Navigator>
     );
 }
@@ -147,6 +148,12 @@ function RootNavigator() {
 }
 
 export default function App() {
+    const [fontsLoaded] = useFonts({
+        Vazirmatn: require('./assets/fonts/Vazirmatn-Regular.ttf'),
+        VazirmatnBold: require('./assets/fonts/Vazirmatn-Bold.ttf'),
+        VazirmatnBlack: require('./assets/fonts/Vazirmatn-Black.ttf'),
+    });
+    if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#F7F8F4' }} />;
     return (
         <SafeAreaProvider>
             <ThemeProvider>
@@ -165,12 +172,24 @@ const styles = StyleSheet.create({
         flex: 1,
         // Force right-to-left layout for the Persian interface.
         direction: 'rtl',
+        width: '100%', maxWidth: 760, alignSelf: 'center', minHeight: 0,
+        ...(Platform.OS === 'web' ? { height: '100dvh' as unknown as number, overflow: 'hidden' as const } : {}),
     },
     tabBar: {
-        height: 64,
-        paddingBottom: 8,
-        paddingTop: 6,
+        height: 78,
+        paddingHorizontal: 8,
+        paddingTop: 8,
+        paddingBottom: 10,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        elevation: 12,
+        shadowColor: '#0b3b2b',
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: -5 },
     },
-    tabLabel: { fontSize: 11, fontWeight: '600' },
+    tabBarBackground: { borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+    tabItem: { borderRadius: 16, marginHorizontal: 2, marginVertical: 3, paddingTop: 2 },
+    tabIcon: { marginTop: 1 },
+    tabLabel: { fontSize: 10, fontWeight: '700', marginTop: 2 },
 });
 
