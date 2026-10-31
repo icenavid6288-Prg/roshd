@@ -1,19 +1,23 @@
 name: Build installable Android app
+
 on:
   push:
+    branches: [main]
     paths: ['mobile/**', '.github/workflows/mobile-apk.yml']
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
   apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       EXPO_PUBLIC_API_URL: https://saradars.ir
       EXPO_PUBLIC_DEMO_MODE: 'false'
       CI: '1'
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      GRADLE_OPTS: -Dorg.gradle.vfs.watch=false -Dorg.gradle.daemon=false -Dkotlin.compiler.execution.strategy=in-process
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,26 +25,37 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - uses: android-actions/setup-android@v3
       - name: Install mobile dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
         working-directory: mobile
-      - name: Link or initialize Expo project
-        run: npx eas init --force --non-interactive
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --clean --no-install
         working-directory: mobile
-      - name: Build Android APK with EAS
-        id: eas-build
+      - name: Build release APK
+        shell: bash
+        working-directory: mobile/android
         run: |
-          npx eas build --platform android --profile preview --non-interactive --wait --json > eas-build.json
-          cat eas-build.json
-        working-directory: mobile
-      - name: Download APK
-        run: |
-          APK_URL=$(node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('mobile/eas-build.json','utf8')); const b=Array.isArray(d)?d[0]:d; process.stdout.write(b.artifacts?.buildUrl || b.artifacts?.applicationArchiveUrl || '')")
-          test -n "$APK_URL"
-          curl --fail --location "$APK_URL" --output mobile/roshd.apk
+          set +e
+          timeout --signal=TERM --kill-after=60s 30m ./gradlew :app:assembleRelease \
+            --no-daemon --no-watch-fs --no-configuration-cache --console=plain \
+            -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+          gradle_status=$?
+          set -e
+          apk_path="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -s "$apk_path" ]; then
+            echo "APK was not produced (Gradle exit: $gradle_status)."
+            exit "${gradle_status:-1}"
+          fi
+          echo "APK ready: $(du -h "$apk_path" | cut -f1)"
       - uses: actions/upload-artifact@v4
         with:
-          name: roshd-android-eas
-          path: mobile/roshd.apk
+          name: roshd-android-1.2.0
+          path: mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
