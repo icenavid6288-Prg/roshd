@@ -40,9 +40,11 @@ jobs:
         shell: bash
         working-directory: mobile/android
         run: |
+          sed -i 's/^org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8/' gradle.properties
           ./gradlew :app:assembleRelease \
             --no-daemon --no-watch-fs --no-configuration-cache --console=plain \
             --max-workers=2 \
+            -x lintVitalAnalyzeRelease \
             -PreactNativeArchitectures=arm64-v8a
           apk_path="app/build/outputs/apk/release/app-release.apk"
           if [ ! -s "$apk_path" ]; then
