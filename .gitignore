@@ -52,3 +52,5 @@ Thumbs.db
 
 # AI Studio internal
 /.aistudio
+/dist
+
