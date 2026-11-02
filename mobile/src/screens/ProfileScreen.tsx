@@ -6,7 +6,9 @@ import { Avatar, Field, PrimaryButton, Screen } from '../components';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import type { TabStackNavigation } from '../navigation/types';
-import { faNum, formatCurrency } from '../utils/format';
+import { faNum } from '../theme';
+
+const formatCurrency = (value: number) => `${faNum(value.toLocaleString('en-US'))} تومان`;
 
 export function ProfileScreen() {
     const navigation = useNavigation<TabStackNavigation>();
@@ -186,7 +188,7 @@ export function ProfileScreen() {
                             title="مشاهده برنامه کلاس‌ها و حضور و غیاب"
                             onPress={() => {
                                 setShowQrModal(false);
-                                navigation.navigate('VipClub');
+                                navigation.navigate('Dashboard');
                             }}
                         />
                     </View>
@@ -452,7 +454,7 @@ export function ProfileScreen() {
                     </Text>
                     <PrimaryButton
                         title="پنل مدرس: حضور و غیاب و تنظیمات دوره VIP"
-                        onPress={() => navigation.navigate('VipInstructor')}
+                        onPress={() => navigation.navigate('AdminPanel')}
                     />
                 </View>
 
