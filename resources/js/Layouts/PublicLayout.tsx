@@ -20,6 +20,7 @@ import {
     Sparkles,
     Radio,
     Search as SearchIcon,
+    Smartphone,
     Users,
     UsersRound,
     UserRound,
