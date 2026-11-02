@@ -64,8 +64,14 @@ async function startServer() {
     if (!isProd) {
         const { createServer } = await import('vite');
         vite = await createServer({
-            server: { middlewareMode: true },
+            server: { middlewareMode: true, hmr: false },
             appType: 'custom',
+            resolve: {
+                alias: {
+                    '@': path.resolve(__dirname, 'resources/js'),
+                    'ziggy-js': path.resolve(__dirname, 'resources/js/lib/route.ts'),
+                },
+            },
         });
         app.use(vite.middlewares);
     } else {
@@ -76,7 +82,7 @@ async function startServer() {
     app.use(express.static(path.resolve(__dirname, 'public')));
 
     // Universal Inertia & Page Handler
-    app.use('*', async (req: Request, res: Response, next) => {
+    app.use(async (req: Request, res: Response, next) => {
         const url = req.originalUrl;
 
         // Skip internal/vite assets
