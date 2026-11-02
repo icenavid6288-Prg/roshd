@@ -301,7 +301,7 @@ export default function Home() {
                             <span className="text-white/25">·</span>
                             <span className="flex items-center gap-1.5 text-emerald-300">
                                 <Award className="size-4" />
-                                همگام‌سازی کامل وب‌سایت و سوپراپ
+                                همگام‌سازی کامل وب‌سایت و اپلیکیشن
                             </span>
                         </div>
                     </div>

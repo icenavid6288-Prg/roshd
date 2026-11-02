@@ -48,7 +48,7 @@ export default function DashboardSessions() {
                             className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-black text-emerald-700 transition hover:bg-emerald-500/20 dark:border-emerald-400/30 dark:bg-emerald-500/15 dark:text-emerald-300"
                         >
                             <Smartphone className="size-4" />
-                            باز کردن درگاه کلاس در سوپراپ
+                            باز کردن درگاه کلاس در اپلیکیشن
                         </Link>
                         <Link
                             href="/coaching"
@@ -76,7 +76,7 @@ export default function DashboardSessions() {
                                         <div className="flex flex-wrap items-center gap-2">
                                             <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-0.5 text-[0.65rem] font-black text-red-600 dark:bg-red-500/20 dark:text-red-300">
                                                 <Radio className="size-3 animate-pulse" />
-                                                همگام با سوپراپ
+                                                همگام با اپلیکیشن
                                             </span>
                                             {session.platform_label && (
                                                 <span className="rounded-full bg-sky-500/10 px-2.5 py-0.5 text-[0.65rem] font-black text-sky-700 dark:bg-sky-500/20 dark:text-sky-300">

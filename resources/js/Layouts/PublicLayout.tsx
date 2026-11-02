@@ -469,7 +469,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                     { label: 'دوره‌ها', href: '/courses', icon: GraduationCap },
                     { label: 'وبینارها', href: '/events', icon: Video },
                     { label: 'فروشگاه', href: '/shop', icon: ShoppingBag },
-                    { label: 'سوپراپ', href: '/mobile-app', icon: Smartphone },
+                    { label: 'اپلیکیشن', href: '/mobile-app', icon: Smartphone },
                     auth.user
                         ? { label: 'پنل من', href: '/dashboard', icon: UserRound }
                         : { label: 'حساب', icon: UserRound, onClick: () => setAuthModal('login') },

@@ -42,7 +42,7 @@ export default function EventsIndex() {
                     <div>
                         <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-black text-emerald-300">
                             <Video className="size-3.5" />
-                            درگاه یکپارچه وبینارها و کلاس‌های آنلاین (همگام با سوپراپ)
+                            درگاه یکپارچه وبینارها و کلاس‌های آنلاین (همگام با اپلیکیشن)
                         </span>
                         <h1 className="mt-4 text-3xl font-black md:text-5xl">
                             وبینارها، کلاس‌های آنلاین و سمینارها
