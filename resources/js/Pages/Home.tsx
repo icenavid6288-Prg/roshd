@@ -5,18 +5,23 @@ import {
     BookOpen,
     CheckCircle2,
     Compass,
+    ExternalLink,
     FlaskConical,
     Headphones,
     HeartHandshake,
     Lightbulb,
+    MessageCircle,
     Mic,
     Phone,
+    Radio,
     Rocket,
+    Smartphone,
     Sparkles,
     Star,
     Target,
     TrendingUp,
     Users,
+    Video,
     Brain,
     ShieldCheck,
     Zap,
@@ -100,6 +105,97 @@ const keyPillars = [
     },
 ];
 
+const quickDeskServices = [
+    {
+        title: 'وبینارها و کلاس آنلاین',
+        subtitle: 'ورود به اسکای‌روم و گوگل‌میت',
+        badge: '۱ کلاس زنده',
+        badgeColor: 'text-rose-600 dark:text-rose-300 bg-rose-500/15 border-rose-500/30',
+        dotColor: 'bg-rose-500 animate-pulse',
+        href: '/events?type=webinar',
+        appHref: '/mobile-app?screen=sessions',
+        icon: Video,
+        gradient:
+            'from-rose-500/15 via-amber-500/5 to-transparent dark:from-rose-500/25 dark:via-rose-900/10 dark:to-white/[0.02]',
+        iconBg: 'bg-rose-500/15 text-rose-600 dark:bg-rose-500/25 dark:text-rose-300 ring-rose-500/30',
+    },
+    {
+        title: 'گفتگو با اساتید (۴ آیتم)',
+        subtitle: 'ارتباط مستقیم با مدرس هر بخش',
+        badge: 'پاسخگویی آنلاین',
+        badgeColor: 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 border-emerald-500/30',
+        dotColor: 'bg-emerald-400',
+        href: '/mobile-app?screen=chat',
+        appHref: '/mobile-app?screen=chat',
+        icon: MessageCircle,
+        gradient:
+            'from-emerald-500/15 via-teal-500/5 to-transparent dark:from-emerald-500/25 dark:via-emerald-900/10 dark:to-white/[0.02]',
+        iconBg: 'bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/25 dark:text-emerald-300 ring-emerald-500/30',
+    },
+    {
+        title: 'مطالعه کتاب و پادکست',
+        subtitle: 'پخش و مطالعه امن درون‌برنامه‌ای',
+        badge: '۴ محصول فعال',
+        badgeColor: 'text-amber-700 dark:text-amber-300 bg-amber-500/15 border-amber-500/30',
+        dotColor: 'bg-amber-400',
+        href: '/shop',
+        appHref: '/mobile-app?screen=inAppReader',
+        icon: BookOpen,
+        gradient:
+            'from-amber-500/15 via-orange-500/5 to-transparent dark:from-amber-500/25 dark:via-amber-900/10 dark:to-white/[0.02]',
+        iconBg: 'bg-amber-500/15 text-amber-700 dark:bg-amber-500/25 dark:text-amber-300 ring-amber-500/30',
+    },
+    {
+        title: 'نقشه راه ۹۰ روزه و حضور',
+        subtitle: 'ثبت حضور و کارنامه رشد نوجوان',
+        badge: '۹۵٪ حضور VIP',
+        badgeColor: 'text-sky-700 dark:text-sky-300 bg-sky-500/15 border-sky-500/30',
+        dotColor: 'bg-sky-400',
+        href: '/dashboard/goals',
+        appHref: '/mobile-app?screen=goals',
+        icon: Compass,
+        gradient:
+            'from-sky-500/15 via-indigo-500/5 to-transparent dark:from-sky-500/25 dark:via-sky-900/10 dark:to-white/[0.02]',
+        iconBg: 'bg-sky-500/15 text-sky-700 dark:bg-sky-500/25 dark:text-sky-300 ring-sky-500/30',
+    },
+];
+
+const syncedLiveWebinars = [
+    {
+        id: 1,
+        title: 'وبینار زنده کشف استعداد و نقشه راه آینده نوجوان',
+        instructor: 'دکتر علیرضا بیدی · راهبر اصلی دوره',
+        platformLabel: 'اسکای‌روم (Skyroom)',
+        roomCode: 'ROSHD-VIP-104',
+        time: 'امروز · پنج‌شنبه ۱۱ اردیبهشت · ساعت ۱۷:۰۰',
+        status: 'live' as const,
+        link: 'https://www.skyroom.online/ch/roshd-academy/teen-future-vip',
+        slug: 'teen-talent-discovery-webinar',
+    },
+    {
+        id: 2,
+        title: 'کلاس آنلاین کارگاه تصمیم‌گیری و هدف‌گذاری ۹۰ روزه (آیتم ۲)',
+        instructor: 'استاد سارا کریمی · مدرس برنامه‌ریزی و هدف‌گذاری',
+        platformLabel: 'گوگل میت (Google Meet)',
+        roomCode: 'rsh-daca-vip',
+        time: 'یکشنبه ۱۴ اردیبهشت · ساعت ۱۸:۰۰',
+        status: 'upcoming' as const,
+        link: 'https://meet.google.com/rsh-daca-vip',
+        slug: 'systemic-decision-making-google-meet',
+    },
+    {
+        id: 3,
+        title: 'نشست آنلاین پرسش و پاسخ والدین با تیم کوچینگ رشد',
+        instructor: 'دکتر محمدرضا صادقی · منتور خودشناسی و استعدادیابی',
+        platformLabel: 'اسکای‌روم (Skyroom)',
+        roomCode: 'PARENTS-1404',
+        time: 'چهارشنبه ۱۷ اردیبهشت · ساعت ۲۰:۰۰',
+        status: 'upcoming' as const,
+        link: 'https://www.skyroom.online/ch/roshd-academy/parents-club',
+        slug: 'parents-coaching-qa-skyroom',
+    },
+];
+
 export default function Home() {
     const { courses, services, testimonials, posts, books, podcast, stats, site, pageContent } = usePage<
         PageProps & {
@@ -180,14 +276,15 @@ export default function Home() {
                                 <span>{editable('hero_cta_primary', 'رزرو ارزیابی رایگان مسیر رشد')}</span>
                             </a>
 
-                            <a
-                                href="#future-path-finder"
+                            <Link
+                                href="/mobile-app"
                                 onClick={() => vibrate()}
-                                className="inline-flex min-h-[3.35rem] items-center gap-2.5 rounded-2xl border border-white/20 bg-white/5 px-7 py-3.5 text-base font-bold text-white backdrop-blur-md transition-all hover:border-emerald-400/60 hover:bg-emerald-500/15 active:scale-[0.98]"
+                                className="inline-flex min-h-[3.35rem] items-center gap-2.5 rounded-2xl border border-[#D6F39A]/40 bg-[#D6F39A]/15 px-7 py-3.5 text-base font-bold text-[#D6F39A] backdrop-blur-md transition-all hover:border-[#D6F39A] hover:bg-[#D6F39A]/25 active:scale-[0.98]"
                             >
-                                <span>آزمون آنلاین ۳۰ ثانیه‌ای</span>
-                                <ArrowLeft className="size-5 text-emerald-300" />
-                            </a>
+                                <Smartphone className="size-5" />
+                                <span>ورود به سوپراپلیکیشن رشد</span>
+                                <ArrowLeft className="size-5" />
+                            </Link>
                         </div>
 
                         {/* Quiet Clean Social Proof Row (No Pill Enclosures) */}
@@ -204,7 +301,7 @@ export default function Home() {
                             <span className="text-white/25">·</span>
                             <span className="flex items-center gap-1.5 text-emerald-300">
                                 <Award className="size-4" />
-                                گارانتی رضایت جلسه اول
+                                همگام‌سازی کامل وب‌سایت و سوپراپ
                             </span>
                         </div>
                     </div>
@@ -241,6 +338,165 @@ export default function Home() {
                 </div>
             </section>
 
+            {/* ── ۲.۵. Synchronized Quick Services Desk & Live Webinars Hub (Glassmorphic Bento) ── */}
+            <section className="relative overflow-hidden border-b border-emerald-900/10 bg-gradient-to-b from-[#f4f8f5] to-white py-16 dark:border-white/10 dark:from-[#071c14] dark:to-[#061811]">
+                <div className="pointer-events-none absolute -top-24 left-1/3 size-96 rounded-full bg-emerald-500/10 blur-[110px]" />
+                <div className="container-site relative z-10">
+                    <div className="flex flex-wrap items-end justify-between gap-4">
+                        <div>
+                            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-black text-emerald-700 dark:text-emerald-300">
+                                <Zap className="size-3.5 text-amber-500 dark:text-amber-400" />
+                                اکوسیستم یکپارچه وب‌سایت و سوپراپلیکیشن رشد
+                            </span>
+                            <h2 className="mt-3 text-2xl font-black text-navy dark:text-white md:text-4xl">
+                                میز خدمات سریع رشد و درگاه کلاس‌های آنلاین
+                            </h2>
+                            <p className="mt-2 text-xs leading-7 text-navy/65 dark:text-white/65 md:text-sm">
+                                دسترسی آنی به اتاق‌های وبینار (اسکای‌روم و گوگل‌میت)، گفتگو با اساتید ۴ آیتم دوره، کتابخانه صوتی و کارنامه حضور نوجوان.
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2.5">
+                            <Link
+                                href="/events?type=webinar"
+                                className="inline-flex items-center gap-2 rounded-xl border border-emerald-900/15 bg-white px-4 py-2.5 text-xs font-black text-emerald-800 shadow-sm transition hover:border-emerald-500/50 dark:border-white/15 dark:bg-white/5 dark:text-emerald-300"
+                            >
+                                <Video className="size-4" />
+                                آرشیو وبینارها
+                            </Link>
+                            <Link
+                                href="/mobile-app"
+                                className="inline-flex items-center gap-2 rounded-xl bg-[#123E30] px-4 py-2.5 text-xs font-black text-[#D6F39A] shadow-md transition hover:brightness-110 dark:bg-[#D6F39A] dark:text-[#123E30]"
+                            >
+                                <Smartphone className="size-4" />
+                                باز کردن در سوپراپلیکیشن
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* 2x2 / 4-col Glassmorphic Quick Services Grid with Scale & Lift Hover Micro-interaction */}
+                    <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {quickDeskServices.map((service) => {
+                            const Icon = service.icon;
+                            return (
+                                <Link
+                                    key={service.title}
+                                    href={service.href}
+                                    className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-emerald-950/10 bg-gradient-to-br ${service.gradient} bg-white/85 p-5 shadow-soft backdrop-blur-xl transition-all duration-300 ease-out hover:scale-[1.03] hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-lift active:scale-[0.98] dark:border-white/15 dark:bg-[#0d241b]/80 dark:hover:border-emerald-400/50`}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <span
+                                            className={`flex size-12 items-center justify-center rounded-2xl ring-1 transition-transform duration-300 group-hover:scale-110 ${service.iconBg}`}
+                                        >
+                                            <Icon className="size-6" />
+                                        </span>
+                                        <span
+                                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.68rem] font-black ${service.badgeColor}`}
+                                        >
+                                            <span className={`size-1.5 rounded-full ${service.dotColor}`} />
+                                            {service.badge}
+                                        </span>
+                                    </div>
+
+                                    <div className="mt-5">
+                                        <h3 className="text-base font-black text-navy transition-colors group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-300">
+                                            {service.title}
+                                        </h3>
+                                        <p className="mt-1 text-xs font-bold text-navy/60 dark:text-white/65">
+                                            {service.subtitle}
+                                        </p>
+                                    </div>
+
+                                    <div className="mt-4 flex items-center justify-between border-t border-emerald-900/10 pt-3 text-[0.7rem] font-black text-emerald-700 dark:border-white/10 dark:text-emerald-300">
+                                        <span>ورود مستقیم</span>
+                                        <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-1" />
+                                    </div>
+                                </Link>
+                            );
+                        })}
+                    </div>
+
+                    {/* Live Online Classes & Webinars Strip (Skyroom / Google Meet) */}
+                    <div className="mt-8 rounded-3xl border border-emerald-900/10 bg-white/90 p-6 shadow-soft backdrop-blur-xl dark:border-white/10 dark:bg-[#0b2018]/90">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-emerald-900/10 pb-4 dark:border-white/10">
+                            <div className="flex items-center gap-2.5">
+                                <span className="flex size-9 items-center justify-center rounded-xl bg-red-500/15 text-red-600 dark:bg-red-500/25 dark:text-red-300">
+                                    <Radio className="size-5 animate-pulse" />
+                                </span>
+                                <div>
+                                    <h3 className="text-sm font-black text-navy dark:text-white md:text-base">
+                                        وبینارها و کلاس‌های آنلاین در حال برگزاری (اسکای‌روم و گوگل‌میت)
+                                    </h3>
+                                    <p className="text-xs font-bold text-navy/55 dark:text-white/55">
+                                        با یک کلیک مستقیم وارد اتاق کلاس شوید یا در سوپراپلیکیشن دنبال کنید
+                                    </p>
+                                </div>
+                            </div>
+                            <Link
+                                href="/events?type=webinar"
+                                className="text-xs font-black text-emerald-700 hover:underline dark:text-emerald-300"
+                            >
+                                مشاهده همه ۴ وبینار و سمینار ←
+                            </Link>
+                        </div>
+
+                        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                            {syncedLiveWebinars.map((wb) => (
+                                <div
+                                    key={wb.id}
+                                    className="flex flex-col justify-between rounded-2xl border border-emerald-900/10 bg-[#f4f8f5]/80 p-4 transition-all duration-300 hover:scale-[1.01] hover:border-emerald-500/40 dark:border-white/10 dark:bg-white/[0.03]"
+                                >
+                                    <div>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="rounded-lg bg-sky-500/15 px-2.5 py-0.5 text-[0.68rem] font-black text-sky-700 dark:text-sky-300">
+                                                {wb.platformLabel}
+                                            </span>
+                                            <span
+                                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.65rem] font-black ${
+                                                    wb.status === 'live'
+                                                        ? 'bg-red-600 text-white'
+                                                        : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                                }`}
+                                            >
+                                                {wb.status === 'live' ? '● در حال برگزاری' : 'پیش‌رو'}
+                                            </span>
+                                        </div>
+                                        <Link href={`/events/${wb.slug}`}>
+                                            <h4 className="mt-2.5 text-sm font-black text-navy hover:text-emerald-700 dark:text-white dark:hover:text-emerald-300">
+                                                {wb.title}
+                                            </h4>
+                                        </Link>
+                                        <p className="mt-1 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                                            {wb.instructor}
+                                        </p>
+                                        <p className="mt-1 text-[0.7rem] font-bold text-navy/55 dark:text-white/55">
+                                            {wb.time} · کد اتاق: <span className="font-mono">{wb.roomCode}</span>
+                                        </p>
+                                    </div>
+
+                                    <div className="mt-4 flex items-center justify-between gap-2 pt-2">
+                                        <a
+                                            href={wb.link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:brightness-110"
+                                        >
+                                            <span>ورود به کلاس</span>
+                                            <ExternalLink className="size-3.5" />
+                                        </a>
+                                        <Link
+                                            href={`/events/${wb.slug}`}
+                                            className="rounded-xl border border-emerald-900/15 px-3 py-2 text-xs font-bold text-navy/75 hover:bg-emerald-50 dark:border-white/15 dark:text-white/75 dark:hover:bg-white/10"
+                                        >
+                                            جزئیات
+                                        </Link>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* ── ۳. Interactive Future Path Finder Widget ── */}
             <FuturePathFinder />
 
@@ -268,7 +524,7 @@ export default function Home() {
                                     key={pillar.title}
                                     className="group relative flex flex-col rounded-3xl border border-emerald-900/10 bg-[#f4f8f5] p-7 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/40 dark:border-white/10 dark:bg-gradient-to-b dark:from-white/[0.06] dark:to-white/[0.02] dark:hover:bg-white/[0.08]"
                                 >
-                                    <span className="flex size-14 items-center justify-center rounded-2xl bg-emerald-600/10 text-emerald-700 ring-1 ring-emerald-600/20 transition-transform duration-300 group-hover:scale-110 dark:bg-gradient-to-br dark:from-emerald-500/20 dark:to-emerald-500/5 dark:text-emerald-300 dark:ring-emerald-400/30">
+                                     <span className="flex size-14 items-center justify-center rounded-2xl bg-emerald-600/10 text-emerald-700 ring-1 ring-emerald-600/20 transition-transform duration-300 group-hover:scale-110 dark:bg-gradient-to-br dark:from-emerald-500/20 dark:to-emerald-500/5 dark:text-emerald-300 dark:ring-emerald-400/30">
                                         <Icon className="size-7" />
                                     </span>
                                     <h3 className="mt-5 text-base font-black text-navy dark:text-white">{pillar.title}</h3>

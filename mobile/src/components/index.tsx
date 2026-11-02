@@ -40,18 +40,20 @@ export function Loading({ label = 'در حال بارگذاری…' }: { label?:
 }
 
 export function EmptyState({
-    icon = '🌱',
+    icon = 'leaf-outline',
     title,
     subtitle,
 }: {
-    icon?: string;
+    icon?: React.ComponentProps<typeof Ionicons>['name'];
     title: string;
     subtitle?: string;
 }) {
     const { colors } = useTheme();
     return (
         <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>{icon}</Text>
+            <View style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm }}>
+                <Ionicons name={icon} size={30} color={colors.primary} />
+            </View>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>{title}</Text>
             {subtitle ? <Text style={[styles.emptySubtitle, { color: colors.muted }]}>{subtitle}</Text> : null}
         </View>

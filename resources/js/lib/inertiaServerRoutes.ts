@@ -71,7 +71,7 @@ export function resolveInertiaRoute(cleanPath: string): { component: string; pro
         component = 'Dashboard/Referrals';
     } else if (cleanPath === '/dashboard/reminders') {
         component = 'Dashboard/Reminders';
-    } else if (cleanPath === '/mobile-app' || cleanPath === '/dashboard/mobile-app') {
+    } else if (cleanPath === '/mobile-app' || cleanPath === '/dashboard/mobile-app' || cleanPath === '/download-app') {
         component = 'MobileApp/Preview';
     } else if (cleanPath === '/support' || cleanPath === '/dashboard/support') {
         component = 'Support/Index';

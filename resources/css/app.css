@@ -3624,19 +3624,25 @@ html.dark .reference-quicknav-icon {
     color: var(--color-brand-300);
 }
 
-html.dark input:not([type="checkbox"]):not([type="radio"]),
-html.dark textarea,
-html.dark select,
+html.dark input:not([type="checkbox"]):not([type="radio"]):not(.roshd-app-input),
+html.dark textarea:not(.roshd-app-input),
+html.dark select:not(.roshd-app-input),
 html.dark .auth-modal-input {
     color: #e5f1ec;
     background-color: #12271f;
     border-color: rgb(157 218 190 / 0.2);
 }
 
-html.dark input::placeholder,
-html.dark textarea::placeholder,
+html.dark input:not(.roshd-app-input)::placeholder,
+html.dark textarea:not(.roshd-app-input)::placeholder,
 html.dark .auth-modal-input::placeholder {
     color: rgb(229 241 236 / 0.38);
+}
+
+.roshd-phone-frame input.roshd-search-input {
+    background-color: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
 }
 
 html.dark option {

@@ -77,7 +77,7 @@ export function SupportScreen() {
 
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>تیکت‌های اخیر شما</Text>
                 {tickets.length === 0 ? (
-                    <EmptyState icon="💬" title="تیکتی ثبت نشده است" />
+                    <EmptyState icon="chatbubbles-outline" title="تیکتی ثبت نشده است" />
                 ) : (
                     tickets.map((t) => (
                         <View

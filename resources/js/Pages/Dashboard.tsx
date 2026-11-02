@@ -222,7 +222,7 @@ export default function Dashboard() {
 
                     <div className="flex items-center gap-2 text-xs font-bold text-navy/50 dark:text-white/50">
                         <span>فرزند تحت ارزیابی:</span>
-                        <strong className="text-navy dark:text-white">{profile.name} (پایه دهم)</strong>
+                        <strong className="text-navy dark:text-white">{profile.name} (پایه یازدهم · عضو VIP)</strong>
                     </div>
                 </div>
 

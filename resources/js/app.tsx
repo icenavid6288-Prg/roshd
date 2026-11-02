@@ -65,14 +65,19 @@ function getInitialPage() {
         else if (path.startsWith('/courses/')) component = 'Courses/Show';
         else if (path === '/shop') component = 'Shop/Index';
         else if (path.startsWith('/shop/')) component = 'Shop/Show';
+        else if (path === '/events') component = 'Events/Index';
+        else if (path.startsWith('/events/')) component = 'Events/Show';
+        else if (path === '/coaching') component = 'Coaching/Index';
         else if (path === '/about') component = 'About/Index';
         else if (path === '/contact') component = 'Contact/Index';
         else if (path === '/services') component = 'Services/Index';
+        else if (path.startsWith('/services/')) component = 'Services/Show';
         else if (path === '/blog') component = 'Blog/Index';
+        else if (path.startsWith('/blog/')) component = 'Blog/Show';
         else if (path === '/login') component = 'Auth/Login';
         else if (path === '/register') component = 'Auth/Register';
         else if (path === '/cart') component = 'Cart/Index';
-        else if (path === '/mobile-app' || path === '/dashboard/mobile-app') component = 'MobileApp/Preview';
+        else if (path === '/mobile-app' || path === '/dashboard/mobile-app' || path === '/download-app') component = 'MobileApp/Preview';
         else if (path === '/dashboard/reminders') component = 'Dashboard/Reminders';
         else if (path.startsWith('/dashboard')) component = 'Dashboard';
         else if (path === '/admin' || path === '/admin/dashboard') component = 'Admin/Dashboard';
@@ -122,12 +127,12 @@ const pages = import.meta.glob('./Pages/**/*.tsx');
 
 createInertiaApp({
     id: 'app',
-    page: initialPage,
+    page: initialPage as any,
     nonce: typeof document !== 'undefined'
         ? document.querySelector<HTMLMetaElement>('meta[name="csp-nonce"]')?.content
         : undefined,
     title: (title) => title || appName,
-    resolve: async (name) => {
+    resolve: async (name): Promise<any> => {
         const pageLoader = pages[`./Pages/${name}.tsx`];
         if (!pageLoader) {
             console.warn(`Page not found: ${name}, falling back to Home`);

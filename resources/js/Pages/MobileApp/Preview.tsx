@@ -1,3896 +1,7135 @@
-import React, { useState, useEffect } from 'react';
-import { Head } from '@inertiajs/react';
-import UserDashboardLayout from '@/Layouts/UserDashboardLayout';
+import React, { useEffect, useState } from 'react';
+import { Head, Link } from '@inertiajs/react';
 import {
-    Smartphone,
-    Sun,
-    Moon,
-    Home,
-    BookOpen,
-    ShoppingBag,
-    LayoutDashboard,
-    User,
-    Bell,
-    Calendar,
+    ArrowLeft,
+    ArrowRight,
     Award,
-    MessageSquare,
-    Play,
-    Pause,
+    Bell,
+    BookOpen,
+    Building2,
+    Calendar,
+    Check,
     CheckCircle2,
     ChevronLeft,
-    ChevronRight,
-    ShieldCheck,
-    Search,
-    Users,
-    FileText,
-    BarChart3,
-    Settings,
-    Lock,
-    Megaphone,
-    Filter,
     ClipboardCheck,
-    HelpCircle,
-    Layers,
-    CreditCard,
-    Check,
-    Plus,
-    RefreshCw,
-    ArrowUpRight,
-    Briefcase,
-    Bookmark,
-    Share2,
-    Eye,
-    Flame,
-    Sparkles,
-    MoreVertical,
-    X,
-    Sliders,
-    Trash2,
-    Edit3,
-    DollarSign,
-    Tag,
-    Palette,
-    CheckSquare,
-    TrendingUp,
-    Zap,
-    SendHorizontal,
-    PhoneCall,
     Clock,
-    AlertCircle,
-    Download,
-    ShoppingCart,
-    Wallet,
-    GraduationCap,
-    FileCheck,
-    Video,
-    MessageCircle,
-    Star,
-    Radio,
+    Compass,
+    Copy,
+    CreditCard,
+    Crown,
+    Edit3,
+    ExternalLink,
+    FileText,
+    Flag,
+    Flame,
     Gift,
+    GraduationCap,
+    Headphones,
+    Home,
+    Image,
+    Leaf,
+    Lock,
+    MapPin,
+    MessageCircle,
+    MessageSquare,
+    Moon,
+    Pause,
     Phone,
-    LogOut,
-    Key,
-    Target,
+    Play,
+    Plus,
+    Receipt,
+    Search,
+    Send,
+    Settings,
+    ShieldCheck,
+    ShoppingBag,
+    SlidersHorizontal,
+    Sparkles,
+    Star,
+    Sun,
+    TrendingUp,
+    User,
+    UserCheck,
+    Users,
+    Video,
+    Volume2,
+    Wallet,
+    X,
 } from 'lucide-react';
+import { mockCourses, mockProducts, mockVipFlagshipDefaults } from '@/lib/mockData';
+import {
+    calculateLevelProgress,
+    defaultEarnedBadges,
+    defaultNotificationSettings,
+    defaultTalentDimensions,
+    defaultUserProfile,
+    defaultWalletOrders,
+    topUpWallet,
+    validateAndUpdateProfile,
+} from '@/lib/profileLogic';
+import {
+    appendChatMessage,
+    canSendMessageInChannel,
+    ChatChannelType,
+    CourseItemInstructor,
+    defaultCourseItemsWithInstructors,
+    defaultCourseSupportMessages,
+    defaultGroupChatMessages,
+    filterCoursesByQueryAndCategory,
+    resolveProductConsumptionMode,
+} from '@/lib/mobileAppLogic';
 
-export type ScreenId =
+type ScreenId =
     | 'home'
-    | 'dashboard'
-    | 'login'
     | 'courses'
-    | 'learning'
-    | 'quizzes'
-    | 'sessions'
+    | 'chat'
     | 'shop'
-    | 'wallet'
+    | 'productDetail'
+    | 'inAppReader'
+    | 'inAppAudioPlayer'
+    | 'dashboard'
+    | 'profile'
+    | 'sessions'
+    | 'goals'
+    | 'reminders'
     | 'support'
+    | 'courseDetail'
+    | 'learning'
     | 'admin'
-    | 'settings';
+    | 'vipClub'
+    | 'vipManage';
 
-export type AdminSubTab =
-    | 'overview'
-    | 'courses'
-    | 'orders'
-    | 'users'
-    | 'crm'
-    | 'discounts'
-    | 'automations'
-    | 'tickets'
-    | 'site_switches';
+type PreviewRole = 'vip_student' | 'regular_user' | 'instructor';
+type AttendanceStatus = 'present_in_person' | 'present_online' | 'late' | 'absent';
 
-export type ThemePalette = 'day' | 'night';
+const faNum = (value: number | string) => {
+    const map = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    return String(value).replace(/\d/g, (d) => map[Number(d)] ?? d);
+};
 
-export type LogoStyle = 'lotus' | 'crown' | 'crystal' | 'eagle' | 'star';
+const formatPrice = (amount: number) => {
+    if (!amount || amount <= 0) return 'رایگان';
+    const formatted = Math.round(amount)
+        .toString()
+        .replace(/\B(?=(\d{3})+(?!\d))/g, '٬');
+    return `${faNum(formatted)} تومان`;
+};
 
 export default function MobileAppPreview() {
-    // ----------------------------------------------------
-    // DYNAMIC BRANDING & THEME STATE (Persistent - 2 Website Themes: Day & Night)
-    // ----------------------------------------------------
-    const [appName, setAppName] = useState<string>(() => {
-        return localStorage.getItem('mobile_app_name') || 'بهار زندگی';
-    });
-    const [appTagline, setAppTagline] = useState<string>(() => {
-        return localStorage.getItem('mobile_app_tagline') || 'آکادمی رشد و سیستم‌سازی ذهن';
-    });
-    const [logoStyle, setLogoStyle] = useState<LogoStyle>(() => {
-        return (localStorage.getItem('mobile_app_logo') as LogoStyle) || 'lotus';
-    });
-    const [customMonogram, setCustomMonogram] = useState<string>(() => {
-        return localStorage.getItem('mobile_app_monogram') || 'ب';
-    });
-    const [appDark, setAppDark] = useState<boolean>(() => {
-        return localStorage.getItem('mobile_app_dark') === 'true';
-    });
-    const [themePalette, setThemePalette] = useState<ThemePalette>(() => {
-        const saved = localStorage.getItem('mobile_app_theme') as ThemePalette;
-        if (saved === 'night' || saved === 'day') return saved;
-        return localStorage.getItem('mobile_app_dark') === 'true' ? 'night' : 'day';
-    });
-    const [brandingSavedNotice, setBrandingSavedNotice] = useState(false);
-
-    const saveBranding = (name: string, tagline: string, logo: LogoStyle, mono: string, theme: ThemePalette) => {
-        setAppName(name);
-        setAppTagline(tagline);
-        setLogoStyle(logo);
-        setCustomMonogram(mono);
-        setThemePalette(theme);
-        setAppDark(theme === 'night');
-        localStorage.setItem('mobile_app_name', name);
-        localStorage.setItem('mobile_app_tagline', tagline);
-        localStorage.setItem('mobile_app_logo', logo);
-        localStorage.setItem('mobile_app_monogram', mono);
-        localStorage.setItem('mobile_app_theme', theme);
-        localStorage.setItem('mobile_app_dark', theme === 'night' ? 'true' : 'false');
-        setBrandingSavedNotice(true);
-        setTimeout(() => setBrandingSavedNotice(false), 2500);
-    };
-
-    // Navigation state
     const [activeScreen, setActiveScreen] = useState<ScreenId>('home');
-    const [adminSubTab, setAdminSubTab] = useState<AdminSubTab>('overview');
+    const [previewRole, setPreviewRole] = useState<PreviewRole>('vip_student');
+    const [isDark, setIsDark] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState('همه');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCourseSlug, setSelectedCourseSlug] = useState(mockCourses[0].slug);
 
-    // ----------------------------------------------------
-    // AUTH & STUDENT PROFILE STATE (Phone OTP like Website)
-    // ----------------------------------------------------
-    const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true);
-    const [currentUserPhone, setCurrentUserPhone] = useState<string>('۰۹۱۲۳۴۵۶۷۸۹');
-    const [currentUserName, setCurrentUserName] = useState<string>('سامان یزدانی');
-    const [loginStep, setLoginStep] = useState<'phone' | 'otp'>('phone');
-    const [inputPhone, setInputPhone] = useState<string>('۰۹۱۲۳۴۵۶۷۸۹');
-    const [otpCode, setOtpCode] = useState<string>('۴۸۲۹');
-    const [otpTimer, setOtpTimer] = useState<number>(60);
-    const [loginNotice, setLoginNotice] = useState<string | null>(null);
+    // Flagship VIP Course ("طراحی آینده نوجوان") State — Configurable by Instructor/Admin
+    const [vipConfig, setVipConfig] = useState({
+        title: mockVipFlagshipDefaults.title,
+        subtitle: mockVipFlagshipDefaults.subtitle,
+        description: mockVipFlagshipDefaults.description,
+        inPersonLocation: mockVipFlagshipDefaults.in_person_location,
+        onlinePlatform: mockVipFlagshipDefaults.online_platform,
+        scheduleSummary: mockVipFlagshipDefaults.schedule_summary,
+        autoSmsReminder: mockVipFlagshipDefaults.auto_sms_reminder,
+        reminderLeadMinutes: mockVipFlagshipDefaults.reminder_lead_minutes,
+        price: mockVipFlagshipDefaults.price,
+        discountPrice: mockVipFlagshipDefaults.discount_price,
+        posterUrl: '/images/vip-teen-future.svg',
+        posterBadge: 'پوستر رسمی دوره VIP',
+    });
+
+    const [vipFeatures, setVipFeatures] = useState(mockVipFlagshipDefaults.features);
+    const [newFeatureText, setNewFeatureText] = useState('');
+
+    const [vipSessions, setVipSessions] = useState(mockVipFlagshipDefaults.sessions);
+    const [selectedSessionId, setSelectedSessionId] = useState<number>(103);
+    const [newSessionTitle, setNewSessionTitle] = useState('');
+    const [newSessionMode, setNewSessionMode] = useState<'in_person' | 'online'>('in_person');
+    const [newSessionDate, setNewSessionDate] = useState('سه‌شنبه ۱۶ اردیبهشت ۱۴۰۴');
+    const [newSessionTime, setNewSessionTime] = useState('۱۷:۰۰ تا ۱۹:۰۰');
+
+    const [vipStudents, setVipStudents] = useState(mockVipFlagshipDefaults.students);
+    const [vipManageTab, setVipManageTab] = useState<'attendance' | 'settings' | 'sessions'>('attendance');
+    const [vipClubTab, setVipClubTab] = useState<'schedule' | 'items' | 'attendance'>('schedule');
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+    // Multi-Instructor Per-Item Chat, Course Group Chat (with Admin Toggle), and Course Support State
+    const [chatChannel, setChatChannel] = useState<ChatChannelType>('instructor');
+    const [courseItems, setCourseItems] = useState<CourseItemInstructor[]>(
+        defaultCourseItemsWithInstructors
+    );
+    const [selectedItemId, setSelectedItemId] = useState<number>(1);
+    const [groupChatEnabled, setGroupChatEnabled] = useState<boolean>(true);
+    const [groupMessages, setGroupMessages] = useState(defaultGroupChatMessages);
+    const [supportMessages, setSupportMessages] = useState(defaultCourseSupportMessages);
+    const [chatDraft, setChatDraft] = useState('');
+
+    // Store Product Preview + Non-Downloadable In-App Book Reader & Podcast Audio Player State
+    const [selectedProductSlug, setSelectedProductSlug] = useState<string>(mockProducts[0].slug);
+    const [selectedChapterId, setSelectedChapterId] = useState<number>(101);
+    const [readerFontSize, setReaderFontSize] = useState<'sm' | 'md' | 'lg'>('md');
+    const [readerTheme, setReaderTheme] = useState<'light' | 'sepia' | 'dark'>('sepia');
+    const [audioPlaying, setAudioPlaying] = useState<boolean>(false);
+    const [audioSpeed, setAudioSpeed] = useState<1 | 1.25 | 1.5 | 2>(1);
+    const [audioProgress, setAudioProgress] = useState<number>(38);
+    const [ownedProductSlugs, setOwnedProductSlugs] = useState<string[]>([
+        'talent-compass-book',
+        'roshd-future-mindset-podcast',
+        '90-day-growth-planner',
+    ]);
+
+    const [reminders, setReminders] = useState([
+        { id: 1, title: 'کلاس حضوری طراحی آینده نوجوان (سه‌شنبه‌ها)', time: '۱۵:۳۰', days: '۹۰ دقیقه قبل از کلاس', enabled: true },
+        { id: 2, title: 'کلاس آنلاین طراحی آینده نوجوان (پنج‌شنبه‌ها)', time: '۱۷:۰۰', days: '۹۰ دقیقه قبل از کلاس', enabled: true },
+        { id: 3, title: 'ثبت ژورنال هدف‌گذاری ۹۰ روزه', time: '۲۲:۰۰', days: 'شنبه‌ها و چهارشنبه‌ها', enabled: true },
+    ]);
+
+    // Comprehensive My Account ("حساب من") State
+    const [userProfile, setUserProfile] = useState(defaultUserProfile);
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [profileDraft, setProfileDraft] = useState({
+        name: defaultUserProfile.name,
+        gradeAndField: defaultUserProfile.gradeAndField,
+        city: defaultUserProfile.city,
+        phone: defaultUserProfile.phone,
+        parentPhone: defaultUserProfile.parentPhone,
+        bio: defaultUserProfile.bio,
+    });
+    const [profileError, setProfileError] = useState<string | null>(null);
+    const [walletOrders, setWalletOrders] = useState(defaultWalletOrders);
+    const [showAllOrders, setShowAllOrders] = useState(false);
+    const [talentDimensions] = useState(defaultTalentDimensions);
+    const [earnedBadges] = useState(defaultEarnedBadges);
+    const [notifSettings, setNotifSettings] = useState(defaultNotificationSettings);
+    const [copiedReferral, setCopiedReferral] = useState(false);
+    const [showCertPreviewModal, setShowCertPreviewModal] = useState(false);
+
+    // Online Webinars & Live Classes Hub (Skyroom, Google Meet, Adobe Connect, BigBlueButton)
+    const [onlineWebinars, setOnlineWebinars] = useState([
+        {
+            id: 1,
+            title: 'وبینار زنده کشف استعداد و نقشه راه آینده نوجوان',
+            instructor: 'دکتر علیرضا بیدی · راهبر اصلی دوره',
+            platform: 'skyroom' as 'skyroom' | 'google_meet' | 'adobe_connect' | 'bigbluebutton',
+            platformLabel: 'اسکای‌روم (Skyroom)',
+            link: 'https://www.skyroom.online/ch/roshd-academy/teen-future-vip',
+            roomCode: 'ROSHD-VIP-104',
+            accessHint: 'ورود با شماره موبایل ثبت‌نامی یا گزینه ورود مهمان',
+            date: 'امروز · پنج‌شنبه ۱۱ اردیبهشت',
+            time: '۱۷:۰۰ تا ۱۸:۳۰',
+            status: 'live' as 'live' | 'upcoming' | 'recorded',
+            participantsCount: 48,
+            isVipOnly: true,
+        },
+        {
+            id: 2,
+            title: 'کلاس آنلاین کارگاه تصمیم‌گیری و هدف‌گذاری ۹۰ روزه (آیتم ۲)',
+            instructor: 'استاد سارا کریمی · مدرس برنامه‌ریزی و هدف‌گذاری',
+            platform: 'google_meet' as 'skyroom' | 'google_meet' | 'adobe_connect' | 'bigbluebutton',
+            platformLabel: 'گوگل میت (Google Meet)',
+            link: 'https://meet.google.com/rsh-daca-vip',
+            roomCode: 'rsh-daca-vip',
+            accessHint: 'ورود مستقیم از مرورگر موبایل بدون نیاز به نصب برنامه',
+            date: 'یکشنبه ۱۴ اردیبهشت',
+            time: '۱۸:۰۰ تا ۱۹:۳۰',
+            status: 'upcoming' as 'live' | 'upcoming' | 'recorded',
+            participantsCount: 34,
+            isVipOnly: true,
+        },
+        {
+            id: 3,
+            title: 'نشست آنلاین پرسش و پاسخ والدین با تیم کوچینگ رشد',
+            instructor: 'دکتر محمدرضا صادقی · منتور خودشناسی و استعدادیابی',
+            platform: 'skyroom' as 'skyroom' | 'google_meet' | 'adobe_connect' | 'bigbluebutton',
+            platformLabel: 'اسکای‌روم (Skyroom)',
+            link: 'https://www.skyroom.online/ch/roshd-academy/parents-club',
+            roomCode: 'PARENTS-1404',
+            accessHint: 'ورود آزاد برای والدین و دانش‌پذیران آکادمی رشد',
+            date: 'چهارشنبه ۱۷ اردیبهشت',
+            time: '۲۰:۰۰ تا ۲۱:۱۵',
+            status: 'upcoming' as 'live' | 'upcoming' | 'recorded',
+            participantsCount: 72,
+            isVipOnly: false,
+        },
+        {
+            id: 4,
+            title: 'کارگاه آنلاین فن بیان، مذاکره و ارتباط موثر نوجوان',
+            instructor: 'دکتر امیرحسین نادری · مدرس فن بیان و ارتباط موثر',
+            platform: 'adobe_connect' as 'skyroom' | 'google_meet' | 'adobe_connect' | 'bigbluebutton',
+            platformLabel: 'ادوبی کانکت (Adobe Connect)',
+            link: 'https://live.roshdacademy.ir/communication-workshop',
+            roomCode: 'COMM-302',
+            accessHint: 'قابلیت مشاهده در مرورگر یا اپلیکیشن Adobe Connect',
+            date: 'برگزار شده · دارای بازپخش',
+            time: 'مدت زمان: ۹۰ دقیقه',
+            status: 'recorded' as 'live' | 'upcoming' | 'recorded',
+            participantsCount: 115,
+            isVipOnly: false,
+        },
+    ]);
 
     useEffect(() => {
-        if (loginStep !== 'otp' || otpTimer <= 0) return;
-        const timer = setInterval(() => {
-            setOtpTimer((prev) => Math.max(0, prev - 1));
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [loginStep, otpTimer]);
-
-    // ----------------------------------------------------
-    // ACADEMY HIGHLIGHTS / CAPSULES (Finka-inspired Story Capsules)
-    // ----------------------------------------------------
-    const [selectedHighlight, setSelectedHighlight] = useState<number | null>(null);
-    const highlightsData = [
-        {
-            id: 1,
-            title: 'وبینار زنده امشب',
-            tag: 'ساعت ۲۱:۰۰',
-            icon: Radio,
-            iconColor: 'text-rose-500',
-            badgeText: 'پخش زنده',
-            image: 'https://images.unsplash.com/photo-1591115765373-5207764f72e7?auto=format&fit=crop&w=300&q=80',
-            targetScreen: 'sessions' as ScreenId,
-            desc: 'وبینار تخصصی ویژه دانشجویان: نقشه راه سیستم‌سازی ذهنی در بحران‌های کسب‌وکار.',
-            actionLabel: 'مشاهده جزئیات و لینک ورود',
-        },
-        {
-            id: 2,
-            title: 'آزمون هفتگی',
-            tag: 'فصل دوم',
-            icon: ClipboardCheck,
-            iconColor: 'text-indigo-500',
-            badgeText: 'آزمون آنلاین',
-            image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=300&q=80',
-            targetScreen: 'quizzes' as ScreenId,
-            desc: 'کوییز ۴ سوالی مبحث هوش هیجانی فعال شد. نمره قبولی در این آزمون ۸۰٪ است.',
-            actionLabel: 'شروع آزمون آنلاین',
-        },
-        {
-            id: 3,
-            title: 'جلسه ۱ به ۱',
-            tag: 'رزرو با منتور',
-            icon: Users,
-            iconColor: 'text-blue-500',
-            badgeText: 'کوچینگ فردی',
-            image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=300&q=80',
-            targetScreen: 'sessions' as ScreenId,
-            desc: 'ظرفیت جلسات منتورینگ فردی دکتر بیدی برای هفته آینده بازگشایی شد.',
-            actionLabel: 'رزرو وقت جلسه',
-        },
-        {
-            id: 4,
-            title: 'ورک‌بوک رایگان',
-            tag: 'دانلود PDF',
-            icon: Gift,
-            iconColor: 'text-amber-500',
-            badgeText: 'هدیه آموزشی',
-            image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=300&q=80',
-            targetScreen: 'shop' as ScreenId,
-            desc: 'فایل PDF چک‌لیست ۹۰ روزه بهره‌وری شخصی در بخش کتابخانه قرار گرفت.',
-            actionLabel: 'دریافت رایگان فایل',
-        },
-        {
-            id: 5,
-            title: 'کد تخفیف VIP',
-            tag: 'BAHAR50',
-            icon: Tag,
-            iconColor: 'text-purple-500',
-            badgeText: 'تخفیف ۵۰٪',
-            image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=300&q=80',
-            targetScreen: 'shop' as ScreenId,
-            desc: 'کد تخفیف ۵۰ درصدی برای تهیه کتاب‌ها و دوره‌های جدید با محدودیت ۲۴ ساعت.',
-            actionLabel: 'ورود به فروشگاه',
-        },
-    ];
-
-    // ----------------------------------------------------
-    // COURSES & IN-APP LEARNING PLAYER STATE (With Rich Photography)
-    // ----------------------------------------------------
-    const [selectedCourseId, setSelectedCourseId] = useState(1);
-    const [coursesFilter, setCoursesFilter] = useState<'all' | 'my'>('all');
-    const [searchCourseQuery, setSearchCourseQuery] = useState('');
-    const [playingLesson, setPlayingLesson] = useState(true);
-    const [currentLessonIndex, setCurrentLessonIndex] = useState(3);
-    const [lessonNoteText, setLessonNoteText] = useState('');
-    const [savedNotes, setSavedNotes] = useState<string[]>([
-        'نکته جلسه ۲: چرخه بازخورد منفی باید در کمتر از ۴۸ ساعت شکسته شود.',
-    ]);
-    const [isBookmarked, setIsBookmarked] = useState(true);
-
-    const coursesList = [
-        {
-            id: 1,
-            title: 'معماری ذهن و تصمیم‌گیری استراتژیک',
-            category: 'کوچینگ ذهن',
-            instructor: 'دکتر مهدی بیدی',
-            instructorAvatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=160&q=80',
-            image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=600&q=80',
-            duration: '۱۲ ساعت (۸ جلسه)',
-            price: '۳,۹۰۰,۰۰۰',
-            progress: 65,
-            enrolled: true,
-            rating: '۴.۹',
-            reviewsCount: 142,
-            lessonsCount: 6,
-            lessons: [
-                { id: 1, title: 'جلسه ۱: اصول تفکر مرتبه دوم و تحلیل رویدادها', dur: '۴۵ دقیقه', done: true },
-                { id: 2, title: 'جلسه ۲: شناخت سوگیری‌های شناختی در مدیریت', dur: '۵۲ دقیقه', done: true },
-                { id: 3, title: 'جلسه ۳: طراحی ماتریس تصمیم‌گیری در شرایط ابهام', dur: '۶۰ دقیقه', done: true },
-                { id: 4, title: 'جلسه ۴: سیستم‌سازی بازخوردها و اصلاح مسیر فردی', dur: '۵۵ دقیقه', done: false },
-                { id: 5, title: 'جلسه ۵: مهار هیجان‌های مخرب در تصمیم‌گیری‌های پرریسک', dur: '۴۸ دقیقه', done: false },
-                { id: 6, title: 'جلسه ۶: تدوین بیانیه مأموریت و چشم‌انداز ۵ ساله', dur: '۶۲ دقیقه', done: false },
-            ],
-        },
-        {
-            id: 2,
-            title: 'کوچینگ بهره‌وری و سیستم‌سازی شخصی',
-            category: 'بهره‌وری',
-            instructor: 'دکتر مهدی بیدی',
-            instructorAvatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=160&q=80',
-            image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=600&q=80',
-            duration: '۹ ساعت (۶ جلسه)',
-            price: '۲,۸۵۰,۰۰۰',
-            progress: 20,
-            enrolled: true,
-            rating: '۴.۸',
-            reviewsCount: 98,
-            lessonsCount: 3,
-            lessons: [
-                { id: 1, title: 'جلسه ۱: آناتومی زمان و ثبت گزارش وقایع', dur: '۴۰ دقیقه', done: true },
-                { id: 2, title: 'جلسه ۲: متدولوژی Time-Blocking پیشرفته', dur: '۵۰ دقیقه', done: false },
-                { id: 3, title: 'جلسه ۳: حذف کارهای بی‌ارزش و تفویض اختیار', dur: '۴۵ دقیقه', done: false },
-            ],
-        },
-        {
-            id: 3,
-            title: 'رهبری استراتژیک خود و تاب‌آوری سازمانی',
-            category: 'رهبری',
-            instructor: 'دکتر مهدی بیدی',
-            instructorAvatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=160&q=80',
-            image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=600&q=80',
-            duration: '۱۴ ساعت (۱۰ جلسه)',
-            price: '۴,۵۰۰,۰۰۰',
-            progress: 0,
-            enrolled: false,
-            rating: '۵.۰',
-            reviewsCount: 64,
-            lessonsCount: 2,
-            lessons: [
-                { id: 1, title: 'جلسه ۱: پارادایم رهبری از درون به بیرون', dur: '۵۰ دقیقه', done: false },
-                { id: 2, title: 'جلسه ۲: مدیریت انرژی به جای مدیریت زمان', dur: '۴۵ دقیقه', done: false },
-            ],
-        },
-        {
-            id: 4,
-            title: 'مسترکلاس تعیین اهداف و سنجش نتایج (OKR)',
-            category: 'هدف‌گذاری',
-            instructor: 'مهندس رضایی',
-            instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80',
-            image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80',
-            duration: '۶ ساعت (۴ جلسه)',
-            price: '۱,۹۵۰,۰۰۰',
-            progress: 0,
-            enrolled: false,
-            rating: '۴.۷',
-            reviewsCount: 39,
-            lessonsCount: 2,
-            lessons: [
-                { id: 1, title: 'جلسه ۱: تفاوت KPI و OKR در زندگی فردی', dur: '۳۵ دقیقه', done: false },
-                { id: 2, title: 'جلسه ۲: تدوین ۳ هدف کلیدی ۹۰ روزه', dur: '۴۵ دقیقه', done: false },
-            ],
-        },
-    ];
-
-    const currentCourse = coursesList.find((c) => c.id === selectedCourseId) || coursesList[0];
-
-    // ----------------------------------------------------
-    // QUIZZES & ASSIGNMENTS STATE
-    // ----------------------------------------------------
-    const [quizAnswers, setQuizAnswers] = useState<{ [key: number]: number }>({});
-    const [quizSubmitted, setQuizSubmitted] = useState(false);
-    const [quizScore, setQuizScore] = useState<number | null>(null);
-
-    const quizQuestions = [
-        {
-            id: 1,
-            q: 'تعریف دقیق تفکر سیستمی در مدل ذهنی دکتر بیدی چیست؟',
-            options: [
-                'واکنش لحظه‌ای به رخدادهای غیرمنتظره روزمره',
-                'دیدن الگوها، اتصالات پنهان و حلقه‌های بازخورد علّی',
-                'برنامه‌ریزی فشرده ساعت به ساعت بدون تغییر',
-                'تکیه صرف بر انگیزه مقطعی و جلسات کوتاه',
-            ],
-            correct: 1,
-        },
-        {
-            id: 2,
-            q: 'کدام گزینه از مهم‌ترین موانع تصمیم‌گیری استراتژیک در شرایط بحرانی است؟',
-            options: [
-                'سوگیری تأیید و خطای هزینه هدررفته (Sunk Cost)',
-                'داشتن استراحت کافی و تغذیه سالم',
-                'استفاده از ماتریس اولویت‌بندی آیزنهاور',
-                'ثبت جلسات در تقویم کاری',
-            ],
-            correct: 0,
-        },
-    ];
-
-    const [assignmentText, setAssignmentText] = useState('');
-    const [assignmentSubmitted, setAssignmentSubmitted] = useState(false);
-
-    // ----------------------------------------------------
-    // COACHING 1-ON-1 SESSIONS & GOALS TRACKER
-    // ----------------------------------------------------
-    const [bookedSessions, setBookedSessions] = useState([
-        {
-            id: 101,
-            coach: 'دکتر مهدی بیدی',
-            role: 'کوچ ارشد سیستم‌سازی',
-            date: 'شنبه ۱۸ اردیبهشت',
-            time: 'ساعت ۱۷:۰۰ تا ۱۸:۰۰',
-            status: 'تایید شده',
-            roomLink: 'https://meet.google.com/xyz-bahar',
-            topic: 'بازنگری ماتریس تصمیم‌گیری و اصلاح نقشه فصلی',
-        },
-    ]);
-    const [newSessionDate, setNewSessionDate] = useState('دوشنبه ۲۰ اردیبهشت');
-    const [newSessionSlot, setNewSessionSlot] = useState('ساعت ۱۶:۰۰');
-    const [newSessionTopic, setNewSessionTopic] = useState('سیستم‌سازی فردی و تفویض');
-    const [sessionBookingSuccess, setSessionBookingSuccess] = useState(false);
-
-    const [goalsList, setGoalsList] = useState([
-        { id: 1, title: 'کاهش زمان هدررفته موبایل به کمتر از ۱ ساعت روزانه', done: true },
-        { id: 2, title: 'تدوین جدول ماتریس اولویت‌ها برای پروژه‌های فصلی', done: true },
-        { id: 3, title: 'ارائه تکلیف بررسی سوگیری‌های شناختی در جلسه ۴', done: false },
-        { id: 4, title: 'حضور منظم در جلسه وبینار زنده و یادداشت‌برداری', done: false },
-    ]);
-
-    // ----------------------------------------------------
-    // SHOP, PRODUCTS, CART & DOWNLOADS
-    // ----------------------------------------------------
-    const [shopProducts, setShopProducts] = useState([
-        {
-            id: 1,
-            title: 'کتاب نفیس «معماری ذهن برتر» (جلد سخت)',
-            type: 'کتاب فیزیکی',
-            price: 480000,
-            image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80',
-            rating: '۴.۹',
-        },
-        {
-            id: 2,
-            title: 'ورک‌بوک دانلودی نقشه اقدام ۹۰ روزه (PDF)',
-            type: 'فایل دیجیتال',
-            price: 195000,
-            image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=400&q=80',
-            rating: '۴.۸',
-        },
-        {
-            id: 3,
-            title: 'مجموعه پادکست‌های رادیو کوچینگ ذهن (صوتی)',
-            type: 'فایل صوتی',
-            price: 290000,
-            image: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=400&q=80',
-            rating: '۵.۰',
-        },
-    ]);
-
-    const [cart, setCart] = useState<{ id: number; qty: number }[]>([
-        { id: 2, qty: 1 },
-    ]);
-    const [couponCode, setCouponCode] = useState('');
-    const [couponDiscount, setCouponDiscount] = useState(0);
-    const [couponFeedback, setCouponFeedback] = useState<string | null>(null);
-    const [receiptNumber, setReceiptNumber] = useState('');
-    const [checkoutComplete, setCheckoutComplete] = useState(false);
-
-    const applyCoupon = () => {
-        if (couponCode.trim().toUpperCase() === 'BAHAR50') {
-            setCouponDiscount(0.5);
-            setCouponFeedback('کد تخفیف ۵۰٪ با موفقیت اعمال شد!');
-        } else if (couponCode.trim().toUpperCase() === 'VIP2025') {
-            setCouponDiscount(0.3);
-            setCouponFeedback('کد تخفیف ۳۰٪ اعمال شد!');
-        } else {
-            setCouponFeedback('کد تخفیف وارد شده نامعتبر یا منقضی است.');
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const requestedScreen = params.get('screen') as ScreenId | null;
+        const validScreens: ScreenId[] = [
+            'home',
+            'courses',
+            'chat',
+            'shop',
+            'productDetail',
+            'inAppReader',
+            'inAppAudioPlayer',
+            'dashboard',
+            'profile',
+            'sessions',
+            'goals',
+            'reminders',
+            'support',
+            'courseDetail',
+            'learning',
+            'admin',
+            'vipClub',
+            'vipManage',
+        ];
+        if (requestedScreen && validScreens.includes(requestedScreen)) {
+            setActiveScreen(requestedScreen);
         }
-    };
+    }, []);
+    const [webinarFilter, setWebinarFilter] = useState<'all' | 'live' | 'skyroom' | 'google_meet' | 'other'>('all');
+    const [activeWebinarGatewayId, setActiveWebinarGatewayId] = useState<number | null>(null);
+    const [copiedWebinarId, setCopiedWebinarId] = useState<number | null>(null);
+    const [newWebinarTitle, setNewWebinarTitle] = useState('');
+    const [newWebinarInstructor, setNewWebinarInstructor] = useState('');
+    const [newWebinarPlatform, setNewWebinarPlatform] = useState<'skyroom' | 'google_meet' | 'adobe_connect' | 'bigbluebutton'>('skyroom');
+    const [newWebinarLink, setNewWebinarLink] = useState('');
+    const [newWebinarDateTime, setNewWebinarDateTime] = useState('پنج‌شنبه ۱۸ اردیبهشت · ساعت ۱۸:۰۰');
 
-    // Digital Library Downloads
-    const purchasedLibrary = [
-        {
-            id: 1,
-            title: 'ورک‌بوک نقشه اقدام ۹۰ روزه (ویرایش جدید ۱۴۰۴)',
-            format: 'PDF • ۱۲ مگابایت',
-            code: 'LIB-9941',
-        },
-        {
-            id: 2,
-            title: 'چک‌لیست روزانه ردیابی تمرکز و انرژی',
-            format: 'PDF • ۳ مگابایت',
-            code: 'LIB-8812',
-        },
-        {
-            id: 3,
-            title: 'فایل صوتی مدیتیشن آرامش ذهن قبل از تصمیم‌گیری',
-            format: 'MP3 • ۲۴ مگابایت',
-            code: 'LIB-7703',
-        },
-    ];
+    // Enrolled status is true for VIP Student and Instructor/Admin preview roles
+    const isVipEnrolled = previewRole !== 'regular_user';
 
-    // ----------------------------------------------------
-    // WALLET, CERTIFICATES & ORDERS
-    // ----------------------------------------------------
-    const [walletBalance, setWalletBalance] = useState(2450000);
-    const [walletTransactions, setWalletTransactions] = useState([
-        { id: 1, title: 'هدیه ثبت‌نام دوره جامع', amount: '+۵۰۰,۰۰۰ ت', date: '۱۴ اردیبهشت', type: 'credit' },
-        { id: 2, title: 'خرید ورک‌بوک نقشه اقدام ۹۰ روزه', amount: '-۱۹۵,۰۰۰ ت', date: '۱۰ اردیبهشت', type: 'debit' },
-        { id: 3, title: 'پاداش معرفی دوستان (کد رفرال)', amount: '+۱۵۰,۰۰۰ ت', date: '۰۴ اردیبهشت', type: 'credit' },
-    ]);
-    const [topUpModal, setTopUpModal] = useState(false);
-
-    const issuedCertificates = [
-        {
-            id: 'CERT-2025-992',
-            title: 'گواهینامه پایان دوره معماری ذهن و تصمیم‌گیری',
-            date: 'اردیبهشت ۱۴۰۴',
-            issuer: 'آکادمی بهار زندگی با امضای رسمی دکتر بیدی',
-            status: 'معتبر و قابل استعلام',
-        },
-    ];
-
-    // ----------------------------------------------------
-    // SUPPORT TICKETS & LIVE CHAT
-    // ----------------------------------------------------
-    const [supportTab, setSupportTab] = useState<'tickets' | 'chat'>('tickets');
-    const [userTickets, setUserTickets] = useState([
-        {
-            id: 501,
-            subject: 'درخواست راهنمایی در مورد تمرین جلسه ۳',
-            dept: 'آموزش',
-            status: 'پاسخ داده شده',
-            messages: [
-                { sender: 'user', text: 'سلام، در تکمیل ماتریس دچار ابهام هستم.', time: '۱۰:۲۰' },
-                { sender: 'support', text: 'سلام دوست عزیز؛ فایل صوتی راهنما در بخش تکالیف برای شما بارگذاری شد.', time: '۱۰:۴۵' },
-            ],
-        },
-    ]);
-    const [newTicketSubject, setNewTicketSubject] = useState('');
-    const [newTicketDept, setNewTicketDept] = useState('آموزشی');
-    const [newTicketMessage, setNewTicketMessage] = useState('');
-
-    const [liveChatMessages, setLiveChatMessages] = useState([
-        { sender: 'bot', text: 'سلام! به پشتیبانی هوشمند آکادمی خوش آمدید. چطور می‌توانم کمکتان کنم؟', time: '۰۹:۳۰' },
-    ]);
-    const [liveChatInput, setLiveChatInput] = useState('');
-
-    const sendLiveChatMessage = () => {
-        if (!liveChatInput.trim()) return;
-        const msg = liveChatInput;
-        setLiveChatMessages((prev) => [
-            ...prev,
-            { sender: 'user', text: msg, time: 'هم‌اکنون' },
-        ]);
-        setLiveChatInput('');
+    const showToast = (msg: string) => {
+        setToastMessage(msg);
         setTimeout(() => {
-            setLiveChatMessages((prev) => [
-                ...prev,
-                { sender: 'support', text: 'پیام شما دریافت شد. همکاران پشتیبان یا دکتر بیدی در اسرع وقت پاسخ خواهند داد.', time: 'هم‌اکنون' },
-            ]);
-        }, 1000);
+            setToastMessage((prev) => (prev === msg ? null : prev));
+        }, 3200);
     };
 
-    // ----------------------------------------------------
-    // FULL IN-APP ADMIN STATE (100% Mobile Access)
-    // ----------------------------------------------------
-    const [adminCourses, setAdminCourses] = useState([
-        { id: 1, title: 'معماری ذهن و تسلط بر هیجان', students: 428, price: '۳,۹۰۰,۰۰۰', published: true, category: 'کوچینگ ذهن' },
-        { id: 2, title: 'کوچینگ بهره‌وری و سیستم‌سازی فردی', students: 312, price: '۲,۸۵۰,۰۰۰', published: true, category: 'بهره‌وری' },
-        { id: 3, title: 'رهبری خود و تصمیم‌گیری استراتژیک', students: 195, price: '۴,۵۰۰,۰۰۰', published: true, category: 'رهبری' },
-        { id: 4, title: 'مسترکلاس هدف‌گذاری OKR فردی', students: 84, price: '۱,۹۵۰,۰۰۰', published: false, category: 'هدف‌گذاری' },
-    ]);
-    const [newCourseModalOpen, setNewCourseModalOpen] = useState(false);
-    const [newCourseTitle, setNewCourseTitle] = useState('');
-    const [newCoursePrice, setNewCoursePrice] = useState('۲,۵۰۰,۰۰۰');
-    const [newCourseCat, setNewCourseCat] = useState('رشد فردی');
-
-    const [pendingInvoices, setPendingInvoices] = useState([
-        { id: 'INV-8841', user: 'سامان یزدانی', amount: '۳,۹۰۰,۰۰۰ تومان', method: 'فیش کارت به کارت', status: 'در انتظار تایید' },
-        { id: 'INV-8842', user: 'زهرا موسوی', amount: '۱,۹۵۰,۰۰۰ تومان', method: 'انتقال پایا / شبا', status: 'در انتظار تایید' },
-    ]);
-
-    const [adminUsers, setAdminUsers] = useState([
-        { id: 101, name: 'محمدرضا کاظمی', email: 'm.kazemi@example.com', role: 'مدیر ارشد', status: 'فعال', wallet: '۲,۴۰۰,۰۰۰' },
-        { id: 102, name: 'دکتر مهدی بیدی', email: 'dr.bidi@example.com', role: 'استاد و منتور', status: 'فعال', wallet: '۱۵,۸۰۰,۰۰۰' },
-        { id: 103, name: 'سارا احمدی', email: 'sara.ahmadi@example.com', role: 'دانش‌پذیر VIP', status: 'فعال', wallet: '۵۰۰,۰۰۰' },
-        { id: 104, name: 'امیرحسین رضایی', email: 'amir.rezaei@example.com', role: 'پشتیبان فنی', status: 'فعال', wallet: '۰' },
-    ]);
-    const [userSearchText, setUserSearchText] = useState('');
-
-    const [leads, setLeads] = useState([
-        { id: 1, name: 'علیرضا شمس', phone: '۰۹۱۲۳۴۵۶۷۸۹', course: 'کوچینگ استراتژیک', stage: 'جدید', source: 'وب‌سایت مستقیم', date: 'امروز ۱۰:۳۰' },
-        { id: 2, name: 'مریم کمالی', phone: '۰۹۱۸۲۳۴۵۶۷۸', course: 'معماری ذهن', stage: 'در حال پیگیری', source: 'مشاوره تلفنی', date: 'امروز ۰۹:۱۵' },
-        { id: 3, name: 'کامران نوری', phone: '۰۹۳۵۱۲۳۴۵۶۷', course: 'رهبری فردی', stage: 'جلسه مشاوره', source: 'فرم سایت', date: 'دیروز' },
-    ]);
-
-    const [discountCodes, setDiscountCodes] = useState([
-        { id: 1, code: 'BAHAR50', percent: '۵۰٪', count: '۱۲/۵۰', active: true },
-        { id: 2, code: 'VIP2025', percent: '۳۰٪', count: '۴۵/۱۰۰', active: true },
-    ]);
-    const [newCodeName, setNewCodeName] = useState('');
-    const [newCodePercent, setNewCodePercent] = useState('۳۰٪');
-
-    const [adminTickets, setAdminTickets] = useState([
-        { id: 401, user: 'امیرحسین رضایی', subject: 'مشکل در باز شدن ویدیوی جلسه ۴', dept: 'فنی', status: 'باز', reply: '' },
-        { id: 402, user: 'سارا احمدی', subject: 'درخواست صدور مدرک چاپی با هولوگرام', dept: 'مدارک', status: 'در حال بررسی', reply: 'مدرک شما به آدرس پستی ثبت‌شده ارسال خواهد شد.' },
-    ]);
-    const [selectedAdminTicketId, setSelectedAdminTicketId] = useState<number | null>(401);
-    const [adminReplyText, setAdminReplyText] = useState('');
-
-    const [botSwitches, setBotSwitches] = useState({
-        smsKavenegar: true,
-        perslineWebhook: true,
-        maintenanceMode: false,
-        openRegistration: true,
-        pushNotifications: true,
-    });
-    const [broadcastText, setBroadcastText] = useState('');
-    const [broadcastSent, setBroadcastSent] = useState(false);
-
-    // Theme color helper based on Day and Night themes (100% matched to website branding)
-    const getThemeConfig = () => {
-        const isNight = appDark || themePalette === 'night';
-        if (isNight) {
-            return {
-                name: 'تم شب آکادمی (دارک مود سایت)',
-                headerGrad: 'from-[#020617] via-[#0B231A] to-[#020617]',
-                accent: 'text-emerald-400',
-                accentBg: 'bg-emerald-500',
-                accentBorder: 'border-emerald-400',
-                badgeBg: 'bg-emerald-500 text-slate-950 font-black',
-                ring: 'ring-emerald-400',
-            };
+    const handleCopyWebinarLink = (webinarId: number, link: string, title: string) => {
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(link).catch(() => {});
         }
-        return {
-            name: 'تم روز آکادمی (تم اصلی سایت)',
-            headerGrad: 'from-[#062419] via-[#0B3B2B] to-[#0D4D38]',
-            accent: 'text-emerald-600',
-            accentBg: 'bg-emerald-600',
-            accentBorder: 'border-emerald-500',
-            badgeBg: 'bg-emerald-600 text-white',
-            ring: 'ring-emerald-600',
+        setCopiedWebinarId(webinarId);
+        showToast(`لینک ورود به «${title}» کپی شد.`);
+        setTimeout(() => {
+            setCopiedWebinarId((prev) => (prev === webinarId ? null : prev));
+        }, 2500);
+    };
+
+    const handleAddWebinar = () => {
+        const cleanTitle = newWebinarTitle.trim();
+        const cleanLink = newWebinarLink.trim();
+        if (!cleanTitle) {
+            showToast('لطفاً عنوان وبینار یا کلاس آنلاین را وارد کنید.');
+            return;
+        }
+        const platformLabels: Record<'skyroom' | 'google_meet' | 'adobe_connect' | 'bigbluebutton', string> = {
+            skyroom: 'اسکای‌روم (Skyroom)',
+            google_meet: 'گوگل میت (Google Meet)',
+            adobe_connect: 'ادوبی کانکت (Adobe Connect)',
+            bigbluebutton: 'بیگ‌بلوباتن (BigBlueButton)',
         };
+        const defaultLinks: Record<'skyroom' | 'google_meet' | 'adobe_connect' | 'bigbluebutton', string> = {
+            skyroom: 'https://www.skyroom.online/ch/roshd-academy/live-class',
+            google_meet: 'https://meet.google.com/rsh-live-class',
+            adobe_connect: 'https://live.roshdacademy.ir/online-session',
+            bigbluebutton: 'https://bbb.roshdacademy.ir/b/roshd-room',
+        };
+        const created = {
+            id: Date.now(),
+            title: cleanTitle,
+            instructor: newWebinarInstructor.trim() || 'مدرس دوره آکادمی رشد',
+            platform: newWebinarPlatform,
+            platformLabel: platformLabels[newWebinarPlatform],
+            link: cleanLink || defaultLinks[newWebinarPlatform],
+            roomCode: `ROSHD-${onlineWebinars.length + 105}`,
+            accessHint: 'ورود مستقیم با کلیک روی دکمه ورود به اتاق کلاس',
+            date: newWebinarDateTime.split('·')[0]?.trim() || 'هفته آینده',
+            time: newWebinarDateTime.split('·')[1]?.trim() || '۱۸:۰۰ تا ۱۹:۳۰',
+            status: 'upcoming' as const,
+            participantsCount: 24,
+            isVipOnly: false,
+        };
+        setOnlineWebinars((prev) => [created, ...prev]);
+        setNewWebinarTitle('');
+        setNewWebinarInstructor('');
+        setNewWebinarLink('');
+        showToast(`کلاس آنلاین «${cleanTitle}» در ${platformLabels[newWebinarPlatform]} ثبت شد.`);
     };
 
-    const curTheme = getThemeConfig();
-
-    const surfaceCls = appDark
-        ? 'bg-slate-900 border-slate-800 text-slate-100'
-        : 'bg-white border-slate-200 text-slate-900';
-    const mutedCls = appDark ? 'text-slate-400' : 'text-slate-500';
-    const pageBgCls = appDark ? 'bg-slate-950 text-slate-100' : 'bg-[#FAFAF9] text-slate-900';
-
-    // Renders the configured app logo
-    const renderAppLogo = (size: 'sm' | 'md' | 'lg' = 'md') => {
-        const sizeClasses = {
-            sm: 'w-7 h-7 text-xs',
-            md: 'w-9 h-9 text-sm',
-            lg: 'w-14 h-14 text-xl',
-        }[size];
-
-        switch (logoStyle) {
-            case 'lotus':
-                return (
-                    <div className={`${sizeClasses} rounded-2xl bg-gradient-to-tr from-rose-500 via-amber-400 to-emerald-500 text-white flex items-center justify-center font-black shadow-lg shadow-rose-500/20`}>
-                        <Sparkles className="w-4 h-4 text-white" />
-                    </div>
-                );
-            case 'crown':
-                return (
-                    <div className={`${sizeClasses} rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-600 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-amber-500/20`}>
-                        <Award className="w-4 h-4 fill-current" />
-                    </div>
-                );
-            case 'crystal':
-                return (
-                    <div className={`${sizeClasses} rounded-2xl bg-gradient-to-tr from-cyan-400 via-blue-500 to-indigo-600 text-white flex items-center justify-center font-black shadow-lg shadow-blue-500/20`}>
-                        <Zap className="w-4 h-4 fill-current" />
-                    </div>
-                );
-            case 'eagle':
-                return (
-                    <div className={`${sizeClasses} rounded-2xl bg-gradient-to-tr from-violet-600 to-purple-800 text-white flex items-center justify-center font-black shadow-lg shadow-purple-500/20`}>
-                        <TrendingUp className="w-4 h-4" />
-                    </div>
-                );
-            case 'star':
-            default:
-                return (
-                    <div className={`${sizeClasses} rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-700 text-white flex items-center justify-center font-black shadow-lg shadow-emerald-500/20`}>
-                        <span>{customMonogram || 'ب'}</span>
-                    </div>
-                );
+    const handleRoleSwitch = (role: PreviewRole) => {
+        setPreviewRole(role);
+        if (role === 'instructor') {
+            setActiveScreen('vipManage');
+        } else if (role === 'regular_user' && (activeScreen === 'vipClub' || activeScreen === 'vipManage')) {
+            setSelectedCourseSlug('designing-teen-future-vip');
+            setActiveScreen('courseDetail');
+        } else if (role === 'vip_student' && activeScreen === 'courseDetail' && selectedCourseSlug === 'designing-teen-future-vip') {
+            setActiveScreen('vipClub');
         }
     };
+
+    const openCourse = (slug: string) => {
+        setSelectedCourseSlug(slug);
+        setActiveScreen('courseDetail');
+    };
+
+    const openProductDetail = (slug: string) => {
+        const prod = mockProducts.find((p) => p.slug === slug) || mockProducts[0];
+        setSelectedProductSlug(prod.slug);
+        if (prod.chaptersOrEpisodes && prod.chaptersOrEpisodes.length > 0) {
+            setSelectedChapterId(prod.chaptersOrEpisodes[0].id);
+        }
+        setActiveScreen('productDetail');
+    };
+
+    const openInAppContent = (slug: string, chapterId?: number) => {
+        const prod = mockProducts.find((p) => p.slug === slug) || mockProducts[0];
+        setSelectedProductSlug(prod.slug);
+        const firstId =
+            chapterId ||
+            (prod.chaptersOrEpisodes && prod.chaptersOrEpisodes[0]?.id) ||
+            101;
+        setSelectedChapterId(firstId);
+        if (prod.deliveryType === 'in_app_podcast') {
+            setAudioPlaying(true);
+            setActiveScreen('inAppAudioPlayer');
+        } else {
+            setActiveScreen('inAppReader');
+        }
+    };
+
+    const openItemInstructorChat = (itemId: number) => {
+        setSelectedItemId(itemId);
+        setChatChannel('instructor');
+        setActiveScreen('chat');
+    };
+
+    const openCourseGroupChat = () => {
+        setChatChannel('group');
+        setActiveScreen('chat');
+    };
+
+    const openCourseSupportChat = () => {
+        setChatChannel('support');
+        setActiveScreen('chat');
+    };
+
+    const handleSendChatMessage = () => {
+        const text = chatDraft.trim();
+        if (!text) return;
+
+        const permission = canSendMessageInChannel(
+            chatChannel,
+            groupChatEnabled,
+            previewRole
+        );
+        if (!permission.allowed) {
+            showToast(permission.reason || 'ارسال پیام در این بخش غیرفعال است.');
+            return;
+        }
+
+        const senderType = previewRole === 'instructor' ? 'instructor' : 'student';
+        const senderName =
+            previewRole === 'instructor' ? 'مدرس / ادمین دوره' : userProfile.name;
+
+        if (chatChannel === 'instructor') {
+            setCourseItems((prev) =>
+                prev.map((item) =>
+                    item.itemId === selectedItemId
+                        ? {
+                              ...item,
+                              initialMessages: appendChatMessage(
+                                  item.initialMessages,
+                                  text,
+                                  senderType,
+                                  senderName
+                              ),
+                          }
+                        : item
+                )
+            );
+            setChatDraft('');
+            const currentItem =
+                courseItems.find((i) => i.itemId === selectedItemId) || courseItems[0];
+            showToast(`پیام خصوصی برای «${currentItem.instructorName}» ارسال شد.`);
+        } else if (chatChannel === 'group') {
+            setGroupMessages((prev) =>
+                appendChatMessage(
+                    prev,
+                    text,
+                    senderType === 'instructor' ? 'instructor' : 'student',
+                    senderName,
+                    senderType === 'instructor' ? 'مدرس / ادمین' : 'دانش‌پذیر دوره VIP'
+                )
+            );
+            setChatDraft('');
+        } else {
+            setSupportMessages((prev) =>
+                appendChatMessage(prev, text, 'student', senderName)
+            );
+            setChatDraft('');
+            showToast('پیام شما برای پشتیبانی کلی دوره ثبت شد.');
+        }
+    };
+
+    const colors = isDark
+        ? {
+              bg: '#0E1713',
+              surface: '#16231D',
+              surfaceAlt: '#1F3028',
+              primary: '#52B788',
+              primaryDark: '#123E30',
+              primarySoft: '#1D352B',
+              gold: '#F59E0B',
+              goldSoft: '#3B2F13',
+              text: '#F3F6F4',
+              muted: '#95A89E',
+              border: '#26382F',
+          }
+        : {
+              bg: '#FAFBF7',
+              surface: '#FFFFFF',
+              surfaceAlt: '#F1F4EC',
+              primary: '#153F31',
+              primaryDark: '#0F2E24',
+              primarySoft: '#E6F1EC',
+              gold: '#D97706',
+              goldSoft: '#FEF3C7',
+              text: '#13241D',
+              muted: '#63736A',
+              border: '#E4EAE2',
+          };
+
+    const selectedCourse =
+        mockCourses.find((c) => c.slug === selectedCourseSlug) || mockCourses[0];
+
+    const selectedProduct =
+        mockProducts.find((p) => p.slug === selectedProductSlug) || mockProducts[0];
+
+    const activeChapterOrEpisode =
+        selectedProduct.chaptersOrEpisodes?.find((ch) => ch.id === selectedChapterId) ||
+        selectedProduct.chaptersOrEpisodes?.[0];
+
+    const selectedCourseItem =
+        courseItems.find((item) => item.itemId === selectedItemId) || courseItems[0];
+
+    const filteredCourses = filterCoursesByQueryAndCategory(
+        mockCourses,
+        searchQuery,
+        selectedCategory
+    );
+
+    const toggleReminder = (id: number) => {
+        setReminders((prev) =>
+            prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r))
+        );
+    };
+
+    const updateStudentAttendance = (studentId: number, status: AttendanceStatus) => {
+        const nowStr = '۱۷:۰۵';
+        setVipStudents((prev) =>
+            prev.map((st) =>
+                st.id === studentId
+                    ? {
+                          ...st,
+                          status,
+                          checkInTime: status === 'absent' ? '—' : nowStr,
+                      }
+                    : st
+            )
+        );
+        const stName = vipStudents.find((s) => s.id === studentId)?.name || 'دانش‌پذیر';
+        const statusLabel =
+            status === 'present_in_person'
+                ? 'حاضر (حضوری)'
+                : status === 'present_online'
+                ? 'حاضر (آنلاین)'
+                : status === 'late'
+                ? 'با تاخیر'
+                : 'غایب';
+        showToast(`وضعیت «${stName}» به «${statusLabel}» تغییر یافت.`);
+    };
+
+    const toggleStudentVipStamp = (studentId: number) => {
+        setVipStudents((prev) =>
+            prev.map((st) => (st.id === studentId ? { ...st, isVip: !st.isVip } : st))
+        );
+    };
+
+    const addVipFeature = () => {
+        if (!newFeatureText.trim()) return;
+        setVipFeatures((prev) => [
+            ...prev,
+            { id: Date.now(), title: newFeatureText.trim(), active: true },
+        ]);
+        setNewFeatureText('');
+        showToast('قابلیت جدید به دوره طراحی آینده نوجوان اضافه شد.');
+    };
+
+    const toggleVipFeature = (id: number) => {
+        setVipFeatures((prev) =>
+            prev.map((f) => (f.id === id ? { ...f, active: !f.active } : f))
+        );
+    };
+
+    const addVipSession = () => {
+        if (!newSessionTitle.trim()) return;
+        const nextNum = vipSessions.length + 1;
+        const created = {
+            id: Date.now(),
+            number: nextNum,
+            title: newSessionTitle.trim(),
+            mode: newSessionMode,
+            date: newSessionDate,
+            time: newSessionTime,
+            locationOrLink:
+                newSessionMode === 'in_person'
+                    ? vipConfig.inPersonLocation
+                    : vipConfig.onlinePlatform,
+            status: 'upcoming' as const,
+            reminderSent: false,
+        };
+        setVipSessions((prev) => [...prev, created]);
+        setNewSessionTitle('');
+        showToast(`جلسه ${faNum(nextNum)} (${newSessionMode === 'in_person' ? 'حضوری' : 'مجازی'}) ثبت شد.`);
+    };
+
+    const sendSessionReminderToAll = (sessionId: number) => {
+        setVipSessions((prev) =>
+            prev.map((s) => (s.id === sessionId ? { ...s, reminderSent: true } : s))
+        );
+        showToast('پیامک و نوتیفیکیشن یادآوری کلاس برای ۲۴ عضو VIP ارسال شد.');
+    };
+
+    const handleSaveProfile = () => {
+        const res = validateAndUpdateProfile(userProfile, profileDraft);
+        if (!res.valid) {
+            setProfileError(res.error || 'خطا در اعتبارسنجی اطلاعات');
+            return;
+        }
+        setUserProfile(res.profile);
+        setProfileError(null);
+        setIsEditingProfile(false);
+        showToast('مشخصات حساب کاربری و پرونده شما با موفقیت ذخیره شد.');
+    };
+
+    const handleWalletTopUp = (amount: number) => {
+        const res = topUpWallet(userProfile.walletBalance, amount, walletOrders);
+        setUserProfile((prev) => ({ ...prev, walletBalance: res.balance }));
+        setWalletOrders(res.orders);
+        showToast(`کیف پول شما به مبلغ ${formatPrice(amount)} با موفقیت شارژ شد.`);
+    };
+
+    const handleSendParentReport = () => {
+        const nowLabel = 'هم‌اکنون · ارسال پیامکی به والدین';
+        setUserProfile((prev) => ({
+            ...prev,
+            lastParentReportSentAt: nowLabel,
+        }));
+        showToast(`کارنامه هفتگی و گزارش حضور به شماره والدین (${faNum(userProfile.parentPhone)}) ارسال شد.`);
+    };
+
+    const handleCopyReferral = () => {
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(userProfile.referralCode).catch(() => {});
+        }
+        setCopiedReferral(true);
+        showToast(`کد معرف «${userProfile.referralCode}» کپی شد.`);
+        setTimeout(() => setCopiedReferral(false), 2500);
+    };
+
+    const levelProgressPercent = calculateLevelProgress(
+        userProfile.xp,
+        userProfile.nextLevelXp
+    );
+
+    const activeSession =
+        vipSessions.find((s) => s.id === selectedSessionId) || vipSessions[0];
+    const nextUpcomingVipSession =
+        vipSessions.find((s) => s.status === 'upcoming') || vipSessions[0];
+
+    const activeTab: ScreenId =
+        activeScreen === 'courseDetail' || activeScreen === 'learning'
+            ? 'courses'
+            : activeScreen === 'productDetail' ||
+              activeScreen === 'inAppReader' ||
+              activeScreen === 'inAppAudioPlayer'
+            ? 'shop'
+            : activeScreen === 'support'
+            ? 'chat'
+            : activeScreen === 'sessions' ||
+              activeScreen === 'goals' ||
+              activeScreen === 'reminders' ||
+              activeScreen === 'vipClub'
+            ? 'dashboard'
+            : activeScreen === 'admin' || activeScreen === 'vipManage'
+            ? 'profile'
+            : activeScreen;
 
     return (
-        <UserDashboardLayout title="سوپر اپلیکیشن اختصاصی آکادمی + دسترسی کامل به کل سایت و پنل مدیریت">
-            <Head title="سوپر اپلیکیشن آکادمی بهار زندگی | تمام امکانات سایت در گوشی + پنل مدیریت ۱۰۰٪ درون‌برنامه‌ای" />
+        <>
+            <Head title="Roshd 1.3.0 — سوپراپلیکیشن آموزش، استعدادیابی و کوچینگ رشد" />
 
-            <div className="space-y-6" dir="rtl">
-                {/* Top Executive Header */}
-                <div className="rounded-3xl bg-gradient-to-l from-slate-950 via-[#0B3B2B] to-slate-900 p-6 text-white shadow-2xl border border-emerald-500/30">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-                        <div className="space-y-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 text-xs font-bold text-emerald-300">
-                                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                                    تمام امکانات وب‌سایت در اپلیکیشن (راحت‌تر، سریع‌تر و زیباتر)
-                                </span>
-                                <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400/20 border border-amber-400/40 px-3 py-1 text-xs font-bold text-amber-300">
-                                    <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
-                                    دسترسی ۱۰۰٪ به پنل ادمین بدون خروج از برنامه
-                                </span>
-                            </div>
-
-                            <div className="flex items-center gap-3 pt-1">
-                                {renderAppLogo('md')}
-                                <div>
-                                    <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
-                                        سوپر اپلیکیشن «{appName}»
-                                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold">
-                                            نسخه رسمی آکادمی
-                                        </span>
-                                    </h1>
-                                    <div className="flex flex-wrap items-center gap-2.5 mt-1">
-                                        <span className="text-xs sm:text-sm text-slate-300">
-                                            {appTagline} • حالت فعال: <strong className="text-emerald-300">{curTheme.name}</strong>
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const next = !appDark;
-                                                setAppDark(next);
-                                                setThemePalette(next ? 'night' : 'day');
-                                                localStorage.setItem('mobile_app_dark', next ? 'true' : 'false');
-                                                localStorage.setItem('mobile_app_theme', next ? 'night' : 'day');
-                                            }}
-                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-bold text-white transition active:scale-95 shadow-sm"
-                                        >
-                                            {appDark ? (
-                                                <>
-                                                    <Sun className="w-3.5 h-3.5 text-amber-300" />
-                                                    <span>تغییر به تم روز (سایت)</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Moon className="w-3.5 h-3.5 text-indigo-300" />
-                                                    <span>تغییر به تم شب (دارک سایت)</span>
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+            <div
+                dir="rtl"
+                className="min-h-screen flex flex-col items-center justify-start py-4 px-2 sm:px-6 font-sans select-none"
+                style={{ backgroundColor: isDark ? '#070C0A' : '#E9ECE4' }}
+            >
+                {/* Top Preview Bar (Outside Mobile Frame — Role Switcher for Testing) */}
+                <div className="w-full max-w-[420px] mb-3 bg-[#123E30] text-white p-2.5 rounded-2xl shadow-md space-y-2 text-xs">
+                    <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-2">
+                            <span className="inline-block w-2 h-2 rounded-full bg-[#D6F39A]"></span>
+                            <span className="font-bold">سوپراپلیکیشن مرکز رشد دکتر بیدی</span>
                         </div>
-
-                        {/* Top Direct Screen Switcher */}
-                        <div className="flex flex-wrap items-center gap-2 shrink-0">
-                            <button
-                                onClick={() => setActiveScreen('home')}
-                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                                    activeScreen === 'home'
-                                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
-                                        : 'bg-white/10 hover:bg-white/20 text-white'
-                                }`}
+                        <div className="flex items-center gap-1.5">
+                            <Link
+                                href="/dashboard"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition text-[10.5px] font-bold"
                             >
-                                <Home className="w-3.5 h-3.5" />
-                                خانه
-                            </button>
-                            <button
-                                onClick={() => setActiveScreen('dashboard')}
-                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                                    activeScreen === 'dashboard'
-                                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-2 ring-emerald-400'
-                                        : 'bg-white/10 hover:bg-white/20 text-white'
-                                }`}
+                                <span>پنل کاربری</span>
+                            </Link>
+                            <Link
+                                href="/events?type=webinar"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[#D6F39A] transition text-[10.5px] font-bold"
                             >
-                                <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400" />
-                                داشبورد دانشجو
-                            </button>
-                            <button
-                                onClick={() => setActiveScreen('login')}
-                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                                    activeScreen === 'login'
-                                        ? 'bg-amber-400 text-slate-950 font-black shadow-lg shadow-amber-400/30'
-                                        : 'bg-white/10 text-amber-300 border border-amber-400/40 hover:bg-white/20'
-                                }`}
+                                <span>وبینارهای سایت</span>
+                            </Link>
+                            <Link
+                                href="/web"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#D6F39A] text-[#123E30] hover:opacity-95 transition text-[11px] font-extrabold"
                             >
-                                <Phone className="w-3.5 h-3.5" />
-                                ورود با موبایل
-                            </button>
-                            <button
-                                onClick={() => setActiveScreen('courses')}
-                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                                    activeScreen === 'courses' || activeScreen === 'learning'
-                                        ? 'bg-emerald-600 text-white shadow-lg'
-                                        : 'bg-white/10 hover:bg-white/20 text-white'
-                                }`}
-                            >
-                                <BookOpen className="w-3.5 h-3.5" />
-                                دوره‌ها و پلیر
-                            </button>
-                            <button
-                                onClick={() => setActiveScreen('sessions')}
-                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                                    activeScreen === 'sessions'
-                                        ? 'bg-blue-600 text-white shadow-lg'
-                                        : 'bg-white/10 hover:bg-white/20 text-white'
-                                }`}
-                            >
-                                <Calendar className="w-3.5 h-3.5" />
-                                کوچینگ و اهداف
-                            </button>
-                            <button
-                                onClick={() => setActiveScreen('shop')}
-                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                                    activeScreen === 'shop'
-                                        ? 'bg-purple-600 text-white shadow-lg'
-                                        : 'bg-white/10 hover:bg-white/20 text-white'
-                                }`}
-                            >
-                                <ShoppingBag className="w-3.5 h-3.5" />
-                                فروشگاه و کتابخانه
-                            </button>
-                            <button
-                                onClick={() => setActiveScreen('admin')}
-                                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                                    activeScreen === 'admin'
-                                        ? 'bg-amber-400 text-slate-950 font-black shadow-lg shadow-amber-400/30'
-                                        : 'bg-white/10 text-amber-300 border border-amber-400/40 hover:bg-white/20'
-                                }`}
-                            >
-                                <ShieldCheck className="w-3.5 h-3.5" />
-                                پنل ادمین موبایل
-                            </button>
-                            <button
-                                onClick={() => setActiveScreen('settings')}
-                                className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                                    activeScreen === 'settings'
-                                        ? 'bg-indigo-600 text-white shadow-lg'
-                                        : 'bg-white/10 hover:bg-white/20 text-white'
-                                }`}
-                            >
-                                <Settings className="w-3.5 h-3.5" />
-                                تغییر نام و لوگو
-                            </button>
+                                <span>نمای وب‌سایت</span>
+                                <ExternalLink className="w-3 h-3" />
+                            </Link>
                         </div>
+                    </div>
+
+                    {/* 3-State Role Switcher */}
+                    <div className="grid grid-cols-3 gap-1 bg-[#0B281F] p-1 rounded-xl">
+                        {[
+                            { id: 'vip_student' as const, label: 'عضو VIP دوره' },
+                            { id: 'regular_user' as const, label: 'کاربر عادی' },
+                            { id: 'instructor' as const, label: 'مدرس / ادمین' },
+                        ].map((r) => {
+                            const active = previewRole === r.id;
+                            return (
+                                <button
+                                    key={r.id}
+                                    type="button"
+                                    onClick={() => handleRoleSwitch(r.id)}
+                                    className={`py-1.5 rounded-lg text-[11px] font-bold transition ${
+                                        active
+                                            ? 'bg-[#D6F39A] text-[#123E30] shadow-sm'
+                                            : 'text-[#C5D7CA] hover:text-white'
+                                    }`}
+                                >
+                                    {r.label}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
-                {/* Main Two-Column Layout */}
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-                    {/* RIGHT COLUMN: INTERACTIVE PHONE SIMULATOR (420px Width) */}
-                    <div className="xl:col-span-5 flex flex-col items-center">
-                        <div className="w-full max-w-[420px] rounded-[48px] p-3.5 bg-slate-900 shadow-2xl border-4 border-slate-800 relative">
-                            {/* Phone Speaker Notch */}
-                            <div className="absolute top-6 left-1/2 -translate-x-1/2 w-28 h-4 bg-slate-950 rounded-full flex items-center justify-center gap-2 z-30">
-                                <div className="w-3 h-3 rounded-full bg-slate-900 border border-slate-700/60" />
-                                <div className="w-12 h-1 bg-slate-800 rounded-full" />
-                            </div>
+                {/* Mobile App Viewport Container */}
+                <div
+                    className="roshd-phone-frame w-full max-w-[420px] rounded-[34px] shadow-2xl overflow-hidden border flex flex-col justify-between relative"
+                    style={{
+                        backgroundColor: colors.bg,
+                        borderColor: isDark ? '#26382F' : '#D5DDD2',
+                        minHeight: '812px',
+                        maxHeight: '860px',
+                    }}
+                >
+                    {/* Live Toast Banner inside Mobile Viewport */}
+                    {toastMessage && (
+                        <div className="absolute top-3 inset-x-4 z-50 bg-[#123E30] text-white border border-[#D6F39A]/40 px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs">
+                            <CheckCircle2 className="w-4 h-4 text-[#D6F39A] shrink-0" />
+                            <span className="font-bold">{toastMessage}</span>
+                        </div>
+                    )}
 
-                            {/* Inside Phone Screen */}
-                            <div
-                                className={`w-full h-[810px] rounded-[38px] overflow-hidden flex flex-col border relative ${
-                                    appDark ? 'border-slate-800' : 'border-slate-200'
-                                } ${pageBgCls}`}
-                            >
-                                {/* PHONE TOP STATUS BAR & DYNAMIC HEADER */}
-                                <div className={`bg-gradient-to-l ${curTheme.headerGrad} text-white px-3.5 pt-7 pb-3 shadow-xl shrink-0 transition-all duration-500 border-b border-white/10 relative z-20`}>
-                                    {/* Top Status Bar: Persian Time, Dynamic Notch Pill & 2-Theme Switcher */}
-                                    <div className="flex items-center justify-between text-[11px] text-white/80 mb-2 pb-1.5 border-b border-white/10">
-                                        <div className="flex items-center gap-1.5 font-mono font-bold">
-                                            <span>۰۹:۴۱</span>
-                                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/15 text-white font-semibold">5G</span>
+                    {/* Scrollable Screen Content */}
+                    <div className="flex-1 overflow-y-auto px-5 pt-5 pb-6 space-y-5">
+                        {/* ==================== SUPER-APP HOME SCREEN ==================== */}
+                        {activeScreen === 'home' && (
+                            <div className="space-y-3.5">
+                                {/* 1. Compact Profile & Brand Header */}
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                        <div className="relative shrink-0">
+                                            <img
+                                                src="/images/roshd-logo.png"
+                                                alt="Roshd"
+                                                className="w-10 h-10 rounded-[14px] object-cover shadow-sm"
+                                            />
+                                            {isVipEnrolled && (
+                                                <span className=" -bottom-1 -left-1 w-4 h-4 rounded-full bg-amber-400 text-[#0D2E22] flex items-center justify-center shadow ring-2 ring-white dark:ring-[#0E1713] absolute">
+                                                    <Crown className="w-2.5 h-2.5" />
+                                                </span>
+                                            )}
                                         </div>
-
-                                        {/* Dynamic Island / Notch Pill */}
-                                        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15 text-[9px] text-white/80 shadow-inner">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                            <span className="font-bold">آکادمی بهار زندگی</span>
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-1.5">
+                                                <span
+                                                    className="font-black text-[15px] truncate"
+                                                    style={{ color: colors.text }}
+                                                >
+                                                    سلام نوید عزیز
+                                                </span>
+                                                {isVipEnrolled ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/25 border border-amber-500/40 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold shrink-0">
+                                                        <Crown className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
+                                                        <span>VIP</span>
+                                                    </span>
+                                                ) : (
+                                                    <span
+                                                        className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+                                                        style={{
+                                                            backgroundColor: colors.primarySoft,
+                                                            color: colors.primary,
+                                                        }}
+                                                    >
+                                                        سطح نقره‌ای
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div
+                                                className="text-[11px] truncate"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                {isVipEnrolled
+                                                    ? 'عضو باشگاه طراحی آینده نوجوان • ۱۴۵۰ امتیاز'
+                                                    : 'آکادمی رشد • هر روز یک قدم جلوتر'}
+                                            </div>
                                         </div>
+                                    </div>
 
-                                        {/* Sleek 2-Theme Day/Night Toggle Pill (Matching Website) */}
+                                    <div className="flex items-center gap-1.5 shrink-0">
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                const next = !appDark;
-                                                setAppDark(next);
-                                                setThemePalette(next ? 'night' : 'day');
-                                                localStorage.setItem('mobile_app_dark', next ? 'true' : 'false');
-                                                localStorage.setItem('mobile_app_theme', next ? 'night' : 'day');
+                                            onClick={() => setIsDark(!isDark)}
+                                            className="w-9 h-9 rounded-[12px] flex items-center justify-center border transition hover:opacity-80"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
                                             }}
-                                            className="px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 backdrop-blur-md text-white flex items-center gap-1 text-[10px] font-bold border border-white/25 transition shadow-sm"
-                                            title="سوئیچ بین تم روز و تم شب سایت"
+                                            title="تغییر تم روشن/تاریک"
                                         >
-                                            {appDark ? (
-                                                <>
-                                                    <Moon className="w-3 h-3 text-indigo-300" />
-                                                    <span>تم شب</span>
-                                                </>
+                                            {isDark ? (
+                                                <Sun className="w-4 h-4" style={{ color: colors.text }} />
                                             ) : (
-                                                <>
-                                                    <Sun className="w-3 h-3 text-amber-300" />
-                                                    <span>تم روز</span>
-                                                </>
+                                                <Moon className="w-4 h-4" style={{ color: colors.text }} />
                                             )}
                                         </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('reminders')}
+                                            className="w-9 h-9 rounded-[12px] flex items-center justify-center border transition hover:opacity-80 relative"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
+                                            }}
+                                            title="یادآوری‌های من"
+                                        >
+                                            <Bell className="w-4 h-4" style={{ color: colors.text }} />
+                                            <span className="w-2 h-2 rounded-full bg-[#D6F39A] absolute top-2 right-2"></span>
+                                        </button>
                                     </div>
+                                </div>
 
-                                    {/* App Brand Bar with Verified Badge & Action Elements */}
-                                    <div className="flex items-center justify-between gap-1.5">
-                                        {/* Brand & Verified Badge */}
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <div className="relative shrink-0">
-                                                <div className="absolute -inset-0.5 rounded-2xl bg-emerald-400/30 blur-sm" />
-                                                <div className="relative">
-                                                    {renderAppLogo('sm')}
-                                                </div>
+                                {/* Compact Search Bar */}
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveScreen('courses')}
+                                    className="w-full h-[44px] px-3.5 rounded-[15px] border flex items-center justify-between transition hover:opacity-90"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <Search className="w-4 h-4" style={{ color: colors.primary }} />
+                                        <span className="text-[12px]" style={{ color: colors.muted }}>
+                                            جستجوی دوره، مدرس آیتم، کتاب یا پادکست...
+                                        </span>
+                                    </div>
+                                    <div
+                                        className="w-7 h-7 rounded-[9px] flex items-center justify-center"
+                                        style={{ backgroundColor: colors.surfaceAlt }}
+                                    >
+                                        <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: colors.muted }} />
+                                    </div>
+                                </button>
+
+                                {/* Slim Live Status Bar (Without QR Code — Direct Access to Class & Group Chat) */}
+                                {isVipEnrolled ? (
+                                    <div className="bg-gradient-to-l from-[#123E30] via-[#164A39] to-[#0E3126] text-white rounded-[18px] p-3 border border-amber-400/35 shadow-sm flex items-center justify-between gap-2">
+                                        <div
+                                            onClick={() => {
+                                                setVipClubTab('schedule');
+                                                setActiveScreen('vipClub');
+                                            }}
+                                            className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+                                        >
+                                            <div className="w-9 h-9 rounded-[12px] bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0">
+                                                {nextUpcomingVipSession.mode === 'in_person' ? (
+                                                    <Building2 className="w-4 h-4 text-amber-300" />
+                                                ) : (
+                                                    <Video className="w-4 h-4 text-amber-300" />
+                                                )}
                                             </div>
-                                            <div className="min-w-0">
-                                                <div className="text-xs sm:text-sm font-black tracking-tight leading-tight flex items-center gap-1.5 truncate">
-                                                    <span>{appName}</span>
-                                                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                                                    {activeScreen === 'admin' && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[8px] bg-amber-400 text-slate-950 font-black shrink-0 shadow-sm">
-                                                            ADMIN
-                                                        </span>
-                                                    )}
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#D6F39A]"></span>
+                                                    <span className="text-[10px] font-bold text-[#D6F39A] truncate">
+                                                        کلاس بعدی طراحی آینده نوجوان (
+                                                        {nextUpcomingVipSession.mode === 'in_person'
+                                                            ? 'حضوری'
+                                                            : 'آنلاین'}
+                                                        )
+                                                    </span>
                                                 </div>
-                                                <div className="text-[10px] text-white/80 truncate">
-                                                    {appTagline}
+                                                <div className="font-bold text-[12px] text-white truncate mt-0.5">
+                                                    {nextUpcomingVipSession.title}
+                                                </div>
+                                                <div className="text-[10px] text-[#C5D7CA] truncate">
+                                                    {nextUpcomingVipSession.date} • ساعت{' '}
+                                                    {nextUpcomingVipSession.time}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {/* Frosted Glass Action Elements */}
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            {/* Profile / Login Button */}
-                                            {isLoggedIn ? (
-                                                <button
-                                                    onClick={() => setActiveScreen('dashboard')}
-                                                    className={`relative p-0.5 rounded-full transition border ${
-                                                        activeScreen === 'dashboard'
-                                                            ? 'border-amber-400 ring-2 ring-amber-400/50 bg-amber-400/20'
-                                                            : 'border-white/30 hover:border-white/60 bg-white/15'
-                                                    }`}
-                                                    title="پروفایل و داشبورد دانشجو"
-                                                >
-                                                    <img
-                                                        src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-                                                        alt="پروفایل"
-                                                        className="w-7 h-7 rounded-full object-cover"
-                                                    />
-                                                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-slate-900" />
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setActiveScreen('login')}
-                                                    className="px-2 h-7 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center gap-1 text-[10px] font-bold shadow-sm transition active:scale-95"
-                                                    title="ورود با شماره موبایل"
-                                                >
-                                                    <Phone className="w-3 h-3" />
-                                                    <span>ورود</span>
-                                                </button>
-                                            )}
-
-                                            {/* Quick Search */}
+                                        <div className="flex items-center gap-1.5 shrink-0">
                                             <button
-                                                onClick={() => setActiveScreen('courses')}
-                                                className={`w-7 h-7 rounded-full flex items-center justify-center transition border ${
-                                                    activeScreen === 'courses' || activeScreen === 'learning'
-                                                        ? 'bg-white text-slate-900 border-white shadow-sm'
-                                                        : 'bg-white/15 hover:bg-white/25 text-white border-white/20'
-                                                }`}
-                                                title="کاتالوگ دوره‌ها"
-                                            >
-                                                <Search className="w-3.5 h-3.5" />
-                                            </button>
-
-                                            {/* Wallet */}
-                                            <button
-                                                onClick={() => setActiveScreen('wallet')}
-                                                className={`w-7 h-7 rounded-full flex items-center justify-center relative transition border ${
-                                                    activeScreen === 'wallet'
-                                                        ? 'bg-white text-slate-900 border-white shadow-sm'
-                                                        : 'bg-white/15 hover:bg-white/25 text-white border-white/20'
-                                                }`}
-                                                title="کیف پول و مدارک"
-                                            >
-                                                <Wallet className="w-3.5 h-3.5" />
-                                            </button>
-
-                                            {/* Support */}
-                                            <button
-                                                onClick={() => setActiveScreen('support')}
-                                                className={`w-7 h-7 rounded-full flex items-center justify-center transition border ${
-                                                    activeScreen === 'support'
-                                                        ? 'bg-white text-slate-900 border-white shadow-sm'
-                                                        : 'bg-white/15 hover:bg-white/25 text-white border-white/20'
-                                                }`}
-                                                title="پشتیبانی آنلاین"
+                                                type="button"
+                                                onClick={openCourseGroupChat}
+                                                className="inline-flex items-center gap-1 px-2.5 py-2 rounded-[12px] bg-amber-400 text-[#0D2E22] font-black text-[11px] shadow-sm hover:opacity-95 active:scale-95 transition"
                                             >
                                                 <MessageSquare className="w-3.5 h-3.5" />
+                                                <span>گروه دوره</span>
                                             </button>
-
-                                            {/* Settings */}
                                             <button
-                                                onClick={() => setActiveScreen('settings')}
-                                                className={`w-7 h-7 rounded-full flex items-center justify-center transition border ${
-                                                    activeScreen === 'settings'
-                                                        ? 'bg-white text-slate-900 border-white shadow-sm'
-                                                        : 'bg-white/15 hover:bg-white/25 text-white border-white/20'
-                                                }`}
-                                                title="تنظیمات تم و برندینگ"
+                                                type="button"
+                                                onClick={() => {
+                                                    setVipClubTab('schedule');
+                                                    setActiveScreen('vipClub');
+                                                }}
+                                                className="w-8 h-8 rounded-[12px] bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition"
+                                                title="برنامه کلاس‌ها"
                                             >
-                                                <Sliders className="w-3.5 h-3.5" />
+                                                <ArrowLeft className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
-
-                                    {/* Sub-Header Quick Action Strip */}
-                                    <div className="mt-2 pt-1.5 border-t border-white/10 flex items-center justify-between text-[10px]">
-                                        <div className="flex items-center gap-1.5 text-white/90 truncate">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 animate-ping" />
-                                            <span className="truncate">کوچینگ ۱ به ۱: شنبه ۱۸ اردیبهشت با دکتر بیدی</span>
+                                ) : (
+                                    <div
+                                        onClick={() => openCourse('designing-teen-future-vip')}
+                                        className="cursor-pointer bg-gradient-to-l from-[#123E30] to-[#1A5240] text-white rounded-[18px] p-3 border border-amber-400/35 flex items-center justify-between gap-2.5 transition hover:opacity-95"
+                                    >
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                            <div className="w-9 h-9 rounded-[12px] bg-amber-400 text-[#0D2E22] flex items-center justify-center shrink-0">
+                                                <Crown className="w-4 h-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="text-[10px] font-bold text-amber-300">
+                                                    دوره پرچمدار حضوری + مجازی
+                                                </div>
+                                                <div className="font-bold text-[12px] truncate">
+                                                    {vipConfig.title} (با مهر VIP)
+                                                </div>
+                                            </div>
                                         </div>
-                                        <button
-                                            onClick={() => setActiveScreen('sessions')}
-                                            className="px-2 py-0.5 rounded-md bg-white/20 hover:bg-white/30 text-white font-bold shrink-0 text-[9px] flex items-center gap-0.5 transition"
-                                        >
-                                            <span>مشاهده</span>
-                                            <ChevronLeft className="w-2.5 h-2.5" />
-                                        </button>
+                                        <span className="px-2.5 py-1.5 rounded-[11px] bg-[#D6F39A] text-[#123E30] font-black text-[11px] shrink-0 inline-flex items-center gap-1">
+                                            <span>معرفی دوره</span>
+                                            <ArrowLeft className="w-3 h-3" />
+                                        </span>
                                     </div>
-                                </div>
+                                )}
 
-                                {/* SCROLLABLE PHONE BODY CONTENT */}
-                                <div className="flex-1 overflow-y-auto p-3 space-y-3.5">
-                                    {/* ========================================================
-                                        SCREEN 1: HOME SUPER-HUB (خانه و پیشخوان یکپارچه)
-                                    ======================================================== */}
-                                    {activeScreen === 'home' && (
-                                        <>
-                                            {/* Student Greeting & Stats Banner */}
-                                            <div className="rounded-2xl bg-gradient-to-l from-slate-900 to-slate-800 text-white p-3.5 shadow-sm space-y-2.5 border border-slate-700/60">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2.5">
-                                                        <div className="relative">
-                                                            <img
-                                                                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-                                                                alt="دانش‌پذیر VIP"
-                                                                className="w-10 h-10 rounded-full object-cover border border-amber-400/80 shadow-sm"
-                                                            />
-                                                            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[8px] border border-slate-900 shadow">
-                                                                VIP
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-xs font-black">سلام، دانش‌پذیر عزیز</div>
-                                                            <div className="text-[10px] text-slate-300">عضویت طلایی آکادمی فعال است</div>
-                                                        </div>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => setActiveScreen('admin')}
-                                                        className="px-2.5 py-1 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-black flex items-center gap-1 shadow-sm hover:bg-amber-300 transition"
-                                                    >
-                                                        <ShieldCheck className="w-3 h-3" />
-                                                        پنل ادمین
-                                                    </button>
-                                                </div>
-
-                                                <div className="grid grid-cols-3 gap-1.5 pt-1 text-center border-t border-slate-700/60">
-                                                    <div className="p-1.5 rounded-lg bg-white/5">
-                                                        <div className="text-xs font-black text-emerald-400">۲ دوره</div>
-                                                        <div className="text-[9px] text-slate-300">در حال یادگیری</div>
-                                                    </div>
-                                                    <div className="p-1.5 rounded-lg bg-white/5">
-                                                        <div className="text-xs font-black text-amber-300">۱ جلسه</div>
-                                                        <div className="text-[9px] text-slate-300">کوچینگ رزرو شده</div>
-                                                    </div>
-                                                    <div className="p-1.5 rounded-lg bg-white/5">
-                                                        <div className="text-xs font-black text-blue-300">۲,۴۵۰,۰۰۰ ت</div>
-                                                        <div className="text-[9px] text-slate-300">موجودی کیف پول</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Finka-inspired Learning Streak Capsule */}
-                                            <div className="p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-teal-500/10 border border-amber-500/30 flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center">
-                                                        <Flame className="w-4 h-4 fill-amber-500 text-amber-500 animate-pulse" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1">
-                                                            استریک ۵ روز یادگیری مداوم
-                                                        </div>
-                                                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                                                            ۲ جلسه تا تکمیل نشان طلایی هفته
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-lg bg-amber-500/15">
-                                                    ۵ / ۷ روز
-                                                </span>
-                                            </div>
-
-                                            {/* ACADEMY HIGHLIGHTS / CAPSULES (Finka Photo Capsules) */}
-                                            <div className="space-y-1.5">
-                                                <div className="flex items-center justify-between px-1">
-                                                    <span className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1">
-                                                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                                                        رویدادها و کپسول‌های آکادمی
-                                                    </span>
-                                                    <span className={`text-[10px] ${mutedCls}`}>اطلاعیه‌های زنده</span>
-                                                </div>
-
-                                                <div className="flex items-center gap-2.5 overflow-x-auto py-1 px-0.5 no-scrollbar">
-                                                    {highlightsData.map((hl) => {
-                                                        const HlIcon = hl.icon;
-                                                        return (
-                                                            <button
-                                                                key={hl.id}
-                                                                onClick={() => setSelectedHighlight(hl.id)}
-                                                                className="flex flex-col items-center gap-1.5 shrink-0 group focus:outline-none"
-                                                            >
-                                                                <div className="p-0.5 rounded-full bg-gradient-to-tr from-emerald-500 via-amber-400 to-blue-500 group-hover:scale-105 transition-transform duration-200">
-                                                                    <div className="w-13 h-13 rounded-full overflow-hidden bg-slate-900 border-2 border-white dark:border-slate-900 relative">
-                                                                        <img
-                                                                            src={hl.image}
-                                                                            alt={hl.title}
-                                                                            className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
-                                                                        />
-                                                                        <div className="absolute inset-0 bg-black/25" />
-                                                                        <div className="absolute bottom-0 inset-x-0 bg-slate-950/80 py-0.5 flex items-center justify-center">
-                                                                            <HlIcon className={`w-2.5 h-2.5 ${hl.iconColor}`} />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[62px]">
-                                                                    {hl.title}
-                                                                </span>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-
-                                            {/* RESUME LEARNING ACTIVE COURSE CARD (With Photo Thumbnail) */}
-                                            <div className={`p-3 rounded-2xl border ${surfaceCls} space-y-2.5 shadow-sm`}>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                                        <BookOpen className="w-3 h-3" />
-                                                        ادامه یادگیری دوره فعال
-                                                    </span>
-                                                    <span className="text-[10px] font-black text-slate-500">۶۵٪ تکمیل</span>
-                                                </div>
-
-                                                <div className="flex items-center gap-3">
-                                                    <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-slate-200 dark:border-slate-800">
-                                                        <img
-                                                            src={coursesList[0].image}
-                                                            alt={coursesList[0].title}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                                                            <div className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow">
-                                                                <Play className="w-3 h-3 fill-current ml-0.5" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="text-xs font-black truncate">
-                                                            {coursesList[0].title}
-                                                        </div>
-                                                        <div className={`text-[10px] ${mutedCls} truncate mt-0.5`}>
-                                                            جلسه ۴: سیستم‌سازی بازخوردها و اصلاح مسیر فردی
-                                                        </div>
-                                                        {/* Progress Bar */}
-                                                        <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden mt-1.5">
-                                                            <div className="h-full bg-emerald-500 rounded-full w-[65%]" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedCourseId(1);
-                                                        setActiveScreen('learning');
-                                                    }}
-                                                    className="w-full py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-sm"
-                                                >
-                                                    <Play className="w-3.5 h-3.5 fill-current" />
-                                                    ادامه پخش ویدیو و سرفصل‌ها
-                                                </button>
-                                            </div>
-
-                                            {/* UPCOMING 1-ON-1 COACHING SESSION */}
-                                            <div className={`p-3.5 rounded-2xl border border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20 space-y-2`}>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1">
-                                                        <Calendar className="w-3 h-3" />
-                                                        نزدیک‌ترین جلسه منتورینگ فردی
-                                                    </span>
-                                                    <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[9px] font-bold">
-                                                        تایید شده
-                                                    </span>
-                                                </div>
-
-                                                <div className="text-xs font-extrabold text-slate-900 dark:text-white">
-                                                    جلسه بازنگری ماتریس تصمیم‌گیری با دکتر بیدی
-                                                </div>
-                                                <div className="text-[10px] text-slate-600 dark:text-slate-400">
-                                                    زمان: شنبه ۱۸ اردیبهشت — ساعت ۱۷:۰۰ تا ۱۸:۰۰
-                                                </div>
-
-                                                <div className="flex gap-2 pt-1">
-                                                    <button
-                                                        onClick={() => setActiveScreen('sessions')}
-                                                        className="flex-1 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1"
-                                                    >
-                                                        <Video className="w-3 h-3" />
-                                                        ورود به اتاق جلسه
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setActiveScreen('sessions')}
-                                                        className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold"
-                                                    >
-                                                        اهداف ۹۰ روزه
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* QUICK ACCESS GRID (ALL WEBSITE CAPABILITIES) */}
-                                            <div className="space-y-1.5">
-                                                <div className="text-xs font-black px-1 text-slate-900 dark:text-white">
-                                                    دسترسی سریع به تمام امکانات سایت
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {[
-                                                        { id: 'courses' as ScreenId, title: 'کاتالوگ دوره‌ها', sub: 'تمام آموزش‌ها و سرفصل‌ها', icon: BookOpen, color: 'text-emerald-500 bg-emerald-500/10' },
-                                                        { id: 'quizzes' as ScreenId, title: 'تکالیف و آزمون‌ها', sub: 'کوییز آنلاین و ارسال تمرین', icon: ClipboardCheck, color: 'text-indigo-500 bg-indigo-500/10' },
-                                                        { id: 'sessions' as ScreenId, title: 'جلسات کوچینگ ۱ به ۱', sub: 'رزرو وقت و اهداف فصلی', icon: Calendar, color: 'text-blue-500 bg-blue-500/10' },
-                                                        { id: 'shop' as ScreenId, title: 'فروشگاه و کتاب‌ها', sub: 'سبد خرید و کتابخانه PDF', icon: ShoppingBag, color: 'text-purple-500 bg-purple-500/10' },
-                                                        { id: 'wallet' as ScreenId, title: 'کیف پول و مدارک', sub: 'موجودی و گواهینامه معتبر', icon: Award, color: 'text-amber-500 bg-amber-500/10' },
-                                                        { id: 'support' as ScreenId, title: 'پشتیبانی و تیکت‌ها', sub: 'ارسال تیکت و چت زنده', icon: MessageSquare, color: 'text-rose-500 bg-rose-500/10' },
-                                                    ].map((item) => {
-                                                        const Icon = item.icon;
-                                                        return (
-                                                            <button
-                                                                key={item.id}
-                                                                onClick={() => setActiveScreen(item.id)}
-                                                                className={`p-3 rounded-2xl border text-right transition flex items-start gap-2.5 ${surfaceCls} hover:border-emerald-500`}
-                                                            >
-                                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${item.color}`}>
-                                                                    <Icon className="w-4 h-4" />
-                                                                </div>
-                                                                <div className="min-w-0">
-                                                                    <div className="text-xs font-black truncate">{item.title}</div>
-                                                                    <div className={`text-[9px] truncate ${mutedCls}`}>{item.sub}</div>
-                                                                </div>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {/* ========================================================
-                                        SCREEN 2: COURSES & IN-APP LEARNING PLAYER
-                                    ======================================================== */}
-                                    {(activeScreen === 'courses' || activeScreen === 'learning') && (
-                                        <div className="space-y-3">
-                                            {/* Subtabs: All Courses vs My Enrolled Courses */}
-                                            <div className="flex gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800">
-                                                <button
-                                                    onClick={() => setCoursesFilter('all')}
-                                                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
-                                                        coursesFilter === 'all'
-                                                            ? 'bg-white dark:bg-slate-900 shadow-sm text-slate-900 dark:text-white'
-                                                            : 'text-slate-500'
-                                                    }`}
-                                                >
-                                                    کاتالوگ دوره‌ها ({coursesList.length})
-                                                </button>
-                                                <button
-                                                    onClick={() => setCoursesFilter('my')}
-                                                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
-                                                        coursesFilter === 'my'
-                                                            ? 'bg-white dark:bg-slate-900 shadow-sm text-slate-900 dark:text-white'
-                                                            : 'text-slate-500'
-                                                    }`}
-                                                >
-                                                    دوره‌های من (۲ دوره)
-                                                </button>
-                                            </div>
-
-                                            {/* IF IN LEARNING PLAYER MODE */}
-                                            {activeScreen === 'learning' ? (
-                                                <div className="space-y-3">
-                                                    {/* Video Player Box */}
-                                                    <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-lg space-y-2">
-                                                        <div className="relative aspect-video w-full bg-slate-900 flex items-center justify-center">
-                                                            <img
-                                                                src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=700&q=80"
-                                                                alt="Video Poster"
-                                                                className="w-full h-full object-cover opacity-75"
-                                                            />
-                                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30" />
-
-                                                            {/* Big Center Play/Pause Button */}
-                                                            <button
-                                                                onClick={() => setPlayingLesson(!playingLesson)}
-                                                                className="absolute w-12 h-12 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-2xl hover:scale-110 transition"
-                                                            >
-                                                                {playingLesson ? (
-                                                                    <Pause className="w-5 h-5 fill-current" />
-                                                                ) : (
-                                                                    <Play className="w-5 h-5 fill-current ml-0.5" />
-                                                                )}
-                                                            </button>
-
-                                                            {/* Quality badge */}
-                                                            <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/60 text-white text-[9px] font-bold">
-                                                                1080p HD
-                                                            </div>
-                                                            {/* Bookmark toggle */}
-                                                            <button
-                                                                onClick={() => setIsBookmarked(!isBookmarked)}
-                                                                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white"
-                                                            >
-                                                                <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'text-amber-400 fill-amber-400' : ''}`} />
-                                                            </button>
-                                                        </div>
-
-                                                        {/* Player Controls & Title */}
-                                                        <div className="p-3 space-y-2">
-                                                            <div className="flex items-center justify-between text-[11px] text-white">
-                                                                <span className="font-extrabold truncate max-w-[220px]">
-                                                                    {currentCourse.lessons[currentLessonIndex]?.title || currentCourse.title}
-                                                                </span>
-                                                                <span className="text-[10px] text-emerald-400 font-mono">
-                                                                    ۲۴:۳۰ / ۵۵:۰۰
-                                                                </span>
-                                                            </div>
-
-                                                            {/* Interactive Scrubber */}
-                                                            <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden cursor-pointer">
-                                                                <div className="h-full bg-emerald-500 rounded-full w-[45%]" />
-                                                            </div>
-
-                                                            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-                                                                <span>مدرس: {currentCourse.instructor}</span>
-                                                                <button
-                                                                    onClick={() => setActiveScreen('quizzes')}
-                                                                    className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold hover:bg-indigo-500/30"
-                                                                >
-                                                                    کوییز این جلسه ←
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Lesson Outline Checklist */}
-                                                    <div className={`p-3 rounded-2xl border ${surfaceCls} space-y-2`}>
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-xs font-black">سرفصل‌های دوره</span>
-                                                            <span className={`text-[10px] ${mutedCls}`}>
-                                                                {currentCourse.lessons.length} درس
-                                                            </span>
-                                                        </div>
-
-                                                        <div className="space-y-1.5 max-h-48 overflow-y-auto no-scrollbar">
-                                                            {currentCourse.lessons.map((ls, idx) => (
-                                                                <button
-                                                                    key={ls.id}
-                                                                    onClick={() => setCurrentLessonIndex(idx)}
-                                                                    className={`w-full p-2 rounded-xl text-right text-xs transition flex items-center justify-between ${
-                                                                        currentLessonIndex === idx
-                                                                            ? 'bg-emerald-500/15 border border-emerald-500/40 font-extrabold text-emerald-700 dark:text-emerald-300'
-                                                                            : 'bg-slate-50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300'
-                                                                    }`}
-                                                                >
-                                                                    <div className="flex items-center gap-2 truncate">
-                                                                        <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold">
-                                                                            {idx + 1}
-                                                                        </span>
-                                                                        <span className="truncate">{ls.title}</span>
-                                                                    </div>
-                                                                    <span className="text-[10px] text-slate-400 shrink-0">
-                                                                        {ls.dur}
-                                                                    </span>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Interactive Lesson Notes Box */}
-                                                    <div className={`p-3 rounded-2xl border ${surfaceCls} space-y-2`}>
-                                                        <span className="text-xs font-black flex items-center gap-1.5">
-                                                            <Edit3 className="w-3.5 h-3.5 text-amber-500" />
-                                                            یادداشت‌های شخصی من برای این درس
-                                                        </span>
-
-                                                        <div className="flex gap-1.5">
-                                                            <input
-                                                                type="text"
-                                                                value={lessonNoteText}
-                                                                onChange={(e) => setLessonNoteText(e.target.value)}
-                                                                placeholder="نکته مهم را تایپ و ذخیره کنید..."
-                                                                className="flex-1 text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                            />
-                                                            <button
-                                                                onClick={() => {
-                                                                    if (!lessonNoteText.trim()) return;
-                                                                    setSavedNotes((prev) => [lessonNoteText, ...prev]);
-                                                                    setLessonNoteText('');
-                                                                }}
-                                                                className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold"
-                                                            >
-                                                                ثبت
-                                                            </button>
-                                                        </div>
-
-                                                        {savedNotes.length > 0 && (
-                                                            <div className="space-y-1 pt-1">
-                                                                {savedNotes.map((nt, i) => (
-                                                                    <div
-                                                                        key={i}
-                                                                        className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-[11px] text-slate-700 dark:text-slate-300"
-                                                                    >
-                                                                        • {nt}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    <button
-                                                        onClick={() => setActiveScreen('courses')}
-                                                        className="w-full py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-xs font-bold"
-                                                    >
-                                                        بازگشت به فهرست کامل دوره‌ها
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                /* COURSE LIST VIEW (Finka EdTech Style with Photography) */
-                                                <div className="space-y-3">
-                                                    {coursesList
-                                                        .filter((c) => (coursesFilter === 'my' ? c.enrolled : true))
-                                                        .map((c) => (
-                                                            <div
-                                                                key={c.id}
-                                                                className={`rounded-2xl border ${surfaceCls} overflow-hidden shadow-sm hover:shadow-md transition`}
-                                                            >
-                                                                {/* Course Cover Photo with Badges */}
-                                                                <div className="relative aspect-[16/9] w-full bg-slate-900 overflow-hidden">
-                                                                    <img
-                                                                        src={c.image}
-                                                                        alt={c.title}
-                                                                        className="w-full h-full object-cover hover:scale-105 transition duration-500"
-                                                                    />
-                                                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-
-                                                                    {/* Category Tag & Rating Pill */}
-                                                                    <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between">
-                                                                        <span className="px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white text-[10px] font-bold">
-                                                                            {c.category}
-                                                                        </span>
-                                                                        <div className="px-2 py-0.5 rounded-lg bg-amber-400 text-slate-950 text-[10px] font-black flex items-center gap-1 shadow">
-                                                                            <Star className="w-2.5 h-2.5 fill-slate-950 text-slate-950" />
-                                                                            <span>{c.rating}</span>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* Bottom Duration & Lessons */}
-                                                                    <div className="absolute bottom-2.5 inset-x-2.5 flex items-center justify-between text-white text-[10px]">
-                                                                        <span className="flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded">
-                                                                            <Clock className="w-3 h-3 text-emerald-400" />
-                                                                            {c.duration}
-                                                                        </span>
-                                                                        <span className="flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded">
-                                                                            <BookOpen className="w-3 h-3 text-amber-300" />
-                                                                            {c.lessonsCount} درس
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Course Details Content */}
-                                                                <div className="p-3 space-y-2.5">
-                                                                    <div className="text-xs font-black leading-snug">
-                                                                        {c.title}
-                                                                    </div>
-
-                                                                    {/* Instructor Row with Avatar */}
-                                                                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <img
-                                                                                src={c.instructorAvatar}
-                                                                                alt={c.instructor}
-                                                                                className="w-6 h-6 rounded-full object-cover border border-slate-200 dark:border-slate-700"
-                                                                            />
-                                                                            <span className={`text-[11px] font-bold ${mutedCls}`}>
-                                                                                {c.instructor}
-                                                                            </span>
-                                                                        </div>
-                                                                        <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-                                                                            {c.price} ت
-                                                                        </span>
-                                                                    </div>
-
-                                                                    {c.enrolled ? (
-                                                                        <div className="space-y-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
-                                                                            <div className="flex justify-between text-[10px] text-slate-500">
-                                                                                <span>پیشرفت شما:</span>
-                                                                                <span className="font-bold text-emerald-600 dark:text-emerald-400">{c.progress}٪</span>
-                                                                            </div>
-                                                                            <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                                                                                <div
-                                                                                    className="h-full bg-emerald-500 rounded-full"
-                                                                                    style={{ width: `${c.progress}%` }}
-                                                                                />
-                                                                            </div>
-                                                                            <button
-                                                                                onClick={() => {
-                                                                                    setSelectedCourseId(c.id);
-                                                                                    setActiveScreen('learning');
-                                                                                }}
-                                                                                className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition"
-                                                                            >
-                                                                                <Play className="w-3.5 h-3.5 fill-current" />
-                                                                                ورود به کلاس و تماشای دروس
-                                                                            </button>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
-                                                                            <span className={`text-[10px] ${mutedCls}`}>پذیرش فعال دوره</span>
-                                                                            <button
-                                                                                onClick={() => {
-                                                                                    setSelectedCourseId(c.id);
-                                                                                    setActiveScreen('learning');
-                                                                                }}
-                                                                                className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition shadow-sm"
-                                                                            >
-                                                                                مشاهده سرفصل و ثبت‌نام
-                                                                            </button>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* ========================================================
-                                        SCREEN 3: QUIZZES & ASSIGNMENTS (آزمون‌ها و تمرینات)
-                                    ======================================================== */}
-                                    {activeScreen === 'quizzes' && (
-                                        <div className="space-y-3">
-                                            {/* Header Card */}
-                                            <div className="rounded-2xl bg-gradient-to-l from-indigo-900 to-slate-900 text-white p-3.5 space-y-1 border border-indigo-500/30">
-                                                <div className="text-xs font-black flex items-center gap-1.5">
-                                                    <ClipboardCheck className="w-4 h-4 text-indigo-400" />
-                                                    ارزیابی آموخته‌ها: کوییز و تکالیف هفتگی
-                                                </div>
-                                                <div className="text-[10px] text-indigo-200">
-                                                    نمرات مستقیماً در پرونده تحصیلی و صدور گواهینامه نهایی ثبت می‌شود.
-                                                </div>
-                                            </div>
-
-                                            {/* QUIZ INTERACTIVE BOX */}
-                                            <div className={`p-3.5 rounded-2xl border ${surfaceCls} space-y-3 shadow-sm`}>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-black">کوییز آنلاین فصل دوم (تستی)</span>
-                                                    <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold">
-                                                        ۲ سوال • نمره قبولی ۸۰٪
-                                                    </span>
-                                                </div>
-
-                                                {quizQuestions.map((q, idx) => (
-                                                    <div key={q.id} className="space-y-2 pt-1 border-t first:border-t-0 border-slate-200 dark:border-slate-800">
-                                                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                                                            {idx + 1}. {q.q}
-                                                        </div>
-
-                                                        <div className="space-y-1.5">
-                                                            {q.options.map((opt, optIdx) => (
-                                                                <button
-                                                                    key={optIdx}
-                                                                    onClick={() =>
-                                                                        setQuizAnswers((prev) => ({
-                                                                            ...prev,
-                                                                            [q.id]: optIdx,
-                                                                        }))
-                                                                    }
-                                                                    className={`w-full p-2 rounded-xl text-right text-xs transition border ${
-                                                                        quizAnswers[q.id] === optIdx
-                                                                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-bold'
-                                                                            : `${surfaceCls}`
-                                                                    }`}
-                                                                >
-                                                                    {opt}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ))}
-
-                                                {quizSubmitted ? (
-                                                    <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold text-center space-y-1">
-                                                        <div className="flex items-center justify-center gap-1.5">
-                                                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                                            <span>نتیجه آزمون: {quizScore}٪ — نمره قبولی را کسب کردید!</span>
-                                                        </div>
-                                                        <div className="text-[10px]">نمره در کارنامه آکادمی ذخیره شد.</div>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => {
-                                                            let correctCount = 0;
-                                                            quizQuestions.forEach((q) => {
-                                                                if (quizAnswers[q.id] === q.correct) correctCount++;
-                                                            });
-                                                            const score = Math.round((correctCount / quizQuestions.length) * 100);
-                                                            setQuizScore(score);
-                                                            setQuizSubmitted(true);
-                                                        }}
-                                                        className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md"
-                                                    >
-                                                        ثبت نهایی پاسخ‌ها و دریافت نتیجه
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            {/* HOMEWORK SUBMISSION BOX */}
-                                            <div className={`p-3.5 rounded-2xl border ${surfaceCls} space-y-2.5 shadow-sm`}>
-                                                <div className="text-xs font-black">ارسال تمرین جلسه ۴ (تشریحی)</div>
-                                                <p className={`text-[11px] ${mutedCls}`}>
-                                                    سوال تمرین: ماتریس تصمیم‌گیری خود را برای یکی از چالش‌های ۳ ماه آینده خود تکمیل کنید.
-                                                </p>
-
-                                                <textarea
-                                                    value={assignmentText}
-                                                    onChange={(e) => setAssignmentText(e.target.value)}
-                                                    rows={3}
-                                                    placeholder="متن پاسخ و تحلیل تمرین خود را اینجا بنویسید..."
-                                                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent focus:outline-none"
-                                                />
-
-                                                {assignmentSubmitted ? (
-                                                    <div className="p-2.5 rounded-xl bg-emerald-500 text-white text-xs font-bold text-center flex items-center justify-center gap-1.5">
-                                                        <CheckCircle2 className="w-4 h-4 text-white" />
-                                                        <span>تکلیف شما با موفقیت ارسال شد و در نوبت بررسی قرار گرفت.</span>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => {
-                                                            if (!assignmentText.trim()) return;
-                                                            setAssignmentSubmitted(true);
-                                                        }}
-                                                        className="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold"
-                                                    >
-                                                        ارسال تکلیف برای منتور
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* ========================================================
-                                        SCREEN 4: COACHING 1-ON-1 & GOALS TRACKER
-                                    ======================================================== */}
-                                    {activeScreen === 'sessions' && (
-                                        <div className="space-y-3">
-                                            {/* Mentor Profile Header with Real Photograph */}
-                                            <div className="rounded-2xl bg-gradient-to-l from-slate-900 to-blue-950 text-white p-3.5 space-y-2 border border-blue-500/30">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="relative">
-                                                        <img
-                                                            src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=200&q=80"
-                                                            alt="دکتر مهدی بیدی"
-                                                            className="w-13 h-13 rounded-2xl object-cover border-2 border-amber-400 shadow-md"
-                                                        />
-                                                        <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center border-2 border-slate-900">
-                                                            <Check className="w-2.5 h-2.5 stroke-[3]" />
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-xs font-black flex items-center gap-1.5 text-white">
-                                                            <span>دکتر مهدی بیدی</span>
-                                                            <span className="px-1.5 py-0.5 rounded text-[8px] bg-amber-400 text-slate-950 font-black">
-                                                                کوچ ارشد
-                                                            </span>
-                                                        </div>
-                                                        <div className="text-[10px] text-blue-200 mt-0.5">
-                                                            سیستم‌سازی ذهن و بهره‌وری کوانتومی کسب‌وکار
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* ACTIVE BOOKED SESSIONS */}
-                                            <div className={`p-3.5 rounded-2xl border ${surfaceCls} space-y-2.5 shadow-sm`}>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-black">جلسات رزرو شده شما</span>
-                                                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">
-                                                        {bookedSessions.length} جلسه فعال
-                                                    </span>
-                                                </div>
-
-                                                {bookedSessions.map((s) => (
-                                                    <div
-                                                        key={s.id}
-                                                        className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-500/30 space-y-2"
-                                                    >
-                                                        <div className="flex items-start justify-between">
-                                                            <div className="text-xs font-black text-blue-900 dark:text-blue-200">
-                                                                {s.topic}
-                                                            </div>
-                                                            <span className="px-2 py-0.5 rounded text-[9px] bg-emerald-600 text-white font-bold">
-                                                                {s.status}
-                                                            </span>
-                                                        </div>
-                                                        <div className="text-[11px] text-slate-600 dark:text-slate-300">
-                                                            زمان: <strong>{s.date}</strong> — {s.time}
-                                                        </div>
-                                                        <a
-                                                            href={s.roomLink}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="w-full py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5"
-                                                        >
-                                                            <Video className="w-3.5 h-3.5" />
-                                                            ورود به اتاق اختصاصی Google Meet
-                                                        </a>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {/* INTERACTIVE BOOK NEW COACHING SESSION */}
-                                            <div className={`p-3.5 rounded-2xl border ${surfaceCls} space-y-2.5 shadow-sm`}>
-                                                <div className="text-xs font-black">رزرو وقت جلسه کوچینگ جدید</div>
-
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-slate-500">موضوع تمرکز جلسه</label>
-                                                    <input
-                                                        type="text"
-                                                        value={newSessionTopic}
-                                                        onChange={(e) => setNewSessionTopic(e.target.value)}
-                                                        className="w-full text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                    />
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div className="space-y-1">
-                                                        <label className="text-[10px] font-bold text-slate-500">تاریخ جلسه</label>
-                                                        <select
-                                                            value={newSessionDate}
-                                                            onChange={(e) => setNewSessionDate(e.target.value)}
-                                                            className="w-full text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                        >
-                                                            <option value="دوشنبه ۲۰ اردیبهشت">دوشنبه ۲۰ اردیبهشت</option>
-                                                            <option value="چهارشنبه ۲۲ اردیبهشت">چهارشنبه ۲۲ اردیبهشت</option>
-                                                            <option value="شنبه ۲۵ اردیبهشت">شنبه ۲۵ اردیبهشت</option>
-                                                        </select>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <label className="text-[10px] font-bold text-slate-500">ساعت پیشنهادی</label>
-                                                        <select
-                                                            value={newSessionSlot}
-                                                            onChange={(e) => setNewSessionSlot(e.target.value)}
-                                                            className="w-full text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                        >
-                                                            <option value="ساعت ۱۵:۰۰ تا ۱۶:۰۰">۱۵:۰۰ تا ۱۶:۰۰</option>
-                                                            <option value="ساعت ۱۶:۰۰ تا ۱۷:۰۰">۱۶:۰۰ تا ۱۷:۰۰</option>
-                                                            <option value="ساعت ۱۸:۰۰ تا ۱۹:۰۰">۱۸:۰۰ تا ۱۹:۰۰</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-
-                                                {sessionBookingSuccess && (
-                                                    <div className="p-2 rounded-xl bg-emerald-500 text-white text-xs font-bold text-center flex items-center justify-center gap-1.5">
-                                                        <CheckCircle2 className="w-4 h-4 text-white" />
-                                                        <span>درخواست رزرو شما ثبت شد و تاییدیه پیامک شد.</span>
-                                                    </div>
-                                                )}
-
-                                                <button
-                                                    onClick={() => {
-                                                        setBookedSessions((prev) => [
-                                                            {
-                                                                id: Date.now(),
-                                                                coach: 'دکتر مهدی بیدی',
-                                                                role: 'کوچ ارشد',
-                                                                date: newSessionDate,
-                                                                time: newSessionSlot,
-                                                                status: 'تایید شده',
-                                                                roomLink: 'https://meet.google.com/xyz-bahar',
-                                                                topic: newSessionTopic,
-                                                            },
-                                                            ...prev,
-                                                        ]);
-                                                        setSessionBookingSuccess(true);
-                                                        setTimeout(() => setSessionBookingSuccess(false), 2500);
-                                                    }}
-                                                    className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md"
-                                                >
-                                                    تایید و رزرو نهایی جلسه ۱ به ۱
-                                                </button>
-                                            </div>
-
-                                            {/* 90-DAY GOALS CHECKLIST */}
-                                            <div className={`p-3.5 rounded-2xl border ${surfaceCls} space-y-2 shadow-sm`}>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-black">اهداف ۹۰ روزه توسعه فردی من</span>
-                                                    <span className={`text-[10px] ${mutedCls}`}>چک‌لیست توافق با کوچ</span>
-                                                </div>
-
-                                                <div className="space-y-1.5">
-                                                    {goalsList.map((g) => (
-                                                        <button
-                                                            key={g.id}
-                                                            onClick={() =>
-                                                                setGoalsList((prev) =>
-                                                                    prev.map((item) =>
-                                                                        item.id === g.id ? { ...item, done: !item.done } : item
-                                                                    )
-                                                                )
-                                                            }
-                                                            className={`w-full p-2.5 rounded-xl text-right text-xs transition flex items-center justify-between border ${
-                                                                g.done
-                                                                    ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-500/30 text-emerald-800 dark:text-emerald-300 line-through'
-                                                                    : `${surfaceCls}`
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                <div className={`w-4 h-4 rounded-md border flex items-center justify-center ${g.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-600'}`}>
-                                                                    {g.done && <Check className="w-3 h-3 stroke-[3]" />}
-                                                                </div>
-                                                                <span>{g.title}</span>
-                                                            </div>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* ========================================================
-                                        SCREEN 5: SHOP, CART, CHECKOUT & DIGITAL LIBRARY
-                                    ======================================================== */}
-                                    {activeScreen === 'shop' && (
-                                        <div className="space-y-3">
-                                            {/* Products Catalog */}
-                                            <div className="space-y-2">
-                                                <div className="flex items-center justify-between px-1">
-                                                    <span className="text-xs font-black">فروشگاه کتاب و بسته‌های آموزشی</span>
-                                                    <span className={`text-[10px] ${mutedCls}`}>۳ محصول</span>
-                                                </div>
-
-                                                {shopProducts.map((p) => (
-                                                    <div
-                                                        key={p.id}
-                                                        className={`p-3 rounded-2xl border ${surfaceCls} flex items-center justify-between gap-3 shadow-sm`}
-                                                    >
-                                                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0">
-                                                            <img src={p.image} alt={p.title} className="w-full h-full object-cover" />
-                                                        </div>
-                                                        <div className="min-w-0 flex-1">
-                                                            <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400">
-                                                                {p.type}
-                                                            </span>
-                                                            <div className="text-xs font-extrabold truncate">{p.title}</div>
-                                                            <div className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
-                                                                {p.price.toLocaleString('fa-IR')} تومان
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => {
-                                                                setCart((prev) => {
-                                                                    const exists = prev.find((x) => x.id === p.id);
-                                                                    if (exists) {
-                                                                        return prev.map((x) =>
-                                                                            x.id === p.id ? { ...x, qty: x.qty + 1 } : x
-                                                                        );
-                                                                    }
-                                                                    return [...prev, { id: p.id, qty: 1 }];
-                                                                });
-                                                            }}
-                                                            className="p-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shrink-0 shadow-sm"
-                                                            title="افزودن به سبد"
-                                                        >
-                                                            <ShoppingCart className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {/* SHOPPING CART & CHECKOUT DRAWER */}
-                                            <div className={`p-3.5 rounded-2xl border ${surfaceCls} space-y-2.5 shadow-sm`}>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-black flex items-center gap-1.5">
-                                                        <ShoppingCart className="w-3.5 h-3.5 text-purple-500" />
-                                                        سبد خرید شما ({cart.reduce((a, b) => a + b.qty, 0)} آیتم)
-                                                    </span>
-                                                    {cart.length > 0 && (
-                                                        <button
-                                                            onClick={() => setCart([])}
-                                                            className="text-[10px] text-rose-500 hover:underline"
-                                                        >
-                                                            خالی کردن سبد
-                                                        </button>
-                                                    )}
-                                                </div>
-
-                                                {cart.length === 0 ? (
-                                                    <div className={`text-center py-4 text-xs ${mutedCls}`}>
-                                                        سبد خرید شما در حال حاضر خالی است.
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        {/* Cart items list */}
-                                                        <div className="space-y-1.5">
-                                                            {cart.map((ci) => {
-                                                                const prod = shopProducts.find((x) => x.id === ci.id);
-                                                                if (!prod) return null;
-                                                                return (
-                                                                    <div
-                                                                        key={ci.id}
-                                                                        className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between text-xs"
-                                                                    >
-                                                                        <span className="font-bold truncate max-w-[170px]">{prod.title}</span>
-                                                                        <span className="font-black text-emerald-600 dark:text-emerald-400">
-                                                                            {(prod.price * ci.qty).toLocaleString('fa-IR')} ت
-                                                                        </span>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-
-                                                        {/* Coupon Code Input */}
-                                                        <div className="flex gap-1.5 pt-1">
-                                                            <input
-                                                                type="text"
-                                                                value={couponCode}
-                                                                onChange={(e) => setCouponCode(e.target.value)}
-                                                                placeholder="کد تخفیف (مثال: BAHAR50)"
-                                                                className="flex-1 text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                            />
-                                                            <button
-                                                                onClick={applyCoupon}
-                                                                className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-xs font-bold"
-                                                            >
-                                                                اعمال
-                                                            </button>
-                                                        </div>
-
-                                                        {couponFeedback && (
-                                                            <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                                                                {couponFeedback}
-                                                            </div>
-                                                        )}
-
-                                                        {/* Price calculation */}
-                                                        {(() => {
-                                                            const rawTotal = cart.reduce((acc, ci) => {
-                                                                const prod = shopProducts.find((x) => x.id === ci.id);
-                                                                return acc + (prod ? prod.price * ci.qty : 0);
-                                                            }, 0);
-                                                            const discountAmount = rawTotal * couponDiscount;
-                                                            const finalPay = rawTotal - discountAmount;
-                                                            return (
-                                                                <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
-                                                                    <div className="flex justify-between text-slate-500">
-                                                                        <span>مجموع اقلام:</span>
-                                                                        <span>{rawTotal.toLocaleString('fa-IR')} تومان</span>
-                                                                    </div>
-                                                                    {couponDiscount > 0 && (
-                                                                        <div className="flex justify-between text-rose-500 font-bold">
-                                                                            <span>تخفیف ویژه:</span>
-                                                                            <span>-{discountAmount.toLocaleString('fa-IR')} تومان</span>
-                                                                        </div>
-                                                                    )}
-                                                                    <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-200 dark:border-slate-800">
-                                                                        <span>مبلغ نهایی قابل پرداخت:</span>
-                                                                        <span className="text-emerald-600 dark:text-emerald-400">
-                                                                            {finalPay.toLocaleString('fa-IR')} تومان
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })()}
-
-                                                        {/* Payment Method & Checkout */}
-                                                        <div className="space-y-1.5 pt-1">
-                                                            <div className="text-[10px] font-bold text-slate-500">
-                                                                شماره کارت آکادمی جهت واریز: ۶۰۳۷-۹۹۷۵-۱۲۳۴-۵۶۷۸
-                                                            </div>
-                                                            <input
-                                                                type="text"
-                                                                value={receiptNumber}
-                                                                onChange={(e) => setReceiptNumber(e.target.value)}
-                                                                placeholder="شماره پیگیری فیش کارت به کارت..."
-                                                                className="w-full text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                            />
-
-                                                            {checkoutComplete ? (
-                                                                <div className="p-2.5 rounded-xl bg-emerald-500 text-white text-xs font-bold text-center flex items-center justify-center gap-1.5">
-                                                                    <CheckCircle2 className="w-4 h-4 text-white" />
-                                                                    <span>سفارش شما ثبت شد و فایل‌ها در کتابخانه فعال گردید!</span>
-                                                                </div>
-                                                            ) : (
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setCheckoutComplete(true);
-                                                                        setCart([]);
-                                                                        setTimeout(() => setCheckoutComplete(false), 3000);
-                                                                    }}
-                                                                    className="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-md"
-                                                                >
-                                                                    ثبت نهایی سفارش و دریافت دسترسی
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
-
-                                            {/* DIGITAL LIBRARY DOWNLOADS */}
-                                            <div className={`p-3.5 rounded-2xl border ${surfaceCls} space-y-2 shadow-sm`}>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-black flex items-center gap-1.5">
-                                                        <Download className="w-3.5 h-3.5 text-blue-500" />
-                                                        کتابخانه فایل‌های دانلودی من
-                                                    </span>
-                                                    <span className={`text-[10px] ${mutedCls}`}>۳ فایل فعال</span>
-                                                </div>
-
-                                                <div className="space-y-1.5">
-                                                    {purchasedLibrary.map((lib) => (
-                                                        <div
-                                                            key={lib.id}
-                                                            className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between text-xs"
-                                                        >
-                                                            <div className="min-w-0 pr-1">
-                                                                <div className="font-extrabold truncate">{lib.title}</div>
-                                                                <div className={`text-[10px] ${mutedCls}`}>{lib.format}</div>
-                                                            </div>
-                                                            <button
-                                                                onClick={() => alert(`دانلود فایل ${lib.title} آغاز شد.`)}
-                                                                className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shrink-0"
-                                                                title="دانلود"
-                                                            >
-                                                                <Download className="w-3.5 h-3.5" />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* ========================================================
-                                        SCREEN 6: WALLET & VERIFIED CERTIFICATES
-                                    ======================================================== */}
-                                    {activeScreen === 'wallet' && (
-                                        <div className="space-y-3">
-                                            {/* Wallet Balance Card */}
-                                            <div className="rounded-2xl bg-gradient-to-l from-amber-600 via-amber-500 to-amber-700 text-slate-950 p-4 space-y-3 shadow-md">
-                                                <div className="flex items-center justify-between text-xs font-bold text-slate-900">
-                                                    <span>کیف پول اعتباری آکادمی</span>
-                                                    <span className="px-2 py-0.5 rounded-full bg-slate-950 text-amber-300 text-[10px] font-black">
-                                                        عضو VIP
-                                                    </span>
-                                                </div>
-
-                                                <div>
-                                                    <div className="text-2xl font-black">
-                                                        {walletBalance.toLocaleString('fa-IR')}{' '}
-                                                        <span className="text-xs font-normal">تومان</span>
-                                                    </div>
-                                                    <div className="text-[10px] text-slate-900/80 mt-0.5">
-                                                        قابل استفاده برای پرداخت دوره‌ها، کتاب‌ها و جلسات ۱ به ۱
-                                                    </div>
-                                                </div>
-
-                                                <button
-                                                    onClick={() => setTopUpModal(!topUpModal)}
-                                                    className="w-full py-2 rounded-xl bg-slate-950 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow"
-                                                >
-                                                    <Plus className="w-3.5 h-3.5 text-amber-400" />
-                                                    افزایش موجودی کیف پول
-                                                </button>
-                                            </div>
-
-                                            {topUpModal && (
-                                                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-500/40 space-y-2">
-                                                    <div className="text-xs font-black text-amber-900 dark:text-amber-300">
-                                                        انتخاب مبلغ شارژ:
-                                                    </div>
-                                                    <div className="grid grid-cols-3 gap-1.5">
-                                                        {[500000, 1000000, 2000000].map((amt) => (
-                                                            <button
-                                                                key={amt}
-                                                                onClick={() => {
-                                                                    setWalletBalance((prev) => prev + amt);
-                                                                    setWalletTransactions((prev) => [
-                                                                        {
-                                                                            id: Date.now(),
-                                                                            title: 'افزایش موجودی آنلاین',
-                                                                            amount: `+${amt.toLocaleString('fa-IR')} ت`,
-                                                                            date: 'امروز',
-                                                                            type: 'credit',
-                                                                        },
-                                                                        ...prev,
-                                                                    ]);
-                                                                    setTopUpModal(false);
-                                                                }}
-                                                                className="py-1.5 rounded-xl bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/30 text-xs font-bold"
-                                                            >
-                                                                +{(amt / 1000).toLocaleString('fa-IR')} هـ.ت
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Transaction History */}
-                                            <div className={`p-3.5 rounded-2xl border ${surfaceCls} space-y-2 shadow-sm`}>
-                                                <div className="text-xs font-black">گردش حساب و تراکنش‌های اخیر</div>
-                                                <div className="space-y-1.5">
-                                                    {walletTransactions.map((tx) => (
-                                                        <div
-                                                            key={tx.id}
-                                                            className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between text-xs"
-                                                        >
-                                                            <div>
-                                                                <div className="font-extrabold">{tx.title}</div>
-                                                                <div className={`text-[10px] ${mutedCls}`}>{tx.date}</div>
-                                                            </div>
-                                                            <span
-                                                                className={`font-black ${
-                                                                    tx.type === 'credit'
-                                                                        ? 'text-emerald-600 dark:text-emerald-400'
-                                                                        : 'text-rose-500'
-                                                                }`}
-                                                            >
-                                                                {tx.amount}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* Official Certificates */}
-                                            <div className={`p-3.5 rounded-2xl border ${surfaceCls} space-y-2.5 shadow-sm`}>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-black flex items-center gap-1.5">
-                                                        <Award className="w-4 h-4 text-amber-500" />
-                                                        گواهینامه‌های رسمی صادر شده
-                                                    </span>
-                                                    <span className="text-[10px] text-emerald-600 font-bold">۱ مدرک</span>
-                                                </div>
-
-                                                {issuedCertificates.map((cert) => (
-                                                    <div
-                                                        key={cert.id}
-                                                        className="p-3.5 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent space-y-2.5 relative overflow-hidden"
-                                                    >
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-400 to-amber-600 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
-                                                                <Award className="w-6 h-6 stroke-[2.2]" />
-                                                            </div>
-                                                            <div className="min-w-0 flex-1">
-                                                                <div className="text-xs font-black text-slate-900 dark:text-white leading-tight">
-                                                                    {cert.title}
-                                                                </div>
-                                                                <div className={`text-[10px] ${mutedCls} mt-1`}>
-                                                                    شناسه رسمی: <strong className="font-mono text-amber-600 dark:text-amber-400">{cert.id}</strong>
-                                                                </div>
-                                                                <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                                                                    صادرکننده: {cert.issuer}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex gap-2 pt-1 border-t border-amber-500/20">
-                                                            <button
-                                                                onClick={() => alert(`دانلود فایل PDF گواهینامه رسمی ${cert.id} آغاز شد.`)}
-                                                                className="flex-1 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-black flex items-center justify-center gap-1.5 shadow-sm transition"
-                                                            >
-                                                                <Download className="w-3.5 h-3.5" />
-                                                                دانلود PDF با هولوگرام
-                                                            </button>
-                                                            <button
-                                                                onClick={() => alert(`گواهینامه ${cert.id} در سامانه ملی استعلام مدارک تایید شده است.`)}
-                                                                className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold hover:bg-slate-50"
-                                                            >
-                                                                استعلام آنلاین
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* ========================================================
-                                        SCREEN 7: SUPPORT TICKETS & LIVE CHAT
-                                    ======================================================== */}
-                                    {activeScreen === 'support' && (
-                                        <div className="space-y-3">
-                                            {/* Support Subtabs: Tickets vs Live Chat */}
-                                            <div className="flex gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800">
-                                                <button
-                                                    onClick={() => setSupportTab('tickets')}
-                                                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
-                                                        supportTab === 'tickets'
-                                                            ? 'bg-white dark:bg-slate-900 shadow-sm text-slate-900 dark:text-white'
-                                                            : 'text-slate-500'
-                                                    }`}
-                                                >
-                                                    تیکت‌های رسمی ({userTickets.length})
-                                                </button>
-                                                <button
-                                                    onClick={() => setSupportTab('chat')}
-                                                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
-                                                        supportTab === 'chat'
-                                                            ? 'bg-white dark:bg-slate-900 shadow-sm text-slate-900 dark:text-white'
-                                                            : 'text-slate-500'
-                                                    }`}
-                                                >
-                                                    چت زنده و هوشمند
-                                                </button>
-                                            </div>
-
-                                            {supportTab === 'tickets' ? (
-                                                <div className="space-y-3">
-                                                    {/* Existing Tickets List */}
-                                                    <div className="space-y-2">
-                                                        {userTickets.map((tk) => (
-                                                            <div
-                                                                key={tk.id}
-                                                                className={`p-3 rounded-2xl border ${surfaceCls} space-y-1.5`}
-                                                            >
-                                                                <div className="flex items-start justify-between">
-                                                                    <div className="text-xs font-black">{tk.subject}</div>
-                                                                    <span className="px-2 py-0.5 rounded text-[9px] bg-emerald-500/15 text-emerald-600 font-bold">
-                                                                        {tk.status}
-                                                                    </span>
-                                                                </div>
-                                                                <div className={`text-[10px] ${mutedCls}`}>
-                                                                    واحد: {tk.dept} • شماره تیکت: #{tk.id}
-                                                                </div>
-                                                                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-[11px] text-slate-600 dark:text-slate-300">
-                                                                    {tk.messages[tk.messages.length - 1]?.text}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-
-                                                    {/* Open New Ticket Form */}
-                                                    <div className={`p-3.5 rounded-2xl border ${surfaceCls} space-y-2.5 shadow-sm`}>
-                                                        <div className="text-xs font-black">ثبت تیکت پشتیبانی جدید</div>
-                                                        <input
-                                                            type="text"
-                                                            value={newTicketSubject}
-                                                            onChange={(e) => setNewTicketSubject(e.target.value)}
-                                                            placeholder="موضوع تیکت (مثلاً سوال در مورد ویدیو)"
-                                                            className="w-full text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                        />
-                                                        <select
-                                                            value={newTicketDept}
-                                                            onChange={(e) => setNewTicketDept(e.target.value)}
-                                                            className="w-full text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                        >
-                                                            <option value="آموزشی">واحد آموزش و اساتید</option>
-                                                            <option value="فنی">واحد فنی و وب‌سایت</option>
-                                                            <option value="مالی">واحد مالی و فاکتورها</option>
-                                                            <option value="کوچینگ">واحد هماهنگی کوچینگ</option>
-                                                        </select>
-                                                        <textarea
-                                                            value={newTicketMessage}
-                                                            onChange={(e) => setNewTicketMessage(e.target.value)}
-                                                            rows={2}
-                                                            placeholder="توضیحات درخواست خود را تایپ کنید..."
-                                                            className="w-full text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                        />
-                                                        <button
-                                                            onClick={() => {
-                                                                if (!newTicketSubject.trim() || !newTicketMessage.trim()) return;
-                                                                setUserTickets((prev) => [
-                                                                    {
-                                                                        id: Date.now(),
-                                                                        subject: newTicketSubject,
-                                                                        dept: newTicketDept,
-                                                                        status: 'در حال بررسی',
-                                                                        messages: [{ sender: 'user', text: newTicketMessage, time: 'هم‌اکنون' }],
-                                                                    },
-                                                                    ...prev,
-                                                                ]);
-                                                                setNewTicketSubject('');
-                                                                setNewTicketMessage('');
-                                                            }}
-                                                            className="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold"
-                                                        >
-                                                            ارسال تیکت به کارشناس
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                /* LIVE CHAT INTERFACE */
-                                                <div className={`p-3 rounded-2xl border ${surfaceCls} flex flex-col h-[480px] shadow-sm`}>
-                                                    <div className="flex-1 overflow-y-auto space-y-2 p-1">
-                                                        {liveChatMessages.map((msg, i) => (
-                                                            <div
-                                                                key={i}
-                                                                className={`flex flex-col ${
-                                                                    msg.sender === 'user' ? 'items-end' : 'items-start'
-                                                                }`}
-                                                            >
-                                                                <div
-                                                                    className={`max-w-[80%] p-2.5 rounded-2xl text-xs leading-relaxed ${
-                                                                        msg.sender === 'user'
-                                                                            ? 'bg-emerald-600 text-white rounded-br-none'
-                                                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none'
-                                                                    }`}
-                                                                >
-                                                                    {msg.text}
-                                                                </div>
-                                                                <span className="text-[9px] text-slate-400 mt-0.5 px-1">
-                                                                    {msg.time}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-
-                                                    <div className="flex items-center gap-1.5 pt-2 border-t border-slate-200 dark:border-slate-800">
-                                                        <input
-                                                            type="text"
-                                                            value={liveChatInput}
-                                                            onChange={(e) => setLiveChatInput(e.target.value)}
-                                                            onKeyDown={(e) => e.key === 'Enter' && sendLiveChatMessage()}
-                                                            placeholder="پیام خود را تایپ کنید..."
-                                                            className="flex-1 text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                        />
-                                                        <button
-                                                            onClick={sendLiveChatMessage}
-                                                            className="p-2 rounded-xl bg-emerald-600 text-white"
-                                                        >
-                                                            <SendHorizontal className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* ========================================================
-                                        SCREEN 8: FULL IN-APP ADMIN PANEL (۱۰۰٪ دسترسی‌های ادمین سایت)
-                                    ======================================================== */}
-                                    {activeScreen === 'admin' && (
-                                        <div className="space-y-3">
-                                            {/* Admin In-App Header & Live KPIs */}
-                                            <div className="rounded-2xl bg-gradient-to-l from-slate-900 to-[#0B3B2B] text-white p-3.5 border border-amber-400/50 space-y-3 shadow-lg">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black">
-                                                        ADMIN CONTROL HUB
-                                                    </span>
-                                                    <span className="text-[10px] text-emerald-200 font-bold flex items-center gap-1">
-                                                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                                                        دسترسی کامل مدیریتی بدون نیاز به سایت
-                                                    </span>
-                                                </div>
-
-                                                <div className="grid grid-cols-4 gap-1.5 text-center">
-                                                    <div className="rounded-xl bg-white/10 p-2">
-                                                        <div className="text-xs font-black text-amber-300">۱۸۴M</div>
-                                                        <div className="text-[9px] text-slate-300">فروش ماه</div>
-                                                    </div>
-                                                    <div className="rounded-xl bg-white/10 p-2">
-                                                        <div className="text-xs font-black text-amber-300">۱,۴۲۰</div>
-                                                        <div className="text-[9px] text-slate-300">کاربران</div>
-                                                    </div>
-                                                    <div className="rounded-xl bg-white/10 p-2">
-                                                        <div className="text-xs font-black text-amber-300">۳۴</div>
-                                                        <div className="text-[9px] text-slate-300">لید جدید</div>
-                                                    </div>
-                                                    <div className="rounded-xl bg-white/10 p-2">
-                                                        <div className="text-xs font-black text-amber-300">{pendingInvoices.length}</div>
-                                                        <div className="text-[9px] text-slate-300">فیش منتظر</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Admin Sub-Tabs Navigation Inside Mobile */}
-                                            <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                                                {[
-                                                    { id: 'overview' as AdminSubTab, label: 'پیشخوان و آمار' },
-                                                    { id: 'courses' as AdminSubTab, label: 'مدیریت دوره‌ها' },
-                                                    { id: 'orders' as AdminSubTab, label: 'سفارش‌ها و فیش‌ها' },
-                                                    { id: 'users' as AdminSubTab, label: 'کاربران و نقش‌ها' },
-                                                    { id: 'crm' as AdminSubTab, label: 'پایپ‌لاین CRM' },
-                                                    { id: 'discounts' as AdminSubTab, label: 'کدهای تخفیف' },
-                                                    { id: 'automations' as AdminSubTab, label: 'ارسال و ربات‌ها' },
-                                                    { id: 'tickets' as AdminSubTab, label: 'پاسخ به تیکت‌ها' },
-                                                    { id: 'site_switches' as AdminSubTab, label: 'سوئیچ‌های سایت' },
-                                                ].map((t) => (
-                                                    <button
-                                                        key={t.id}
-                                                        onClick={() => setAdminSubTab(t.id)}
-                                                        className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap transition border ${
-                                                            adminSubTab === t.id
-                                                                ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-sm'
-                                                                : `${surfaceCls}`
-                                                        }`}
-                                                    >
-                                                        {t.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-
-                                            {/* SUBTAB 1: OVERVIEW */}
-                                            {adminSubTab === 'overview' && (
-                                                <div className="space-y-2.5">
-                                                    <div className={`rounded-2xl p-3 border ${surfaceCls} space-y-2`}>
-                                                        <div className="text-xs font-black flex items-center justify-between">
-                                                            <span>نمودار فروش روزانه (۷ روز اخیر)</span>
-                                                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                                                                +۲۴٪ رشد هفتگی
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex items-end justify-between gap-1.5 h-20 pt-2 px-1">
-                                                            {[
-                                                                { day: 'ش', h: '45%' },
-                                                                { day: 'ی', h: '60%' },
-                                                                { day: 'د', h: '35%' },
-                                                                { day: 'س', h: '75%' },
-                                                                { day: 'چ', h: '90%' },
-                                                                { day: 'پ', h: '80%' },
-                                                                { day: 'ج', h: '50%' },
-                                                            ].map((b) => (
-                                                                <div key={b.day} className="flex-1 flex flex-col items-center gap-1">
-                                                                    <div
-                                                                        className="w-full rounded-t-md bg-gradient-to-t from-emerald-600 to-amber-400 transition-all"
-                                                                        style={{ height: b.h }}
-                                                                    />
-                                                                    <span className="text-[9px] text-slate-400">{b.day}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className={`rounded-2xl p-3 border ${surfaceCls} space-y-2`}>
-                                                        <div className="text-xs font-black">عملیات پرتکرار ادمین</div>
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <button
-                                                                onClick={() => setAdminSubTab('courses')}
-                                                                className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-right text-xs font-bold text-emerald-700 dark:text-emerald-400"
-                                                            >
-                                                                + ثبت دوره جدید
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setAdminSubTab('orders')}
-                                                                className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-right text-xs font-bold text-amber-700 dark:text-amber-400"
-                                                            >
-                                                                تایید فیش‌های کارت به کارت
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setAdminSubTab('crm')}
-                                                                className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-right text-xs font-bold text-blue-700 dark:text-blue-400"
-                                                            >
-                                                                پیگیری سرنخ‌های جدید
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setAdminSubTab('automations')}
-                                                                className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-right text-xs font-bold text-purple-700 dark:text-purple-400"
-                                                            >
-                                                                ارسال پیامک اطلاع‌رسانی
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* SUBTAB 2: COURSES MANAGEMENT CRUD */}
-                                            {adminSubTab === 'courses' && (
-                                                <div className="space-y-2.5">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs font-black">دوره‌های فعال ({adminCourses.length})</span>
-                                                        <button
-                                                            onClick={() => setNewCourseModalOpen(!newCourseModalOpen)}
-                                                            className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white text-[10px] font-bold flex items-center gap-1"
-                                                        >
-                                                            <Plus className="w-3 h-3" />
-                                                            افزودن دوره
-                                                        </button>
-                                                    </div>
-
-                                                    {newCourseModalOpen && (
-                                                        <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/40 space-y-2">
-                                                            <div className="text-xs font-black text-emerald-800 dark:text-emerald-300">
-                                                                فرم ثبت دوره جدید
-                                                            </div>
-                                                            <input
-                                                                type="text"
-                                                                value={newCourseTitle}
-                                                                onChange={(e) => setNewCourseTitle(e.target.value)}
-                                                                placeholder="عنوان دوره آموزشی..."
-                                                                className="w-full text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
-                                                            />
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                <input
-                                                                    type="text"
-                                                                    value={newCoursePrice}
-                                                                    onChange={(e) => setNewCoursePrice(e.target.value)}
-                                                                    placeholder="قیمت (تومان)"
-                                                                    className="text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
-                                                                />
-                                                                <input
-                                                                    type="text"
-                                                                    value={newCourseCat}
-                                                                    onChange={(e) => setNewCourseCat(e.target.value)}
-                                                                    placeholder="دسته‌بندی"
-                                                                    className="text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
-                                                                />
-                                                            </div>
-                                                            <div className="flex gap-2 pt-1">
-                                                                <button
-                                                                    onClick={() => {
-                                                                        if (!newCourseTitle.trim()) return;
-                                                                        setAdminCourses((prev) => [
-                                                                            {
-                                                                                id: Date.now(),
-                                                                                title: newCourseTitle,
-                                                                                price: newCoursePrice,
-                                                                                category: newCourseCat,
-                                                                                students: 0,
-                                                                                published: true,
-                                                                            },
-                                                                            ...prev,
-                                                                        ]);
-                                                                        setNewCourseTitle('');
-                                                                        setNewCourseModalOpen(false);
-                                                                    }}
-                                                                    className="flex-1 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold"
-                                                                >
-                                                                    ذخیره و انتشار
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => setNewCourseModalOpen(false)}
-                                                                    className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-xs font-bold"
-                                                                >
-                                                                    انصراف
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {adminCourses.map((c) => (
-                                                        <div key={c.id} className={`p-3 rounded-2xl border ${surfaceCls} space-y-2`}>
-                                                            <div className="flex items-start justify-between">
-                                                                <div>
-                                                                    <div className="text-xs font-extrabold">{c.title}</div>
-                                                                    <div className={`text-[10px] mt-0.5 ${mutedCls}`}>
-                                                                        {c.category} • {c.students} دانش‌پذیر
-                                                                    </div>
-                                                                </div>
-                                                                <button
-                                                                    onClick={() =>
-                                                                        setAdminCourses((prev) =>
-                                                                            prev.map((item) =>
-                                                                                item.id === c.id
-                                                                                    ? { ...item, published: !item.published }
-                                                                                    : item
-                                                                            )
-                                                                        )
-                                                                    }
-                                                                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                                                                        c.published
-                                                                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                                                            : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                                                                    }`}
-                                                                >
-                                                                    {c.published ? (
-                                                                        <span className="flex items-center gap-1">
-                                                                            <Check className="w-2.5 h-2.5 stroke-[2.5]" />
-                                                                            منتشر شده
-                                                                        </span>
-                                                                    ) : (
-                                                                        'پیش‌نویس'
-                                                                    )}
-                                                                </button>
-                                                            </div>
-                                                            <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-800 text-xs">
-                                                                <span className="font-black text-emerald-600 dark:text-emerald-400">
-                                                                    {c.price} تومان
-                                                                </span>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const p = prompt('قیمت جدید را وارد کنید (تومان):', c.price);
-                                                                        if (p) {
-                                                                            setAdminCourses((prev) =>
-                                                                                prev.map((x) =>
-                                                                                    x.id === c.id ? { ...x, price: p } : x
-                                                                                )
-                                                                            );
-                                                                        }
-                                                                    }}
-                                                                    className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300"
-                                                                >
-                                                                    تغییر قیمت
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {/* SUBTAB 3: ORDERS & RECEIPTS */}
-                                            {adminSubTab === 'orders' && (
-                                                <div className="space-y-2.5">
-                                                    <div className="text-xs font-black">
-                                                        فیش‌های کارت‌به‌کارت در انتظار تایید ({pendingInvoices.length})
-                                                    </div>
-                                                    {pendingInvoices.length === 0 ? (
-                                                        <div className={`text-center py-4 text-xs ${mutedCls}`}>
-                                                            هیچ فیش معلقی وجود ندارد. تمام سفارش‌ها تایید شده‌اند.
-                                                        </div>
-                                                    ) : (
-                                                        pendingInvoices.map((inv) => (
-                                                            <div key={inv.id} className={`p-3 rounded-2xl border ${surfaceCls} space-y-2`}>
-                                                                <div className="flex items-start justify-between">
-                                                                    <div>
-                                                                        <div className="text-xs font-extrabold">{inv.user}</div>
-                                                                        <div className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
-                                                                            {inv.amount}
-                                                                        </div>
-                                                                    </div>
-                                                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-600">
-                                                                        #{inv.id}
-                                                                    </span>
-                                                                </div>
-                                                                <div className={`text-[10px] ${mutedCls}`}>روش: {inv.method}</div>
-                                                                <div className="flex gap-2 pt-1">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setPendingInvoices((prev) => prev.filter((x) => x.id !== inv.id));
-                                                                            alert(`فاکتور ${inv.id} برای ${inv.user} تایید شد و دسترسی دوره بلافاصله باز شد.`);
-                                                                        }}
-                                                                        className="flex-1 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold flex items-center justify-center gap-1 shadow-sm"
-                                                                    >
-                                                                        <Check className="w-3 h-3 stroke-[2.5]" />
-                                                                        <span>تایید فیش و بازگشایی دسترسی</span>
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setPendingInvoices((prev) => prev.filter((x) => x.id !== inv.id));
-                                                                        }}
-                                                                        className="px-3 py-1 rounded-lg bg-rose-500/15 text-rose-600 text-[10px] font-bold"
-                                                                    >
-                                                                        رد فیش
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {/* SUBTAB 4: USERS & RBAC */}
-                                            {adminSubTab === 'users' && (
-                                                <div className="space-y-2.5">
-                                                    <div className="space-y-1">
-                                                        <label className="text-xs font-black">مدیریت کاربران و نقش‌ها</label>
-                                                        <input
-                                                            type="text"
-                                                            value={userSearchText}
-                                                            onChange={(e) => setUserSearchText(e.target.value)}
-                                                            placeholder="جستجوی نام یا ایمیل دانش‌پذیر..."
-                                                            className="w-full text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                        />
-                                                    </div>
-
-                                                    <div className="space-y-1.5">
-                                                        {adminUsers
-                                                            .filter((u) => u.name.includes(userSearchText) || u.email.includes(userSearchText))
-                                                            .map((u) => (
-                                                                <div key={u.id} className={`p-2.5 rounded-xl border ${surfaceCls} space-y-1`}>
-                                                                    <div className="flex items-start justify-between">
-                                                                        <div>
-                                                                            <div className="text-xs font-bold">{u.name}</div>
-                                                                            <div className={`text-[10px] ${mutedCls}`}>{u.email}</div>
-                                                                        </div>
-                                                                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-purple-500/15 text-purple-600 dark:text-purple-400">
-                                                                            {u.role}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-800 text-[10px]">
-                                                                        <span>موجودی کیف: {u.wallet} ت</span>
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                const r = prompt('نقش جدید کاربر (دانش‌پذیر VIP / منتور / مدیر):', u.role);
-                                                                                if (r) {
-                                                                                    setAdminUsers((prev) =>
-                                                                                        prev.map((x) => (x.id === u.id ? { ...x, role: r } : x))
-                                                                                    );
-                                                                                }
-                                                                            }}
-                                                                            className="text-blue-600 dark:text-blue-400 font-bold hover:underline"
-                                                                        >
-                                                                            تغییر سطح دسترسی
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* SUBTAB 5: CRM & LEADS PIPELINE */}
-                                            {adminSubTab === 'crm' && (
-                                                <div className="space-y-2.5">
-                                                    <div className="text-xs font-black">پایپ‌لاین سرنخ‌های فروش (CRM)</div>
-                                                    <div className="space-y-2">
-                                                        {leads.map((l) => (
-                                                            <div key={l.id} className={`p-3 rounded-2xl border ${surfaceCls} space-y-1.5`}>
-                                                                <div className="flex items-start justify-between">
-                                                                    <div>
-                                                                        <div className="text-xs font-extrabold">{l.name}</div>
-                                                                        <div className={`text-[10px] ${mutedCls}`}>
-                                                                            تلفن: {l.phone} • دوره: {l.course}
-                                                                        </div>
-                                                                    </div>
-                                                                    <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                                                                        {l.stage}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex gap-2 pt-1">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setLeads((prev) =>
-                                                                                prev.map((item) =>
-                                                                                    item.id === l.id ? { ...item, stage: 'ثبت‌نام قطعی' } : item
-                                                                                )
-                                                                            );
-                                                                        }}
-                                                                        className="flex-1 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-bold"
-                                                                    >
-                                                                        انتقال به ثبت‌نام قطعی
-                                                                    </button>
-                                                                    <a
-                                                                        href={`tel:${l.phone}`}
-                                                                        className="px-3 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 text-xs flex items-center justify-center"
-                                                                        title="تماس"
-                                                                    >
-                                                                        <PhoneCall className="w-3.5 h-3.5" />
-                                                                    </a>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* SUBTAB 6: DISCOUNTS & FINANCE */}
-                                            {adminSubTab === 'discounts' && (
-                                                <div className="space-y-2.5">
-                                                    <div className="text-xs font-black">کدهای تخفیف فعال آکادمی</div>
-
-                                                    <div className="p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-500/30 space-y-2">
-                                                        <div className="text-xs font-bold text-purple-900 dark:text-purple-300">
-                                                            ایجاد کد تخفیف جدید
-                                                        </div>
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <input
-                                                                type="text"
-                                                                value={newCodeName}
-                                                                onChange={(e) => setNewCodeName(e.target.value)}
-                                                                placeholder="کد (مثال: NOROOZ)"
-                                                                className="text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                value={newCodePercent}
-                                                                onChange={(e) => setNewCodePercent(e.target.value)}
-                                                                placeholder="درصد (مثال: ۴۰٪)"
-                                                                className="text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
-                                                            />
-                                                        </div>
-                                                        <button
-                                                            onClick={() => {
-                                                                if (!newCodeName.trim()) return;
-                                                                setDiscountCodes((prev) => [
-                                                                    { id: Date.now(), code: newCodeName.toUpperCase(), percent: newCodePercent, count: '۰/۱۰۰', active: true },
-                                                                    ...prev,
-                                                                ]);
-                                                                setNewCodeName('');
-                                                            }}
-                                                            className="w-full py-1.5 rounded-xl bg-purple-600 text-white text-xs font-bold"
-                                                        >
-                                                            ذخیره و فعال‌سازی کد
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="space-y-1.5">
-                                                        {discountCodes.map((dc) => (
-                                                            <div key={dc.id} className={`p-2.5 rounded-xl border ${surfaceCls} flex items-center justify-between text-xs`}>
-                                                                <div>
-                                                                    <span className="font-mono font-black">{dc.code}</span>
-                                                                    <span className="text-[10px] text-purple-600 mr-2 font-bold">{dc.percent} تخفیف</span>
-                                                                </div>
-                                                                <span className="text-[10px] text-slate-400">استفاده: {dc.count}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* SUBTAB 7: AUTOMATIONS & BROADCAST */}
-                                            {adminSubTab === 'automations' && (
-                                                <div className="space-y-3">
-                                                    <div className={`p-3 rounded-2xl border ${surfaceCls} space-y-2`}>
-                                                        <div className="text-xs font-black text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                                                            <Megaphone className="w-3.5 h-3.5" />
-                                                            ارسال سریع پیامک و اعلان سراسری به دانشجویان
-                                                        </div>
-                                                        <textarea
-                                                            value={broadcastText}
-                                                            onChange={(e) => setBroadcastText(e.target.value)}
-                                                            rows={2}
-                                                            placeholder="متن پیامک اطلاع‌رسانی را تایپ کنید..."
-                                                            className="w-full text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent focus:outline-none"
-                                                        />
-                                                        <button
-                                                            onClick={() => {
-                                                                if (!broadcastText.trim()) return;
-                                                                setBroadcastSent(true);
-                                                                setTimeout(() => {
-                                                                    setBroadcastSent(false);
-                                                                    setBroadcastText('');
-                                                                }, 2000);
-                                                            }}
-                                                            className="w-full py-2 rounded-xl bg-[#2481CC] text-white text-xs font-bold flex items-center justify-center gap-1.5"
-                                                        >
-                                                            {broadcastSent ? (
-                                                                <>
-                                                                    <CheckCircle2 className="w-4 h-4 text-white" />
-                                                                    <span>پیامک با موفقیت به همه ارسال شد</span>
-                                                                </>
-                                                            ) : (
-                                                                'ارسال انبوه از طریق سامانه کاوه‌نگار'
-                                                            )}
-                                                        </button>
-                                                    </div>
-
-                                                    <div className={`p-3 rounded-2xl border ${surfaceCls} space-y-2`}>
-                                                        <div className="text-xs font-black">وضعیت سامانه‌های متصل</div>
-                                                        {[
-                                                            { key: 'smsKavenegar' as const, label: 'سامانه پیامک خدماتی کاوه‌نگار' },
-                                                            { key: 'perslineWebhook' as const, label: 'وب‌هوک فرم پرس‌لاین (تبدیل به لید)' },
-                                                        ].map((bot) => (
-                                                            <div key={bot.key} className="flex items-center justify-between py-1 border-b last:border-b-0 border-slate-200 dark:border-slate-800">
-                                                                <span className="text-xs font-semibold">{bot.label}</span>
-                                                                <button
-                                                                    onClick={() =>
-                                                                        setBotSwitches((prev) => ({
-                                                                            ...prev,
-                                                                            [bot.key]: !prev[bot.key],
-                                                                        }))
-                                                                    }
-                                                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                                                                        botSwitches[bot.key]
-                                                                            ? 'bg-emerald-600 text-white'
-                                                                            : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
-                                                                    }`}
-                                                                >
-                                                                    {botSwitches[bot.key] ? 'فعال' : 'خاموش'}
-                                                                </button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* SUBTAB 8: TICKETS RESOLUTION */}
-                                            {adminSubTab === 'tickets' && (
-                                                <div className="space-y-2.5">
-                                                    <div className="text-xs font-black">میز پاسخگویی تیکت‌های پشتیبانی</div>
-                                                    {adminTickets.map((tk) => (
-                                                        <div key={tk.id} className={`p-3 rounded-2xl border ${surfaceCls} space-y-2`}>
-                                                            <div className="flex items-start justify-between">
-                                                                <div>
-                                                                    <div className="text-xs font-extrabold">#{tk.id} — {tk.subject}</div>
-                                                                    <div className={`text-[10px] ${mutedCls}`}>
-                                                                        کاربر: {tk.user} • واحد: {tk.dept}
-                                                                    </div>
-                                                                </div>
-                                                                <span
-                                                                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                                                        tk.status === 'باز'
-                                                                            ? 'bg-rose-500/15 text-rose-600'
-                                                                            : 'bg-emerald-500/15 text-emerald-600'
-                                                                    }`}
-                                                                >
-                                                                    {tk.status}
-                                                                </span>
-                                                            </div>
-
-                                                            {tk.reply ? (
-                                                                <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-[11px] text-slate-700 dark:text-slate-300">
-                                                                    <strong>پاسخ شما:</strong> {tk.reply}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="space-y-1.5 pt-1 border-t border-slate-200 dark:border-slate-800">
-                                                                    <input
-                                                                        type="text"
-                                                                        value={selectedAdminTicketId === tk.id ? adminReplyText : ''}
-                                                                        onChange={(e) => {
-                                                                            setSelectedAdminTicketId(tk.id);
-                                                                            adminReplyText;
-                                                                            setAdminReplyText(e.target.value);
-                                                                        }}
-                                                                        placeholder="پاسخ مستقیم خود به کاربر را بنویسید..."
-                                                                        className="w-full text-xs p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                                    />
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            if (!adminReplyText.trim()) return;
-                                                                            setAdminTickets((prev) =>
-                                                                                prev.map((item) =>
-                                                                                    item.id === tk.id
-                                                                                        ? { ...item, status: 'پاسخ داده شد', reply: adminReplyText }
-                                                                                        : item
-                                                                                )
-                                                                            );
-                                                                            setAdminReplyText('');
-                                                                        }}
-                                                                        className="w-full py-1.5 rounded-xl bg-emerald-600 text-white text-[11px] font-bold"
-                                                                    >
-                                                                        ارسال پاسخ مستقیم و بستن تیکت
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {/* SUBTAB 9: SITE MASTER SWITCHES */}
-                                            {adminSubTab === 'site_switches' && (
-                                                <div className={`p-3 rounded-2xl border ${surfaceCls} space-y-3`}>
-                                                    <div className="text-xs font-black">سوئیچ‌های کلان سرور و پلتفرم وب</div>
-                                                    {[
-                                                        { key: 'maintenanceMode' as const, label: 'حالت تعمیر و نگهداری سایت', desc: 'مسدودسازی موقت دسترسی کاربران عادی برای ارتقا سرور' },
-                                                        { key: 'openRegistration' as const, label: 'پذیرش ثبت‌نام اعضای جدید', desc: 'فعال بودن فرم عضویت و ارسال پیامک کد تایید' },
-                                                        { key: 'pushNotifications' as const, label: 'نوتیفیکیشن‌های سراسری موبایل', desc: 'ارسال اعلان فوری به تمام نصب‌کنندگان اپلیکیشن' },
-                                                    ].map((sw) => (
-                                                        <div key={sw.key} className="flex items-center justify-between py-2 border-b last:border-b-0 border-slate-200 dark:border-slate-800">
-                                                            <div className="max-w-[240px]">
-                                                                <div className="text-xs font-bold">{sw.label}</div>
-                                                                <div className={`text-[10px] ${mutedCls} mt-0.5`}>{sw.desc}</div>
-                                                            </div>
-                                                            <button
-                                                                onClick={() =>
-                                                                    setBotSwitches((prev) => ({
-                                                                        ...prev,
-                                                                        [sw.key]: !prev[sw.key],
-                                                                    }))
-                                                                }
-                                                                className={`px-3 py-1 rounded-xl text-xs font-bold ${
-                                                                    botSwitches[sw.key]
-                                                                        ? 'bg-amber-400 text-slate-950 font-black'
-                                                                        : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
-                                                                }`}
-                                                            >
-                                                                {botSwitches[sw.key] ? 'فعال' : 'غیرفعال'}
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* ========================================================
-                                        SCREEN 9: BRANDING & THEME SETTINGS (تنظیمات نام و لوگو)
-                                    ======================================================== */}
-                                    {activeScreen === 'settings' && (
-                                        <div className="space-y-3">
-                                            <div className={`p-4 rounded-3xl border ${surfaceCls} space-y-3 shadow-sm`}>
-                                                <div className="flex items-center gap-2">
-                                                    <Palette className="w-4 h-4 text-purple-500" />
-                                                    <span className="text-xs font-black">شخصی‌سازی نام و برندینگ اپلیکیشن</span>
-                                                </div>
-                                                <p className={`text-[11px] ${mutedCls}`}>
-                                                    تغییرات شما بلافاصله در هدر گوشی، لوگو، کارت‌ها و تم سراسر اپلیکیشن اعمال و ذخیره می‌شود.
-                                                </p>
-
-                                                {brandingSavedNotice && (
-                                                    <div className="p-2 rounded-xl bg-emerald-500 text-white text-xs font-bold text-center animate-bounce flex items-center justify-center gap-1.5">
-                                                        <CheckCircle2 className="w-4 h-4" />
-                                                        <span>نام، لوگو و تم اپلیکیشن با موفقیت به‌روزرسانی شد!</span>
-                                                    </div>
-                                                )}
-
-                                                {/* App Name Input */}
-                                                <div className="space-y-1">
-                                                    <label className="text-[11px] font-bold">نام اصلی اپلیکیشن</label>
-                                                    <input
-                                                        type="text"
-                                                        value={appName}
-                                                        onChange={(e) => setAppName(e.target.value)}
-                                                        placeholder="مثال: بهار زندگی، آکادمی رشد و..."
-                                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                    />
-                                                </div>
-
-                                                {/* App Tagline Input */}
-                                                <div className="space-y-1">
-                                                    <label className="text-[11px] font-bold">شعار / زیرعنوان اپلیکیشن</label>
-                                                    <input
-                                                        type="text"
-                                                        value={appTagline}
-                                                        onChange={(e) => setAppTagline(e.target.value)}
-                                                        placeholder="مثال: آکادمی تخصصی کوچینگ و سیستم‌سازی ذهن"
-                                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                    />
-                                                </div>
-
-                                                {/* Logo Style Selector (100% Vector Icons, No Emojis) */}
-                                                <div className="space-y-1.5 pt-1">
-                                                    <label className="text-[11px] font-bold">انتخاب آیکون و استایل لوگو</label>
-                                                    <div className="grid grid-cols-5 gap-2">
-                                                        {[
-                                                            { id: 'lotus' as LogoStyle, label: 'لوتوس' },
-                                                            { id: 'crown' as LogoStyle, label: 'پریمیوم' },
-                                                            { id: 'crystal' as LogoStyle, label: 'کریستال' },
-                                                            { id: 'eagle' as LogoStyle, label: 'پیشرفت' },
-                                                            { id: 'star' as LogoStyle, label: 'مونوگرام' },
-                                                        ].map((l) => (
-                                                            <button
-                                                                key={l.id}
-                                                                onClick={() => setLogoStyle(l.id)}
-                                                                className={`p-2 rounded-2xl border flex flex-col items-center gap-1.5 transition ${
-                                                                    logoStyle === l.id
-                                                                        ? 'border-purple-500 bg-purple-500/15 ring-2 ring-purple-400'
-                                                                        : `${surfaceCls}`
-                                                                }`}
-                                                            >
-                                                                <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-slate-800">
-                                                                    {l.id === 'lotus' && <Sparkles className="w-4 h-4 text-rose-500" />}
-                                                                    {l.id === 'crown' && <Award className="w-4 h-4 text-amber-500" />}
-                                                                    {l.id === 'crystal' && <Zap className="w-4 h-4 text-cyan-500" />}
-                                                                    {l.id === 'eagle' && <TrendingUp className="w-4 h-4 text-purple-500" />}
-                                                                    {l.id === 'star' && <span className="font-black text-xs text-emerald-600">ب</span>}
-                                                                </div>
-                                                                <span className="text-[9px] font-bold">{l.label}</span>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* Monogram Letter if Star/Monogram chosen */}
-                                                {logoStyle === 'star' && (
-                                                    <div className="space-y-1 pt-1">
-                                                        <label className="text-[11px] font-bold">حرف مونوگرام روی لوگو</label>
-                                                        <input
-                                                            type="text"
-                                                            maxLength={2}
-                                                            value={customMonogram}
-                                                            onChange={(e) => setCustomMonogram(e.target.value)}
-                                                            className="w-16 text-center text-sm font-black p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                                                        />
-                                                    </div>
-                                                )}
-
-                                                {/* Theme Selector (Strictly 2 Themes: Day & Night matching website) */}
-                                                <div className="space-y-2 pt-1">
-                                                    <label className="text-[11px] font-bold block text-slate-800 dark:text-slate-200">
-                                                        انتخاب تم سوپر اپلیکیشن (منطبق بر تم وب‌سایت)
-                                                    </label>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setThemePalette('day');
-                                                                setAppDark(false);
-                                                            }}
-                                                            className={`p-2.5 rounded-2xl border text-right transition flex flex-col justify-between gap-1.5 ${
-                                                                !appDark && themePalette === 'day'
-                                                                    ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500'
-                                                                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center justify-between">
-                                                                <Sun className="w-4 h-4 text-amber-500" />
-                                                                {!appDark && themePalette === 'day' && (
-                                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                                                )}
-                                                            </div>
-                                                            <div>
-                                                                <div className="text-xs font-black text-slate-900 dark:text-white">تم روز (تم سایت)</div>
-                                                                <div className="text-[10px] text-slate-500 dark:text-slate-400">سبز زمردی و روشن</div>
-                                                            </div>
-                                                            <div className="h-1.5 rounded-full bg-gradient-to-r from-[#062419] via-[#0B3B2B] to-[#0D4D38]" />
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setThemePalette('night');
-                                                                setAppDark(true);
-                                                            }}
-                                                            className={`p-2.5 rounded-2xl border text-right transition flex flex-col justify-between gap-1.5 ${
-                                                                appDark || themePalette === 'night'
-                                                                    ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500'
-                                                                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center justify-between">
-                                                                <Moon className="w-4 h-4 text-indigo-400" />
-                                                                {(appDark || themePalette === 'night') && (
-                                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                                                )}
-                                                            </div>
-                                                            <div>
-                                                                <div className="text-xs font-black text-slate-900 dark:text-white">تم شب (دارک سایت)</div>
-                                                                <div className="text-[10px] text-slate-500 dark:text-slate-400">تاریک، لوکس و آرام</div>
-                                                            </div>
-                                                            <div className="h-1.5 rounded-full bg-gradient-to-r from-[#020617] via-[#0B231A] to-[#020617]" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                {/* Save Button */}
-                                                <div className="pt-2 flex gap-2">
-                                                    <button
-                                                        onClick={() =>
-                                                            saveBranding(appName, appTagline, logoStyle, customMonogram, themePalette)
-                                                        }
-                                                        className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition"
-                                                    >
-                                                        ذخیره و اعمال در کل اپلیکیشن
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            saveBranding('بهار زندگی', 'آکادمی رشد و سیستم‌سازی ذهن', 'lotus', 'ب', 'day');
-                                                        }}
-                                                        className="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-xs font-bold"
-                                                    >
-                                                        بازنشانی
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* ========================================================
-                                        SCREEN: MOBILE LOGIN VIA PHONE ONLY (ورود اختصاصی با شماره همراه مشابه سایت)
-                                    ======================================================== */}
-                                    {activeScreen === 'login' && (
-                                        <div className="space-y-4 py-2">
-                                            {/* Banner with Logo and Title */}
-                                            <div className={`p-4 rounded-3xl border text-center space-y-3 ${surfaceCls}`}>
-                                                <div className="flex justify-center">
-                                                    {renderAppLogo('lg')}
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-base font-black text-slate-900 dark:text-white">
-                                                        ورود به سوپر اپلیکیشن «{appName}»
-                                                    </h3>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                                        جهت دسترسی به دوره‌ها، جلسات و داشبورد، شماره همراه خود را وارد نمایید.
-                                                    </p>
-                                                </div>
-
-                                                {loginNotice && (
-                                                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5">
-                                                        <CheckCircle2 className="w-4 h-4 shrink-0" />
-                                                        <span>{loginNotice}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* STEP 1: ENTER PHONE NUMBER */}
-                                            {loginStep === 'phone' ? (
-                                                <div className={`p-4 rounded-3xl border space-y-4 ${surfaceCls}`}>
-                                                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                                                                <Phone className="w-4 h-4" />
-                                                            </div>
-                                                            <span className="text-xs font-black">مرحله ۱ از ۲: شماره همراه</span>
-                                                        </div>
-                                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold">
-                                                            پیامک امن OTP
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-                                                            شماره تلفن همراه (بدون صفر یا با ۰۹)
-                                                        </label>
-                                                        <div className="relative flex items-center">
-                                                            <input
-                                                                type="tel"
-                                                                dir="ltr"
-                                                                value={inputPhone}
-                                                                onChange={(e) => setInputPhone(e.target.value)}
-                                                                placeholder="09123456789"
-                                                                className="w-full pl-14 pr-10 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-left font-mono font-bold text-sm tracking-wider focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                                            />
-                                                            <div className="absolute right-3 text-slate-400">
-                                                                <Phone className="w-4 h-4" />
-                                                            </div>
-                                                            <div className="absolute left-3 text-xs font-black text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded-lg">
-                                                                +۹۸
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Quick Test Demo Button */}
-                                                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex items-center justify-between">
-                                                        <span className="text-[11px] text-slate-500 dark:text-slate-400">تست سریع با شماره نمونه:</span>
-                                                        <button
-                                                            onClick={() => setInputPhone('۰۹۱۲۳۴۵۶۷۸۹')}
-                                                            className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-                                                        >
-                                                            ۰۹۱۲۳۴۵۶۷۸۹
-                                                        </button>
-                                                    </div>
-
-                                                    <button
-                                                        onClick={() => {
-                                                            if (!inputPhone || inputPhone.trim().length < 10) {
-                                                                setLoginNotice('لطفاً شماره همراه معتبر وارد کنید');
-                                                                return;
-                                                            }
-                                                            setLoginStep('otp');
-                                                            setOtpTimer(60);
-                                                            setLoginNotice('کد تایید ۴ رقمی پیامکی برای شما ارسال شد.');
-                                                        }}
-                                                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition"
-                                                    >
-                                                        <SendHorizontal className="w-4 h-4" />
-                                                        <span>دریافت کد تایید یکبار مصرف</span>
-                                                    </button>
-
-                                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center leading-relaxed">
-                                                        با ورود به سیستم، تمام قوانین و شرایط آکادمی بهار زندگی را می‌پذیرید.
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                /* STEP 2: ENTER OTP CODE */
-                                                <div className={`p-4 rounded-3xl border space-y-4 ${surfaceCls}`}>
-                                                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold">
-                                                                <Key className="w-4 h-4" />
-                                                            </div>
-                                                            <span className="text-xs font-black">مرحله ۲ از ۲: کد تایید پیامکی</span>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => setLoginStep('phone')}
-                                                            className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-                                                        >
-                                                            ویرایش شماره
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="text-center space-y-1">
-                                                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                                                            کد تایید ۴ رقمی ارسال‌شده به شماره زیر را وارد کنید:
-                                                        </div>
-                                                        <div className="text-sm font-black font-mono text-slate-900 dark:text-white" dir="ltr">
-                                                            {inputPhone}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* 4 Digit Boxes Display */}
-                                                    <div className="flex justify-center gap-2.5" dir="ltr">
-                                                        {['۴', '۸', '۲', '۹'].map((digit, idx) => (
-                                                            <div
-                                                                key={idx}
-                                                                className="w-12 h-14 rounded-2xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-mono font-black text-xl flex items-center justify-center shadow-inner"
-                                                            >
-                                                                {otpCode[idx] || digit}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-
-                                                    {/* Quick Fill Test Code */}
-                                                    <div className="text-center">
-                                                        <button
-                                                            onClick={() => setOtpCode('۴۸۲۹')}
-                                                            className="text-[11px] text-slate-500 hover:text-emerald-600 font-bold underline"
-                                                        >
-                                                            درج کد تایید آزمایشی (۴۸۲۹)
-                                                        </button>
-                                                    </div>
-
-                                                    {/* Countdown Timer */}
-                                                    <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex items-center justify-between">
-                                                        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                                                            <Clock className="w-4 h-4 text-slate-400" />
-                                                            <span>زمان اعتبار کد:</span>
-                                                        </div>
-                                                        {otpTimer > 0 ? (
-                                                            <span className="font-mono font-black text-xs text-amber-500">
-                                                                {otpTimer} ثانیه
-                                                            </span>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => {
-                                                                    setOtpTimer(60);
-                                                                    setLoginNotice('کد مجدد برای شما پیامک شد.');
-                                                                }}
-                                                                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 hover:underline"
-                                                            >
-                                                                <RefreshCw className="w-3.5 h-3.5" />
-                                                                <span>ارسال مجدد کد</span>
-                                                            </button>
-                                                        )}
-                                                    </div>
-
-                                                    <button
-                                                        onClick={() => {
-                                                            setIsLoggedIn(true);
-                                                            setCurrentUserPhone(inputPhone || '۰۹۱۲۳۴۵۶۷۸۹');
-                                                            setCurrentUserName('سامان یزدانی');
-                                                            setLoginNotice('ورود با موفقیت انجام شد! به داشبورد اختصاصی خوش آمدید.');
-                                                            setActiveScreen('dashboard');
-                                                        }}
-                                                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition"
-                                                    >
-                                                        <CheckCircle2 className="w-4 h-4" />
-                                                        <span>تایید و ورود به داشبورد دانشجو</span>
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* ========================================================
-                                        SCREEN: STUDENT DASHBOARD (داشبورد جامع و حرفه‌ای دانشجو)
-                                    ======================================================== */}
-                                    {activeScreen === 'dashboard' && (
-                                        <div className="space-y-3.5">
-                                            {!isLoggedIn ? (
-                                                <div className={`p-6 rounded-3xl border text-center space-y-4 ${surfaceCls}`}>
-                                                    <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 mx-auto flex items-center justify-center font-black">
-                                                        <Lock className="w-7 h-7" />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                                                            دسترسی به داشبورد نیازمند ورود است
-                                                        </h3>
-                                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                                                            برای مشاهده وضعیت یادگیری، جلسات کوچینگ، کارنامه و فایل‌های آموزشی لطفاً با شماره موبایل خود وارد شوید.
-                                                        </p>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => setActiveScreen('login')}
-                                                        className="w-full py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5"
-                                                    >
-                                                        <Phone className="w-4 h-4" />
-                                                        <span>ورود با شماره موبایل</span>
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    {/* 1. Student Profile Header Card */}
-                                                    <div className="rounded-3xl bg-gradient-to-l from-slate-900 via-slate-800 to-slate-900 text-white p-4 shadow-xl border border-slate-700/60 space-y-3">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="relative">
-                                                                    <img
-                                                                        src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
-                                                                        alt="عکس دانشجو"
-                                                                        className="w-12 h-12 rounded-2xl object-cover border-2 border-amber-400 shadow-md"
-                                                                    />
-                                                                    <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[9px] shadow">
-                                                                        VIP
-                                                                    </div>
-                                                                </div>
-                                                                <div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <h3 className="text-sm font-black">{currentUserName}</h3>
-                                                                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-bold border border-emerald-500/40">
-                                                                            فعال
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="text-[11px] text-slate-300 font-mono mt-0.5 flex items-center gap-1" dir="ltr">
-                                                                        <Phone className="w-3 h-3 text-slate-400" />
-                                                                        <span>{currentUserPhone}</span>
-                                                                    </div>
-                                                                    <div className="text-[10px] text-amber-300/90 mt-0.5 font-bold">
-                                                                        عضو طلایی آکادمی بهار زندگی
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <button
-                                                                onClick={() => {
-                                                                    setIsLoggedIn(false);
-                                                                    setLoginNotice('از حساب کاربری خود خارج شدید.');
-                                                                    setActiveScreen('login');
-                                                                }}
-                                                                className="p-2 rounded-xl bg-white/10 hover:bg-rose-500/20 hover:text-rose-400 text-slate-300 transition"
-                                                                title="خروج از حساب"
-                                                            >
-                                                                <LogOut className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-
-                                                        <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between text-[11px]">
-                                                            <span className="text-slate-300">موجودی کیف پول:</span>
-                                                            <span className="font-black text-amber-400">
-                                                                {walletBalance.toLocaleString('fa-IR')} تومان
-                                                            </span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* 2. Four Core KPI Analytics (2x2 Grid) */}
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div className={`p-3 rounded-2xl border space-y-1 ${surfaceCls}`}>
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-[10px] text-slate-500 dark:text-slate-400">ساعت مطالعه</span>
-                                                                <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                                                                    <Clock className="w-3.5 h-3.5" />
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-base font-black text-slate-900 dark:text-white">۲۴ ساعت</div>
-                                                            <div className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">+۳ ساعت این هفته</div>
-                                                        </div>
-
-                                                        <div className={`p-3 rounded-2xl border space-y-1 ${surfaceCls}`}>
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-[10px] text-slate-500 dark:text-slate-400">دوره‌های فعال</span>
-                                                                <div className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                                                                    <BookOpen className="w-3.5 h-3.5" />
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-base font-black text-slate-900 dark:text-white">۲ دوره</div>
-                                                            <div className="text-[9px] text-blue-600 dark:text-blue-400 font-bold">۸ جلسه گذرانده</div>
-                                                        </div>
-
-                                                        <div className={`p-3 rounded-2xl border space-y-1 ${surfaceCls}`}>
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-[10px] text-slate-500 dark:text-slate-400">استمرار یادگیری</span>
-                                                                <div className="w-6 h-6 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-                                                                    <Flame className="w-3.5 h-3.5" />
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-base font-black text-slate-900 dark:text-white">۵ روز پیاپی</div>
-                                                            <div className="text-[9px] text-rose-600 dark:text-rose-400 font-bold">رکورد شخصی فعال</div>
-                                                        </div>
-
-                                                        <div className={`p-3 rounded-2xl border space-y-1 ${surfaceCls}`}>
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-[10px] text-slate-500 dark:text-slate-400">میانگین آزمون‌ها</span>
-                                                                <div className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                                                                    <Award className="w-3.5 h-3.5" />
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-base font-black text-slate-900 dark:text-white">۹۲٪</div>
-                                                            <div className="text-[9px] text-amber-600 dark:text-amber-400 font-bold">سطح ممتاز طلایی</div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* 3. Next Upcoming Coaching Session */}
-                                                    <div className={`p-3.5 rounded-3xl border space-y-2.5 ${surfaceCls}`}>
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                                                                <span className="text-xs font-black text-slate-900 dark:text-white">
-                                                                    جلسه آینده کوچینگ ۱ به ۱
-                                                                </span>
-                                                            </div>
-                                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold">
-                                                                تایید شده
-                                                            </span>
-                                                        </div>
-
-                                                        <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2">
-                                                            <div className="flex items-center justify-between text-xs">
-                                                                <span className="font-bold text-slate-900 dark:text-white">کوچینگ با دکتر مهدی بیدی</span>
-                                                                <span className="font-bold text-blue-600 dark:text-blue-400">شنبه ۱۸ اردیبهشت</span>
-                                                            </div>
-                                                            <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                                                                موضوع: بازنگری ماتریس تصمیم‌گیری و اصلاح نقشه فصلی
-                                                            </div>
-                                                            <a
-                                                                href="https://meet.google.com/xyz-bahar"
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-sm transition"
-                                                            >
-                                                                <Video className="w-3.5 h-3.5" />
-                                                                <span>ورود مستقیم به اتاق Google Meet</span>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* 4. Enrolled Courses Progress */}
-                                                    <div className={`p-3.5 rounded-3xl border space-y-2.5 ${surfaceCls}`}>
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-xs font-black text-slate-900 dark:text-white">
-                                                                دوره‌های در حال یادگیری من
-                                                            </span>
-                                                            <button
-                                                                onClick={() => setActiveScreen('courses')}
-                                                                className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-                                                            >
-                                                                کاتالوگ دوره‌ها ←
-                                                            </button>
-                                                        </div>
-
-                                                        <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2">
-                                                            <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white">
-                                                                <span>معماری ذهن و تصمیم‌گیری استراتژیک</span>
-                                                                <span className="text-emerald-600 dark:text-emerald-400">۶۲٪ تکمیل</span>
-                                                            </div>
-                                                            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                                                                <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: '62%' }} />
-                                                            </div>
-                                                            <div className="flex items-center justify-between pt-1">
-                                                                <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                                                                    جلسه ۴: سوگیری‌های شناختی در تصمیمات پرریسک
-                                                                </span>
-                                                                <button
-                                                                    onClick={() => setActiveScreen('learning')}
-                                                                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm transition"
-                                                                >
-                                                                    <Play className="w-3 h-3" />
-                                                                    ادامه درس
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* 5. Talent & Growth Radar Snapshot */}
-                                                    <div className={`p-3.5 rounded-3xl border space-y-2.5 ${surfaceCls}`}>
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-xs font-black text-slate-900 dark:text-white">
-                                                                شاخص رشد فردی و سیستم‌سازی
-                                                            </span>
-                                                            <span className="text-[10px] text-slate-400 font-bold">ارزیابی فصل بهار</span>
-                                                        </div>
-
-                                                        <div className="space-y-2 text-xs">
-                                                            {[
-                                                                { skill: 'معماری ذهن و کنترل هیجان', val: 85, color: 'bg-rose-500' },
-                                                                { skill: 'مدیریت زمان و اجرای OKR', val: 70, color: 'bg-blue-500' },
-                                                                { skill: 'سیستم‌سازی و تفویض اختیار', val: 90, color: 'bg-emerald-500' },
-                                                                { skill: 'تاب‌آوری در بحران‌های کسب‌وکار', val: 75, color: 'bg-amber-500' },
-                                                            ].map((item, idx) => (
-                                                                <div key={idx} className="space-y-1">
-                                                                    <div className="flex justify-between text-[11px]">
-                                                                        <span className="text-slate-600 dark:text-slate-300">{item.skill}</span>
-                                                                        <span className="font-bold text-slate-900 dark:text-white">{item.val}٪</span>
-                                                                    </div>
-                                                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                                                                        <div className={`${item.color} h-1.5 rounded-full`} style={{ width: `${item.val}%` }} />
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* 6. Quick Action Cards */}
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <button
-                                                            onClick={() => setActiveScreen('quizzes')}
-                                                            className={`p-3 rounded-2xl border text-right space-y-1 transition hover:border-emerald-500 ${surfaceCls}`}
-                                                        >
-                                                            <div className="w-7 h-7 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                                                                <ClipboardCheck className="w-4 h-4" />
-                                                            </div>
-                                                            <div className="text-xs font-black text-slate-900 dark:text-white">آزمون‌ها و تکالیف</div>
-                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400">۱ تمرین تایید شده</div>
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => setActiveScreen('wallet')}
-                                                            className={`p-3 rounded-2xl border text-right space-y-1 transition hover:border-emerald-500 ${surfaceCls}`}
-                                                        >
-                                                            <div className="w-7 h-7 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                                                                <FileCheck className="w-4 h-4" />
-                                                            </div>
-                                                            <div className="text-xs font-black text-slate-900 dark:text-white">گواهینامه‌های رسمی</div>
-                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400">۱ مدرک صادر شده</div>
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* PHONE BOTTOM NAVIGATION BAR (ULTRA-REFINED DOCK WITH 5 CORE TABS) */}
+                                {/* 2. Super-App Quick Access Service Desk (2x2 Glassmorphic Bento Cards + 4 Quick Shortcuts) */}
                                 <div
-                                    className={`border-t px-2.5 pt-2 pb-1.5 shrink-0 backdrop-blur-2xl transition-all duration-300 z-30 ${
-                                        appDark
-                                            ? 'bg-slate-950/95 border-slate-800/80 shadow-[0_-12px_30px_rgba(0,0,0,0.6)]'
-                                            : 'bg-white/95 border-slate-200/90 shadow-[0_-10px_25px_rgba(0,0,0,0.06)]'
-                                    }`}
+                                    className="rounded-[26px] p-3.5 border backdrop-blur-xl relative overflow-hidden"
+                                    style={{
+                                        background: isDark
+                                            ? 'linear-gradient(145deg, rgba(20, 48, 39, 0.86) 0%, rgba(11, 27, 22, 0.94) 55%, rgba(14, 35, 32, 0.90) 100%)'
+                                            : 'linear-gradient(145deg, rgba(255, 255, 255, 0.94) 0%, rgba(242, 250, 245, 0.96) 100%)',
+                                        borderColor: isDark
+                                            ? 'rgba(163, 230, 53, 0.28)'
+                                            : 'rgba(18, 62, 48, 0.12)',
+                                        boxShadow: isDark
+                                            ? '0 18px 36px -12px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.16)'
+                                            : '0 14px 28px -12px rgba(18, 62, 48, 0.10), inset 0 1px 0 0 rgba(255, 255, 255, 0.9)',
+                                    }}
                                 >
-                                    <div className="grid grid-cols-5 items-center gap-1">
+                                    {/* Ambient Glassmorphism Glow Orbs */}
+                                    <div
+                                        className="w-44 h-44 rounded-full pointer-events-none -top-16 -right-12 blur-2xl absolute"
+                                        style={{
+                                            background: isDark
+                                                ? 'radial-gradient(circle, rgba(163, 230, 53, 0.22) 0%, rgba(52, 211, 153, 0.08) 50%, transparent 72%)'
+                                                : 'radial-gradient(circle, rgba(154, 217, 105, 0.28) 0%, transparent 70%)',
+                                        }}
+                                    />
+                                    <div
+                                        className="w-40 h-40 rounded-full pointer-events-none -bottom-16 -left-12 blur-2xl absolute"
+                                        style={{
+                                            background: isDark
+                                                ? 'radial-gradient(circle, rgba(56, 189, 248, 0.18) 0%, rgba(192, 132, 252, 0.08) 50%, transparent 72%)'
+                                                : 'radial-gradient(circle, rgba(56, 189, 248, 0.16) 0%, transparent 70%)',
+                                        }}
+                                    />
+
+                                    {/* Box Header */}
+                                    <div className="flex items-center justify-between px-0.5 pb-3 relative z-10">
+                                        <div className="flex items-center gap-2.5">
+                                            <span
+                                                className="w-8 h-8 rounded-xl flex items-center justify-center border backdrop-blur-md shrink-0"
+                                                style={{
+                                                    background: isDark
+                                                        ? 'linear-gradient(135deg, rgba(163, 230, 53, 0.26) 0%, rgba(16, 185, 129, 0.16) 100%)'
+                                                        : 'linear-gradient(135deg, #E6F4EA 0%, #D1FAE5 100%)',
+                                                    borderColor: isDark
+                                                        ? 'rgba(190, 242, 100, 0.42)'
+                                                        : '#B7E4C7',
+                                                    color: isDark ? '#D9F99D' : '#123E30',
+                                                    boxShadow: isDark
+                                                        ? '0 4px 12px rgba(154, 217, 105, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.22)'
+                                                        : 'none',
+                                                }}
+                                            >
+                                                <Sparkles className="w-4 h-4" />
+                                            </span>
+                                            <div>
+                                                <div
+                                                    className="font-black text-[13.5px] leading-tight tracking-tight"
+                                                    style={{
+                                                        color: isDark ? '#FFFFFF' : '#0F291E',
+                                                    }}
+                                                >
+                                                    میز خدمات سریع رشد
+                                                </div>
+                                                <div
+                                                    className="text-[10.5px] font-semibold mt-0.5"
+                                                    style={{
+                                                        color: isDark ? '#D1E8DF' : '#476759',
+                                                    }}
+                                                >
+                                                    همگام با خدمات استعدادیابی و کوچینگ مرکز دکتر بیدی
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span
+                                            className="text-[10px] font-extrabold px-2.5 py-1 rounded-xl border backdrop-blur-md inline-flex items-center gap-1.5"
+                                            style={{
+                                                background: isDark
+                                                    ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%)'
+                                                    : 'rgba(237, 247, 240, 0.9)',
+                                                borderColor: isDark
+                                                    ? 'rgba(190, 242, 100, 0.34)'
+                                                    : '#CBE8D4',
+                                                color: isDark ? '#ECFCCB' : '#123E30',
+                                                boxShadow: isDark
+                                                    ? 'inset 0 1px 0 rgba(255, 255, 255, 0.16)'
+                                                    : 'none',
+                                            }}
+                                        >
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                            <span>۴ سرویس آنلاین</span>
+                                        </span>
+                                    </div>
+
+                                    {/* 2x2 Bento Primary Service Cards (Glassmorphism + Soft Gradients) */}
+                                    <div className="grid grid-cols-2 gap-2.5 relative z-10">
                                         {[
-                                            { id: 'home' as ScreenId, label: 'خانه', icon: Home, badge: null },
-                                            { id: 'courses' as ScreenId, label: 'دوره‌ها', icon: BookOpen, badge: '۲' },
-                                            { id: 'dashboard' as ScreenId, label: 'داشبورد', icon: LayoutDashboard, badge: 'VIP', centerHighlight: true },
-                                            { id: 'sessions' as ScreenId, label: 'کوچینگ', icon: Calendar, badge: '۱' },
-                                            { id: 'admin' as ScreenId, label: 'پنل ادمین', icon: ShieldCheck, adminHighlight: true },
-                                        ].map((tab) => {
-                                            const Icon = tab.icon;
-                                            const active =
-                                                activeScreen === tab.id ||
-                                                (tab.id === 'courses' && activeScreen === 'learning');
+                                            {
+                                                title: 'باشگاه VIP آینده',
+                                                subtitle: isVipEnrolled
+                                                    ? '۴ آیتم حضوری و مجازی'
+                                                    : 'ثبت‌نام دوره پرچمدار',
+                                                badge: 'ویژه',
+                                                Icon: Crown,
+                                                cardBgDark:
+                                                    'linear-gradient(135deg, rgba(251, 191, 36, 0.24) 0%, rgba(245, 158, 11, 0.10) 48%, rgba(255, 255, 255, 0.05) 100%)',
+                                                cardBgLight:
+                                                    'linear-gradient(135deg, rgba(255, 251, 235, 0.95) 0%, rgba(254, 243, 199, 0.85) 100%)',
+                                                borderDark: 'rgba(253, 224, 71, 0.42)',
+                                                borderLight: '#FCD34D',
+                                                glowDark: 'rgba(251, 191, 36, 0.25)',
+                                                iconBoxDark:
+                                                    'linear-gradient(135deg, rgba(251, 191, 36, 0.32) 0%, rgba(245, 158, 11, 0.18) 100%)',
+                                                iconBoxLight: '#FEF08A',
+                                                iconBorderDark: 'rgba(254, 240, 138, 0.45)',
+                                                iconColorDark: '#FEF08A',
+                                                iconColorLight: '#B45309',
+                                                badgeBgDark: 'rgba(251, 191, 36, 0.28)',
+                                                badgeBgLight: '#D97706',
+                                                badgeBorderDark: 'rgba(254, 240, 138, 0.4)',
+                                                badgeTextDark: '#FEF9C3',
+                                                badgeTextLight: '#FFFFFF',
+                                                onClick: () =>
+                                                    isVipEnrolled
+                                                        ? setActiveScreen('vipClub')
+                                                        : openCourse('designing-teen-future-vip'),
+                                            },
+                                            {
+                                                title: 'چت با مدرسین',
+                                                subtitle: '۴ استاد آیتم‌ها آنلاین',
+                                                badge: 'آنلاین',
+                                                Icon: MessageSquare,
+                                                cardBgDark:
+                                                    'linear-gradient(135deg, rgba(56, 189, 248, 0.24) 0%, rgba(14, 165, 233, 0.10) 48%, rgba(255, 255, 255, 0.05) 100%)',
+                                                cardBgLight:
+                                                    'linear-gradient(135deg, rgba(240, 249, 255, 0.95) 0%, rgba(224, 242, 254, 0.85) 100%)',
+                                                borderDark: 'rgba(125, 211, 252, 0.42)',
+                                                borderLight: '#7DD3FC',
+                                                glowDark: 'rgba(56, 189, 248, 0.25)',
+                                                iconBoxDark:
+                                                    'linear-gradient(135deg, rgba(56, 189, 248, 0.32) 0%, rgba(2, 132, 199, 0.18) 100%)',
+                                                iconBoxLight: '#BAE6FD',
+                                                iconBorderDark: 'rgba(186, 230, 253, 0.45)',
+                                                iconColorDark: '#E0F2FE',
+                                                iconColorLight: '#0369A1',
+                                                badgeBgDark: 'rgba(56, 189, 248, 0.28)',
+                                                badgeBgLight: '#0284C7',
+                                                badgeBorderDark: 'rgba(186, 230, 253, 0.4)',
+                                                badgeTextDark: '#E0F2FE',
+                                                badgeTextLight: '#FFFFFF',
+                                                onClick: () => {
+                                                    setChatChannel('instructor');
+                                                    setActiveScreen('chat');
+                                                },
+                                            },
+                                            {
+                                                title: 'کتاب‌خوان اپ',
+                                                subtitle: 'قطب‌نمای استعداد و ژورنال',
+                                                badge: '۲ کتاب',
+                                                Icon: BookOpen,
+                                                cardBgDark:
+                                                    'linear-gradient(135deg, rgba(251, 146, 60, 0.24) 0%, rgba(234, 88, 12, 0.10) 48%, rgba(255, 255, 255, 0.05) 100%)',
+                                                cardBgLight:
+                                                    'linear-gradient(135deg, rgba(255, 247, 237, 0.95) 0%, rgba(255, 237, 213, 0.85) 100%)',
+                                                borderDark: 'rgba(253, 186, 116, 0.42)',
+                                                borderLight: '#FDBA74',
+                                                glowDark: 'rgba(251, 146, 60, 0.25)',
+                                                iconBoxDark:
+                                                    'linear-gradient(135deg, rgba(251, 146, 60, 0.32) 0%, rgba(234, 88, 12, 0.18) 100%)',
+                                                iconBoxLight: '#FED7AA',
+                                                iconBorderDark: 'rgba(254, 215, 170, 0.45)',
+                                                iconColorDark: '#FFEDD5',
+                                                iconColorLight: '#C2410C',
+                                                badgeBgDark: 'rgba(251, 146, 60, 0.28)',
+                                                badgeBgLight: '#EA580C',
+                                                badgeBorderDark: 'rgba(254, 215, 170, 0.4)',
+                                                badgeTextDark: '#FFEDD5',
+                                                badgeTextLight: '#FFFFFF',
+                                                onClick: () =>
+                                                    openInAppContent('talent-compass-book', 101),
+                                            },
+                                            {
+                                                title: 'پشتیبانی و کوچینگ',
+                                                subtitle: 'هدایت تحصیلی و منتور ۱:۱',
+                                                badge: 'فعال',
+                                                Icon: MessageCircle,
+                                                cardBgDark:
+                                                    'linear-gradient(135deg, rgba(192, 132, 252, 0.24) 0%, rgba(147, 51, 234, 0.10) 48%, rgba(255, 255, 255, 0.05) 100%)',
+                                                cardBgLight:
+                                                    'linear-gradient(135deg, rgba(250, 245, 255, 0.95) 0%, rgba(243, 232, 255, 0.85) 100%)',
+                                                borderDark: 'rgba(216, 180, 254, 0.42)',
+                                                borderLight: '#D8B4FE',
+                                                glowDark: 'rgba(192, 132, 252, 0.25)',
+                                                iconBoxDark:
+                                                    'linear-gradient(135deg, rgba(192, 132, 252, 0.32) 0%, rgba(126, 34, 206, 0.18) 100%)',
+                                                iconBoxLight: '#E9D5FF',
+                                                iconBorderDark: 'rgba(233, 213, 255, 0.45)',
+                                                iconColorDark: '#F3E8FF',
+                                                iconColorLight: '#6D28D9',
+                                                badgeBgDark: 'rgba(192, 132, 252, 0.28)',
+                                                badgeBgLight: '#7C3AED',
+                                                badgeBorderDark: 'rgba(233, 213, 255, 0.4)',
+                                                badgeTextDark: '#F3E8FF',
+                                                badgeTextLight: '#FFFFFF',
+                                                onClick: openCourseSupportChat,
+                                            },
+                                        ].map((srv) => {
+                                            const IconComp = srv.Icon;
                                             return (
                                                 <button
-                                                    key={tab.id}
-                                                    onClick={() => setActiveScreen(tab.id)}
-                                                    className={`group relative flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all duration-200 ${
-                                                        tab.adminHighlight
-                                                            ? active
-                                                                ? 'bg-gradient-to-b from-amber-400/20 to-amber-500/10 text-amber-500 font-black ring-1 ring-amber-400/40 shadow-sm'
-                                                                : 'text-amber-500/80 hover:text-amber-400 hover:bg-amber-400/10 font-bold'
-                                                            : tab.centerHighlight && active
-                                                            ? 'bg-gradient-to-b from-emerald-500/20 to-teal-500/10 text-emerald-600 dark:text-emerald-400 font-black ring-1 ring-emerald-500/30 shadow-sm'
-                                                            : active
-                                                            ? 'bg-emerald-500/15 dark:bg-emerald-400/15 text-emerald-600 dark:text-emerald-400 font-black ring-1 ring-emerald-500/20 shadow-sm'
-                                                            : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                                                    }`}
+                                                    key={srv.title}
+                                                    type="button"
+                                                    onClick={srv.onClick}
+                                                    className="group p-3 rounded-[20px] border backdrop-blur-md text-right flex flex-col justify-between gap-2.5 transition-all duration-300 ease-out hover:scale-[1.03] hover:-translate-y-0.5 hover:shadow-xl active:scale-[0.98] cursor-pointer relative overflow-hidden"
+                                                    style={{
+                                                        background: isDark
+                                                            ? srv.cardBgDark
+                                                            : srv.cardBgLight,
+                                                        borderColor: isDark
+                                                            ? srv.borderDark
+                                                            : srv.borderLight,
+                                                        boxShadow: isDark
+                                                            ? '0 8px 20px -6px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.20)'
+                                                            : '0 6px 16px -8px rgba(18, 62, 48, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.85)',
+                                                    }}
                                                 >
-                                                    {/* Icon with Micro-Badge */}
-                                                    <div className="relative">
-                                                        <Icon
-                                                            className={`w-4 h-4 transition-transform duration-200 ${
-                                                                active ? 'scale-110' : 'group-hover:scale-105'
-                                                            }`}
-                                                            strokeWidth={active ? 2.5 : 2}
-                                                        />
-                                                        {tab.badge && !active && (
-                                                            <span className="absolute -top-1.5 -right-2 px-1 py-0.2 rounded-full bg-emerald-500 text-white font-mono font-bold text-[8px] leading-tight shadow-sm">
-                                                                {tab.badge}
-                                                            </span>
-                                                        )}
-                                                        {tab.adminHighlight && (
-                                                            <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-amber-400 border border-slate-900 shadow-sm animate-pulse" />
-                                                        )}
-                                                    </div>
-
-                                                    <span className="text-[10px] mt-1 tracking-tight leading-none">
-                                                        {tab.label}
-                                                    </span>
-
-                                                    {/* Active Glowing Dot Indicator */}
-                                                    {active && (
+                                                    {/* Soft top-right corner radial highlight for glass depth */}
+                                                    {isDark && (
                                                         <span
-                                                            className={`w-1 h-1 rounded-full mt-1 ${
-                                                                tab.adminHighlight ? 'bg-amber-400 shadow-[0_0_6px_#f59e0b]' : 'bg-emerald-500 shadow-[0_0_6px_#10b981]'
-                                                            }`}
+                                                            className="w-20 h-20 rounded-full pointer-events-none -top-8 -right-8 blur-xl absolute transition-opacity duration-300 group-hover:opacity-100 opacity-75"
+                                                            style={{
+                                                                background: srv.glowDark,
+                                                            }}
                                                         />
                                                     )}
+
+                                                    <div className="flex items-center justify-between w-full relative z-10">
+                                                        <div
+                                                            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 group-hover:scale-110 group-hover:shadow-md"
+                                                            style={{
+                                                                background: isDark
+                                                                    ? srv.iconBoxDark
+                                                                    : srv.iconBoxLight,
+                                                                borderColor: isDark
+                                                                    ? srv.iconBorderDark
+                                                                    : 'rgba(255, 255, 255, 0.7)',
+                                                                boxShadow: isDark
+                                                                    ? `0 4px 12px -2px ${srv.glowDark}, inset 0 1px 0 rgba(255, 255, 255, 0.25)`
+                                                                    : 'none',
+                                                            }}
+                                                        >
+                                                            <IconComp
+                                                                className="w-[18px] h-[18px] transition-transform duration-300 group-hover:scale-105"
+                                                                style={{
+                                                                    color: isDark
+                                                                        ? srv.iconColorDark
+                                                                        : srv.iconColorLight,
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <span
+                                                            className="px-2 py-0.5 rounded-lg text-[9.5px] font-black border transition-transform duration-200 group-hover:scale-105"
+                                                            style={{
+                                                                backgroundColor: isDark
+                                                                    ? srv.badgeBgDark
+                                                                    : srv.badgeBgLight,
+                                                                borderColor: isDark
+                                                                    ? srv.badgeBorderDark
+                                                                    : 'transparent',
+                                                                color: isDark
+                                                                    ? srv.badgeTextDark
+                                                                    : srv.badgeTextLight,
+                                                            }}
+                                                        >
+                                                            {srv.badge}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="w-full relative z-10">
+                                                        <div
+                                                            className="font-black text-[12.5px] leading-tight truncate transition-colors duration-200"
+                                                            style={{
+                                                                color: isDark
+                                                                    ? '#FFFFFF'
+                                                                    : '#0F291E',
+                                                            }}
+                                                        >
+                                                            {srv.title}
+                                                        </div>
+                                                        <div
+                                                            className="text-[10.5px] font-semibold mt-0.5 truncate"
+                                                            style={{
+                                                                color: isDark
+                                                                    ? '#E2F3EC'
+                                                                    : '#3B5E50',
+                                                            }}
+                                                        >
+                                                            {srv.subtitle}
+                                                        </div>
+                                                    </div>
                                                 </button>
                                             );
                                         })}
                                     </div>
 
-                                    {/* Mobile Home Swipe Indicator Bar */}
-                                    <div className="w-24 h-1 rounded-full bg-slate-300 dark:bg-slate-700/70 mx-auto mt-1.5" />
+                                    {/* Live Webinar, Seminar & Online Classes Gateway Strip (Skyroom, Google Meet, Adobe Connect) */}
+                                    <div
+                                        onClick={() => setActiveScreen('sessions')}
+                                        className="group mt-2.5 p-3 rounded-[20px] border backdrop-blur-md flex items-center justify-between gap-2.5 cursor-pointer transition-all duration-300 ease-out hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-xl active:scale-[0.99] relative z-10 overflow-hidden"
+                                        style={{
+                                            background: isDark
+                                                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.26) 0%, rgba(6, 182, 212, 0.22) 55%, rgba(255, 255, 255, 0.06) 100%)'
+                                                : 'linear-gradient(135deg, #ECFDF5 0%, #E0F2FE 100%)',
+                                            borderColor: isDark
+                                                ? 'rgba(110, 231, 183, 0.45)'
+                                                : '#6EE7B7',
+                                            boxShadow: isDark
+                                                ? '0 8px 20px -6px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.20)'
+                                                : '0 6px 16px -8px rgba(16, 185, 129, 0.12)',
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                            <div
+                                                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 relative border transition-transform duration-300 group-hover:scale-110"
+                                                style={{
+                                                    background: isDark
+                                                        ? 'linear-gradient(135deg, rgba(52, 211, 153, 0.34) 0%, rgba(6, 182, 212, 0.22) 100%)'
+                                                        : '#D1FAE5',
+                                                    borderColor: isDark
+                                                        ? 'rgba(167, 243, 208, 0.5)'
+                                                        : '#A7F3D0',
+                                                }}
+                                            >
+                                                <Video
+                                                    className="w-[18px] h-[18px]"
+                                                    style={{
+                                                        color: isDark ? '#ECFDF5' : '#047857',
+                                                    }}
+                                                />
+                                                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-[#0F261E] -top-0.5 -right-0.5 absolute animate-pulse" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span
+                                                        className="font-black text-[12px] truncate"
+                                                        style={{
+                                                            color: isDark ? '#FFFFFF' : '#0F291E',
+                                                        }}
+                                                    >
+                                                        وبینارها، سمینارها و کلاس‌های آنلاین
+                                                    </span>
+                                                    <span
+                                                        className="px-1.5 py-0.5 rounded-md text-[9.5px] font-black shrink-0 border transition-transform duration-200 group-hover:scale-105"
+                                                        style={{
+                                                            backgroundColor: isDark
+                                                                ? 'rgba(244, 63, 94, 0.30)'
+                                                                : '#FFE4E6',
+                                                            borderColor: isDark
+                                                                ? 'rgba(253, 164, 175, 0.45)'
+                                                                : 'transparent',
+                                                            color: isDark ? '#FFE4E6' : '#BE123C',
+                                                        }}
+                                                    >
+                                                        ۱ وبینار زنده
+                                                    </span>
+                                                </div>
+                                                <div
+                                                    className="text-[10.5px] font-semibold truncate mt-0.5"
+                                                    style={{
+                                                        color: isDark ? '#E2F3EC' : '#3B5E50',
+                                                    }}
+                                                >
+                                                    اسکای‌روم، گوگل میت و ادوبی کانکت (همگام با سایت)
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <span
+                                            className="px-2.5 py-1.5 rounded-xl text-[10px] font-black shrink-0 inline-flex items-center gap-1 shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-md"
+                                            style={{
+                                                background: isDark
+                                                    ? 'linear-gradient(135deg, #6EE7B7 0%, #34D399 100%)'
+                                                    : '#123E30',
+                                                color: isDark ? '#062016' : '#D6F39A',
+                                            }}
+                                        >
+                                            <span>لینک کلاس‌ها</span>
+                                            <ExternalLink className="w-3 h-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
+                                        </span>
+                                    </div>
+
+                                    {/* Complementary 4 Quick Shortcuts Strip */}
+                                    <div
+                                        className="grid grid-cols-4 gap-2 pt-3 mt-3 border-t relative z-10"
+                                        style={{
+                                            borderColor: isDark
+                                                ? 'rgba(255, 255, 255, 0.12)'
+                                                : '#DCECE2',
+                                        }}
+                                    >
+                                        {[
+                                            {
+                                                title: 'دوره‌ها',
+                                                Icon: GraduationCap,
+                                                colorDark: '#86EFAC',
+                                                colorLight: '#15803D',
+                                                bgDark: 'linear-gradient(135deg, rgba(74, 222, 128, 0.26) 0%, rgba(22, 163, 74, 0.14) 100%)',
+                                                bgLight: '#E6F4EA',
+                                                borderDark: 'rgba(134, 239, 172, 0.36)',
+                                                onClick: () => setActiveScreen('courses'),
+                                            },
+                                            {
+                                                title: groupChatEnabled ? 'گروه دوره' : 'گروه (قفل)',
+                                                Icon: Users,
+                                                colorDark: '#DDD6FE',
+                                                colorLight: '#6D28D9',
+                                                bgDark: 'linear-gradient(135deg, rgba(167, 139, 250, 0.26) 0%, rgba(124, 58, 237, 0.14) 100%)',
+                                                bgLight: '#EDE9FE',
+                                                borderDark: 'rgba(196, 181, 253, 0.36)',
+                                                onClick: openCourseGroupChat,
+                                            },
+                                            {
+                                                title: 'رادیو رشد',
+                                                Icon: Headphones,
+                                                colorDark: '#D9F99D',
+                                                colorLight: '#4D7C0F',
+                                                bgDark: 'linear-gradient(135deg, rgba(163, 230, 53, 0.26) 0%, rgba(101, 163, 13, 0.14) 100%)',
+                                                bgLight: '#ECFCCB',
+                                                borderDark: 'rgba(217, 249, 157, 0.36)',
+                                                onClick: () =>
+                                                    openInAppContent(
+                                                        'roshd-future-mindset-podcast',
+                                                        201
+                                                    ),
+                                            },
+                                            {
+                                                title: 'فروشگاه',
+                                                Icon: ShoppingBag,
+                                                colorDark: '#FBCFE8',
+                                                colorLight: '#BE185D',
+                                                bgDark: 'linear-gradient(135deg, rgba(244, 114, 182, 0.26) 0%, rgba(219, 39, 119, 0.14) 100%)',
+                                                bgLight: '#FCE7F3',
+                                                borderDark: 'rgba(249, 168, 212, 0.36)',
+                                                onClick: () => setActiveScreen('shop'),
+                                            },
+                                        ].map((quick) => {
+                                            const QuickIcon = quick.Icon;
+                                            return (
+                                                <button
+                                                    key={quick.title}
+                                                    type="button"
+                                                    onClick={quick.onClick}
+                                                    className="group flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-2xl border backdrop-blur-md cursor-pointer transition-all duration-200 ease-out hover:scale-105 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+                                                    style={{
+                                                        background: isDark
+                                                            ? 'linear-gradient(145deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.04) 100%)'
+                                                            : '#FFFFFF',
+                                                        borderColor: isDark
+                                                            ? 'rgba(255, 255, 255, 0.16)'
+                                                            : '#E2EFE7',
+                                                        boxShadow: isDark
+                                                            ? 'inset 0 1px 0 rgba(255, 255, 255, 0.14)'
+                                                            : '0 2px 6px rgba(18, 62, 48, 0.04)',
+                                                    }}
+                                                >
+                                                    <span
+                                                        className="w-7 h-7 rounded-xl flex items-center justify-center border transition-transform duration-200 group-hover:scale-110"
+                                                        style={{
+                                                            background: isDark
+                                                                ? quick.bgDark
+                                                                : quick.bgLight,
+                                                            borderColor: isDark
+                                                                ? quick.borderDark
+                                                                : 'transparent',
+                                                        }}
+                                                    >
+                                                        <QuickIcon
+                                                            className="w-3.5 h-3.5"
+                                                            style={{
+                                                                color: isDark
+                                                                    ? quick.colorDark
+                                                                    : quick.colorLight,
+                                                            }}
+                                                        />
+                                                    </span>
+                                                    <span
+                                                        className="font-extrabold text-[10px] leading-tight truncate max-w-full"
+                                                        style={{
+                                                            color: isDark ? '#F8FAFC' : '#0F291E',
+                                                        }}
+                                                    >
+                                                        {quick.title}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Synchronized Website Pillars Strip (Talent Compass, 1:1 Coaching, Parent Report) */}
+                                    <div
+                                        className="grid grid-cols-3 gap-1.5 pt-2.5 mt-2.5 border-t relative z-10"
+                                        style={{
+                                            borderColor: isDark
+                                                ? 'rgba(255, 255, 255, 0.10)'
+                                                : '#E2EFE7',
+                                        }}
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('profile')}
+                                            className="px-2 py-1.5 rounded-xl border backdrop-blur-md flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-200 ease-out hover:scale-105 hover:-translate-y-0.5 hover:shadow-sm active:scale-95"
+                                            style={{
+                                                background: isDark
+                                                    ? 'rgba(163, 230, 53, 0.12)'
+                                                    : '#F0FDF4',
+                                                borderColor: isDark
+                                                    ? 'rgba(190, 242, 100, 0.30)'
+                                                    : '#BBF7D0',
+                                                color: isDark ? '#ECFCCB' : '#14532D',
+                                            }}
+                                        >
+                                            <Compass className="w-3.5 h-3.5 shrink-0" />
+                                            <span className="text-[9.5px] font-extrabold truncate">
+                                                قطب‌نمای استعداد
+                                            </span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('goals')}
+                                            className="px-2 py-1.5 rounded-xl border backdrop-blur-md flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-200 ease-out hover:scale-105 hover:-translate-y-0.5 hover:shadow-sm active:scale-95"
+                                            style={{
+                                                background: isDark
+                                                    ? 'rgba(56, 189, 248, 0.12)'
+                                                    : '#F0F9FF',
+                                                borderColor: isDark
+                                                    ? 'rgba(125, 211, 252, 0.30)'
+                                                    : '#BAE6FD',
+                                                color: isDark ? '#E0F2FE' : '#0C4A6E',
+                                            }}
+                                        >
+                                            <Flag className="w-3.5 h-3.5 shrink-0" />
+                                            <span className="text-[9.5px] font-extrabold truncate">
+                                                بوم ۹۰ روزه
+                                            </span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={handleSendParentReport}
+                                            className="px-2 py-1.5 rounded-xl border backdrop-blur-md flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-200 ease-out hover:scale-105 hover:-translate-y-0.5 hover:shadow-sm active:scale-95"
+                                            style={{
+                                                background: isDark
+                                                    ? 'rgba(251, 191, 36, 0.12)'
+                                                    : '#FFFBEB',
+                                                borderColor: isDark
+                                                    ? 'rgba(253, 224, 71, 0.30)'
+                                                    : '#FDE68A',
+                                                color: isDark ? '#FEF9C3' : '#78350F',
+                                            }}
+                                        >
+                                            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                                            <span className="text-[9.5px] font-extrabold truncate">
+                                                کارنامه والدین
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
 
-                                {/* HIGHLIGHT / CAPSULE DETAIL MODAL */}
-                                {selectedHighlight !== null && (
-                                    <div className="absolute inset-0 z-40 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-                                        {(() => {
-                                            const item = highlightsData.find((h) => h.id === selectedHighlight);
-                                            if (!item) return null;
-                                            const ItemIcon = item.icon;
+                                {/* 3. Side-by-Side Twin Live Widgets */}
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    <div
+                                        onClick={() =>
+                                            isVipEnrolled
+                                                ? setActiveScreen('vipClub')
+                                                : setActiveScreen('sessions')
+                                        }
+                                        className="cursor-pointer rounded-[18px] p-3 border flex flex-col justify-between transition hover:shadow-xs"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <div>
+                                            <div className="flex items-center justify-between">
+                                                <span
+                                                    className="text-[10px] font-bold"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    {isVipEnrolled ? 'وضعیت حضور VIP' : 'جلسات کوچینگ'}
+                                                </span>
+                                                <span
+                                                    className="w-6 h-6 rounded-lg flex items-center justify-center"
+                                                    style={{
+                                                        backgroundColor: colors.primarySoft,
+                                                        color: colors.primary,
+                                                    }}
+                                                >
+                                                    <Calendar className="w-3.5 h-3.5" />
+                                                </span>
+                                            </div>
+                                            <div
+                                                className="font-black text-[13px] mt-1.5 truncate"
+                                                style={{ color: colors.text }}
+                                            >
+                                                {isVipEnrolled
+                                                    ? `${faNum(95)}٪ حضور منظم`
+                                                    : '۱ جلسه پیش‌رو'}
+                                            </div>
+                                            <div
+                                                className="text-[10px] mt-0.5 truncate"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                {isVipEnrolled
+                                                    ? '۴ آیتم تخصصی با ۴ مدرس'
+                                                    : 'چهارشنبه ساعت ۱۸:۰۰'}
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-2.5 space-y-1">
+                                            <div
+                                                className="h-1.5 rounded-full overflow-hidden"
+                                                style={{ backgroundColor: colors.surfaceAlt }}
+                                            >
+                                                <div
+                                                    className="h-full rounded-full"
+                                                    style={{
+                                                        width: isVipEnrolled ? '95%' : '60%',
+                                                        backgroundColor: colors.primary,
+                                                    }}
+                                                />
+                                            </div>
+                                            <div
+                                                className="flex items-center justify-between text-[10px] font-bold"
+                                                style={{ color: colors.primary }}
+                                            >
+                                                <span>
+                                                    {isVipEnrolled ? 'برنامه کلاس‌ها' : 'مدیریت جلسات'}
+                                                </span>
+                                                <ArrowLeft className="w-3 h-3" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        onClick={() => setActiveScreen('dashboard')}
+                                        className="cursor-pointer rounded-[18px] p-3 border flex flex-col justify-between transition hover:shadow-xs"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <div>
+                                            <div className="flex items-center justify-between">
+                                                <span
+                                                    className="text-[10px] font-bold"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    رشد من و تکالیف
+                                                </span>
+                                                <span className="w-6 h-6 rounded-lg bg-amber-500/15 text-amber-600 flex items-center justify-center">
+                                                    <Flame className="w-3.5 h-3.5" />
+                                                </span>
+                                            </div>
+                                            <div
+                                                className="font-black text-[13px] mt-1.5 truncate"
+                                                style={{ color: colors.text }}
+                                            >
+                                                {faNum(3)} هدف و ۲ کتاب اپ
+                                            </div>
+                                            <div
+                                                className="text-[10px] mt-0.5 truncate"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                میانگین پیشرفت: {faNum(68)}٪
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-2.5 space-y-1">
+                                            <div
+                                                className="h-1.5 rounded-full overflow-hidden"
+                                                style={{ backgroundColor: colors.surfaceAlt }}
+                                            >
+                                                <div
+                                                    className="h-full rounded-full bg-amber-500"
+                                                    style={{ width: '68%' }}
+                                                />
+                                            </div>
+                                            <div
+                                                className="flex items-center justify-between text-[10px] font-bold"
+                                                style={{ color: colors.primary }}
+                                            >
+                                                <span>ورود به رشد من</span>
+                                                <ArrowLeft className="w-3 h-3" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 4. Horizontal Compact Slider: Featured Courses with Poster Frame */}
+                                <div className="space-y-2 pt-0.5">
+                                    <div className="flex items-center justify-between">
+                                        <h2
+                                            className="font-extrabold text-[15px]"
+                                            style={{ color: colors.text }}
+                                        >
+                                            دوره‌های منتخب آکادمی
+                                        </h2>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('courses')}
+                                            className="inline-flex items-center gap-1 text-[11px] font-bold"
+                                            style={{ color: colors.primary }}
+                                        >
+                                            <span>مشاهده همه</span>
+                                            <ArrowLeft className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex gap-2.5 overflow-x-auto pb-1.5">
+                                        {mockCourses.map((course) => {
+                                            const isUserEnrolledInThisCourse =
+                                                course.is_vip && isVipEnrolled;
                                             return (
-                                                <div className="w-full rounded-3xl bg-slate-900 border border-emerald-500/40 p-3.5 text-white space-y-3 shadow-2xl overflow-hidden">
-                                                    {/* Capsule Cover Photo with Vector Badge */}
-                                                    <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden">
-                                                        <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-                                                        <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-emerald-400 text-xs font-black">
-                                                            <ItemIcon className={`w-3.5 h-3.5 ${item.iconColor}`} />
-                                                            <span>{item.badgeText}</span>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => setSelectedHighlight(null)}
-                                                            className="absolute top-2.5 left-2.5 p-1 rounded-full bg-slate-950/80 text-slate-300 hover:text-white"
-                                                        >
-                                                            <X className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-
-                                                    <div>
-                                                        <div className="text-[10px] font-bold text-amber-400">{item.tag}</div>
-                                                        <h4 className="text-sm font-black text-white mt-0.5">{item.title}</h4>
-                                                        <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                                                            {item.desc}
-                                                        </p>
-                                                    </div>
-
-                                                    <button
-                                                        onClick={() => {
-                                                            setActiveScreen(item.targetScreen);
-                                                            setSelectedHighlight(null);
+                                                <div
+                                                    key={course.id}
+                                                    onClick={() => openCourse(course.slug)}
+                                                    className="w-[225px] shrink-0 rounded-[18px] border overflow-hidden cursor-pointer transition hover:shadow-sm"
+                                                    style={{
+                                                        backgroundColor: colors.surface,
+                                                        borderColor: course.is_vip
+                                                            ? '#F59E0B'
+                                                            : colors.border,
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="h-28 p-3 flex flex-col justify-between relative overflow-hidden"
+                                                        style={{
+                                                            background:
+                                                                course.posterGradient ||
+                                                                '#123E30',
                                                         }}
-                                                        className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5"
                                                     >
-                                                        <span>{item.actionLabel}</span>
-                                                        <ChevronLeft className="w-4 h-4" />
-                                                    </button>
+                                                        <img
+                                                            src={
+                                                                course.is_vip
+                                                                    ? vipConfig.posterUrl
+                                                                    : course.poster ||
+                                                                      course.thumbnail
+                                                            }
+                                                            alt=""
+                                                            className="w-full h-full object-cover inset-0 opacity-40 pointer-events-none absolute"
+                                                        />
+                                                        <div className="flex items-center justify-between z-10">
+                                                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-black/35 text-[#D6F39A]">
+                                                                {course.is_vip
+                                                                    ? vipConfig.posterBadge
+                                                                    : course.posterTag}
+                                                            </span>
+                                                            {course.is_vip && (
+                                                                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-[#0D2E22] inline-flex items-center gap-1">
+                                                                    <Crown className="w-2.5 h-2.5" />
+                                                                    <span>VIP</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-white font-bold text-[11px] line-clamp-1 z-10">
+                                                            {course.is_vip
+                                                                ? vipConfig.title
+                                                                : course.title}
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-2.5 space-y-1.5">
+                                                        <div
+                                                            className="flex items-center justify-between text-[10px]"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            <span className="truncate">
+                                                                {course.instructor.name}
+                                                            </span>
+                                                            <span>
+                                                                {faNum(course.lessons_count)} جلسه
+                                                            </span>
+                                                        </div>
+                                                        <div
+                                                            className="pt-1.5 border-t flex items-center justify-between"
+                                                            style={{ borderColor: colors.border }}
+                                                        >
+                                                            {isUserEnrolledInThisCourse ? (
+                                                                <span
+                                                                    className="font-extrabold text-[11px] inline-flex items-center gap-1"
+                                                                    style={{ color: colors.primary }}
+                                                                >
+                                                                    <CheckCircle2 className="w-3 h-3" />
+                                                                    <span>ثبت‌نام‌شده • مشاهده سرفصل‌ها</span>
+                                                                </span>
+                                                            ) : (
+                                                                <span
+                                                                    className="font-extrabold text-[11px]"
+                                                                    style={{ color: colors.primary }}
+                                                                >
+                                                                    {course.is_free
+                                                                        ? 'رایگان'
+                                                                        : formatPrice(
+                                                                              course.discount_price ||
+                                                                                  course.price
+                                                                          )}
+                                                                </span>
+                                                            )}
+                                                            <ArrowLeft
+                                                                className="w-3.5 h-3.5"
+                                                                style={{ color: colors.primary }}
+                                                            />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             );
-                                        })()}
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* 5. Horizontal Compact Slider: Store & In-App Books/Podcasts */}
+                                <div className="space-y-2 pt-0.5">
+                                    <div className="flex items-center justify-between">
+                                        <h2
+                                            className="font-extrabold text-[15px]"
+                                            style={{ color: colors.text }}
+                                        >
+                                            فروشگاه، کتاب‌خوان و پادکست اپ
+                                        </h2>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('shop')}
+                                            className="inline-flex items-center gap-1 text-[11px] font-bold"
+                                            style={{ color: colors.primary }}
+                                        >
+                                            <span>فروشگاه</span>
+                                            <ArrowLeft className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex gap-2.5 overflow-x-auto pb-1">
+                                        {mockProducts.map((product) => (
+                                            <div
+                                                key={product.id}
+                                                onClick={() => openProductDetail(product.slug)}
+                                                className="w-[170px] shrink-0 rounded-[18px] border p-2.5 flex flex-col justify-between cursor-pointer transition hover:shadow-xs"
+                                                style={{
+                                                    backgroundColor: colors.surface,
+                                                    borderColor: colors.border,
+                                                }}
+                                            >
+                                                <div className="space-y-1.5">
+                                                    <div className="flex items-center justify-between">
+                                                        <span
+                                                            className="text-[9px] font-extrabold px-2 py-0.5 rounded-full"
+                                                            style={{
+                                                                backgroundColor: colors.primarySoft,
+                                                                color: colors.primary,
+                                                            }}
+                                                        >
+                                                            {product.posterTag}
+                                                        </span>
+                                                        {product.inAppOnly && (
+                                                            <Lock
+                                                                className="w-3 h-3"
+                                                                style={{ color: colors.gold }}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    <div
+                                                        className="font-bold text-[11px] line-clamp-2 leading-4"
+                                                        style={{ color: colors.text }}
+                                                    >
+                                                        {product.title}
+                                                    </div>
+                                                    <div
+                                                        className="text-[9px] truncate"
+                                                        style={{ color: colors.muted }}
+                                                    >
+                                                        {product.author}
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    className="font-extrabold text-[10px] mt-2 pt-1.5 border-t flex items-center justify-between"
+                                                    style={{
+                                                        color: colors.primary,
+                                                        borderColor: colors.border,
+                                                    }}
+                                                >
+                                                    <span>پیش‌نمایش محصول</span>
+                                                    <ArrowLeft className="w-3 h-3" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ==================== VIP TEEN FUTURE PORTAL (No QR Code — Schedule, Multi-Instructor Items & Attendance) ==================== */}
+                        {activeScreen === 'vipClub' && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('dashboard')}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                        style={{ color: colors.primary }}
+                                    >
+                                        <ArrowRight className="w-4 h-4" />
+                                        <span>بازگشت به رشد من</span>
+                                    </button>
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-400 text-[#0D2E22] font-black text-[11px]">
+                                        <Crown className="w-3.5 h-3.5" />
+                                        <span>دانش‌پذیر رسمی VIP</span>
+                                    </span>
+                                </div>
+
+                                {/* Enrolled Student Header Banner with Course Poster */}
+                                <div className="rounded-[26px] overflow-hidden bg-[#123E30] text-white border border-amber-400/50 shadow-md">
+                                    <div className="p-4 flex items-center gap-3.5">
+                                        <div className="w-20 h-26 rounded-2xl overflow-hidden border border-amber-400/50 shrink-0 relative bg-[#0B281F]">
+                                            <img
+                                                src={vipConfig.posterUrl}
+                                                alt={vipConfig.title}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <span className="bottom-1 inset-x-1 text-[8px] font-black text-center bg-amber-400 text-[#0D2E22] rounded py-0.5 absolute">
+                                                پوستر دوره
+                                            </span>
+                                        </div>
+                                        <div className="space-y-1.5 min-w-0 flex-1">
+                                            <div className="text-[11px] text-[#D6F39A] font-bold">
+                                                کد عضویت اختصاصی: VIP-1404-101
+                                            </div>
+                                            <h1 className="font-black text-sm leading-6">
+                                                {vipConfig.title}
+                                            </h1>
+                                            <div className="flex flex-wrap gap-1.5 pt-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={openCourseGroupChat}
+                                                    className="px-2.5 py-1 rounded-xl bg-amber-400 text-[#0D2E22] font-black text-[10px] inline-flex items-center gap-1"
+                                                >
+                                                    <Users className="w-3 h-3" />
+                                                    <span>گروه تخصصی دوره</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={openCourseSupportChat}
+                                                    className="px-2.5 py-1 rounded-xl bg-white/15 text-white font-bold text-[10px] inline-flex items-center gap-1"
+                                                >
+                                                    <MessageCircle className="w-3 h-3" />
+                                                    <span>پشتیبانی کلی دوره</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 3 Operational Tabs for Enrolled VIP Member (Schedule / Course Items & Instructors / Attendance) */}
+                                <div
+                                    className="grid grid-cols-3 gap-1.5 p-1.5 rounded-2xl border"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    {[
+                                        { id: 'schedule' as const, label: 'برنامه کلاس‌ها' },
+                                        { id: 'items' as const, label: 'آیتم‌ها و مدرسین' },
+                                        { id: 'attendance' as const, label: 'حضور و غیاب من' },
+                                    ].map((t) => {
+                                        const active = vipClubTab === t.id;
+                                        return (
+                                            <button
+                                                key={t.id}
+                                                type="button"
+                                                onClick={() => setVipClubTab(t.id)}
+                                                className="py-2 rounded-xl text-xs font-bold transition"
+                                                style={{
+                                                    backgroundColor: active
+                                                        ? colors.primary
+                                                        : 'transparent',
+                                                    color: active ? '#FFFFFF' : colors.text,
+                                                }}
+                                            >
+                                                {t.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Tab 1: Hybrid Class Schedule */}
+                                {vipClubTab === 'schedule' && (
+                                    <div className="space-y-3">
+                                        <div
+                                            className="rounded-2xl border p-3.5 text-xs space-y-1.5"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-2 font-bold" style={{ color: colors.text }}>
+                                                <MapPin className="w-4 h-4" style={{ color: colors.primary }} />
+                                                <span>آدرس کلاس حضوری: {vipConfig.inPersonLocation}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2" style={{ color: colors.muted }}>
+                                                <Clock className="w-4 h-4" style={{ color: colors.primary }} />
+                                                <span>{vipConfig.scheduleSummary}</span>
+                                            </div>
+                                        </div>
+
+                                        {vipSessions.map((sess, idx) => {
+                                            const isInPerson = sess.mode === 'in_person';
+                                            const matchingItem =
+                                                courseItems[idx % courseItems.length];
+                                            return (
+                                                <div
+                                                    key={sess.id}
+                                                    className="rounded-[22px] border p-4 space-y-2.5"
+                                                    style={{
+                                                        backgroundColor: colors.surface,
+                                                        borderColor: colors.border,
+                                                    }}
+                                                >
+                                                    <div className="flex items-center justify-between text-xs">
+                                                        <span
+                                                            className="font-bold inline-flex items-center gap-1.5"
+                                                            style={{
+                                                                color: isInPerson
+                                                                    ? '#B45309'
+                                                                    : colors.primary,
+                                                            }}
+                                                        >
+                                                            {isInPerson ? (
+                                                                <Building2 className="w-4 h-4" />
+                                                            ) : (
+                                                                <Video className="w-4 h-4" />
+                                                            )}
+                                                            <span>
+                                                                جلسه {faNum(sess.number)} ·{' '}
+                                                                {isInPerson ? 'کلاس حضوری' : 'کلاس آنلاین'}
+                                                            </span>
+                                                        </span>
+                                                        <span
+                                                            className="text-[11px] font-bold"
+                                                            style={{
+                                                                color:
+                                                                    sess.status === 'completed'
+                                                                        ? colors.primary
+                                                                        : '#D97706',
+                                                            }}
+                                                        >
+                                                            {sess.status === 'completed'
+                                                                ? 'برگزار شده (حاضر)'
+                                                                : 'در پیش رو'}
+                                                        </span>
+                                                    </div>
+
+                                                    <div
+                                                        className="font-bold text-sm"
+                                                        style={{ color: colors.text }}
+                                                    >
+                                                        {sess.title}
+                                                    </div>
+
+                                                    <div
+                                                        className="text-xs flex items-center justify-between"
+                                                        style={{ color: colors.muted }}
+                                                    >
+                                                        <span>
+                                                            {sess.date} · ساعت {sess.time}
+                                                        </span>
+                                                        <span className="font-bold" style={{ color: colors.primary }}>
+                                                            مدرس: {matchingItem.instructorName}
+                                                        </span>
+                                                    </div>
+
+                                                    <div
+                                                        className="pt-2.5 border-t flex items-center justify-between text-xs gap-2"
+                                                        style={{ borderColor: colors.border }}
+                                                    >
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                openItemInstructorChat(
+                                                                    matchingItem.itemId
+                                                                )
+                                                            }
+                                                            className="px-3 py-1.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
+                                                            style={{
+                                                                backgroundColor: colors.primarySoft,
+                                                                color: colors.primary,
+                                                            }}
+                                                        >
+                                                            <MessageSquare className="w-3.5 h-3.5" />
+                                                            <span>چت خصوصی با مدرس این آیتم</span>
+                                                        </button>
+                                                        {!isInPerson && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    showToast('در حال ورود به کلاس آنلاین...')
+                                                                }
+                                                                className="px-3 py-1.5 rounded-xl text-xs font-bold text-white"
+                                                                style={{
+                                                                    backgroundColor: colors.primary,
+                                                                }}
+                                                            >
+                                                                ورود به کلاس آنلاین
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Tab 2: Multi-Instructor Course Items & Direct Private Chat */}
+                                {vipClubTab === 'items' && (
+                                    <div className="space-y-3">
+                                        {courseItems.map((item) => (
+                                            <div
+                                                key={item.itemId}
+                                                className="rounded-[22px] border p-4 space-y-2.5"
+                                                style={{
+                                                    backgroundColor: colors.surface,
+                                                    borderColor: colors.border,
+                                                }}
+                                            >
+                                                <div className="flex items-center justify-between text-[11px]">
+                                                    <span
+                                                        className="px-2.5 py-0.5 rounded-full font-bold"
+                                                        style={{
+                                                            backgroundColor: colors.primarySoft,
+                                                            color: colors.primary,
+                                                        }}
+                                                    >
+                                                        {item.deliveryMode} · {faNum(item.lessonsCount)} جلسه
+                                                    </span>
+                                                    <span style={{ color: colors.muted }}>
+                                                        {item.duration}
+                                                    </span>
+                                                </div>
+                                                <div
+                                                    className="font-black text-sm"
+                                                    style={{ color: colors.text }}
+                                                >
+                                                    {item.itemTitle}
+                                                </div>
+                                                <p
+                                                    className="text-xs leading-5"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    {item.itemSubtitle}
+                                                </p>
+                                                <div
+                                                    className="pt-2.5 border-t flex items-center justify-between gap-2"
+                                                    style={{ borderColor: colors.border }}
+                                                >
+                                                    <div className="min-w-0">
+                                                        <div
+                                                            className="font-bold text-xs"
+                                                            style={{ color: colors.text }}
+                                                        >
+                                                            {item.instructorName}
+                                                        </div>
+                                                        <div
+                                                            className="text-[10px]"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            {item.instructorRole}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            openItemInstructorChat(item.itemId)
+                                                        }
+                                                        className="px-3 py-1.5 rounded-xl bg-[#153F31] text-white text-[11px] font-bold inline-flex items-center gap-1.5 shrink-0"
+                                                    >
+                                                        <MessageSquare className="w-3.5 h-3.5 text-[#D6F39A]" />
+                                                        <span>چت خصوصی با مدرس</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Tab 3: Student Attendance History */}
+                                {vipClubTab === 'attendance' && (
+                                    <div
+                                        className="rounded-[22px] border p-4 space-y-3"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span
+                                                className="font-bold text-sm"
+                                                style={{ color: colors.text }}
+                                            >
+                                                وضعیت حضور و غیاب ثبت‌شده توسط مدرس
+                                            </span>
+                                            <span
+                                                className="text-xs font-bold"
+                                                style={{ color: colors.primary }}
+                                            >
+                                                {faNum(95)}٪ حضور
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            {vipSessions.map((sess) => (
+                                                <div
+                                                    key={sess.id}
+                                                    className="p-3 rounded-xl flex items-center justify-between text-xs"
+                                                    style={{ backgroundColor: colors.surfaceAlt }}
+                                                >
+                                                    <div>
+                                                        <div
+                                                            className="font-bold"
+                                                            style={{ color: colors.text }}
+                                                        >
+                                                            جلسه {faNum(sess.number)} ({sess.mode === 'in_person' ? 'حضوری' : 'مجازی'})
+                                                        </div>
+                                                        <div
+                                                            className="text-[11px] mt-0.5"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            {sess.date}
+                                                        </div>
+                                                    </div>
+                                                    <span
+                                                        className="font-bold"
+                                                        style={{
+                                                            color:
+                                                                sess.status === 'completed'
+                                                                    ? colors.primary
+                                                                    : colors.muted,
+                                                        }}
+                                                    >
+                                                        {sess.status === 'completed'
+                                                            ? sess.mode === 'in_person'
+                                                                ? 'حاضر (حضوری)'
+                                                                : 'حاضر (آنلاین)'
+                                                            : 'برگزار نشده'}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    </div>
+                        )}
 
-                    {/* LEFT COLUMN: INTERACTIVE CONTROL CENTER & ALL WEBSITE MODULES */}
-                    <div className="xl:col-span-7 space-y-6">
-                        {/* Executive Feature Summary Card */}
-                        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-5">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div>
-                                    <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                                        <Sparkles className="w-5 h-5 text-emerald-500" />
-                                        تمام امکانات وب‌سایت در سوپر اپلیکیشن (ساده، سریع و بدون حواشی)
-                                    </h2>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                        مطابق دستور شما، تمام قابلیت‌های واقعی سایت به صورت روان، شیک و بدون المان‌های اضافی پیاده‌سازی شدند:
-                                    </p>
-                                </div>
-                                <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-black shrink-0">
-                                    ۱۰۰٪ متصل و فعال
-                                </span>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/30 space-y-2">
-                                    <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">
-                                        <BookOpen className="w-4 h-4" />
-                                    </div>
-                                    <div className="text-xs font-black text-slate-900 dark:text-white">
-                                        آکادمی، پلیر و آزمون‌ها
-                                    </div>
-                                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        مشاهده کاتالوگ دوره‌ها، پخش‌کننده ویدیویی درس با نشانک و یادداشت، آزمون‌های آنلاین با نمره‌دهی آنی و ارسال تمرین.
-                                    </p>
-                                    <button
-                                        onClick={() => setActiveScreen('courses')}
-                                        className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline block pt-1"
-                                    >
-                                        تست دوره‌ها و پلیر ←
-                                    </button>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border border-blue-500/30 space-y-2">
-                                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black">
-                                        <Calendar className="w-4 h-4" />
-                                    </div>
-                                    <div className="text-xs font-black text-slate-900 dark:text-white">
-                                        کوچینگ ۱ به ۱ و اهداف ۹۰ روزه
-                                    </div>
-                                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        رزرو آنلاین جلسات با دکتر بیدی، لینک مستقیم اتاق Google Meet، ردیاب اهداف فصلی و چک‌لیست عادات رشد فردی.
-                                    </p>
-                                    <button
-                                        onClick={() => setActiveScreen('sessions')}
-                                        className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline block pt-1"
-                                    >
-                                        تست رزرو جلسات ←
-                                    </button>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/30 space-y-2">
-                                    <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black">
-                                        <ShieldCheck className="w-4 h-4" />
-                                    </div>
-                                    <div className="text-xs font-black text-slate-900 dark:text-white">
-                                        پنل ادمین ۱۰۰٪ درون‌برنامه‌ای
-                                    </div>
-                                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        مدیریت کامل دوره‌ها، تایید فیش‌های کارت‌به‌کارت با یک لمس، کنترل لیدهای CRM، پاسخگویی به تیکت‌ها و سوئیچ‌های سرور.
-                                    </p>
-                                    <button
-                                        onClick={() => setActiveScreen('admin')}
-                                        className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline block pt-1"
-                                    >
-                                        تست پنل ادمین ←
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Interactive Direct Screen Switcher Grid */}
-                        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
-                                        دسترسی سریع به صفحات اپلیکیشن در شبیه‌ساز گوشی
-                                    </h2>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                        روی هر بخش کلیک کنید تا بلافاصله در تلفن همراه نمایش داده شود:
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                                {[
-                                    { id: 'dashboard' as ScreenId, label: 'داشبورد دانشجو', badge: 'تحلیل + کارنامه' },
-                                    { id: 'login' as ScreenId, label: 'ورود با شماره موبایل', badge: 'کد پیامکی OTP' },
-                                    { id: 'home' as ScreenId, label: 'صفحه اصلی و کپسول‌ها', badge: 'ویترین آکادمی' },
-                                    { id: 'courses' as ScreenId, label: 'کاتالوگ دوره‌ها', badge: 'لیست و ثبت‌نام' },
-                                    { id: 'learning' as ScreenId, label: 'پخش‌کننده ویدیو و درس', badge: 'نشانک + جزوه' },
-                                    { id: 'quizzes' as ScreenId, label: 'آزمون و ارسال تکلیف', badge: 'نمره‌دهی آنی' },
-                                    { id: 'sessions' as ScreenId, label: 'کوچینگ ۱ به ۱', badge: 'رزرو + اتاق آنلاین' },
-                                    { id: 'shop' as ScreenId, label: 'فروشگاه و سبد خرید', badge: 'کارت به کارت' },
-                                    { id: 'wallet' as ScreenId, label: 'کیف پول و مدارک', badge: 'گواهی رسمی' },
-                                    { id: 'support' as ScreenId, label: 'پشتیبانی و چت زنده', badge: 'تیکت رسمی' },
-                                    { id: 'admin' as ScreenId, label: 'پنل کامل ادمین', badge: '۹ زیربخش' },
-                                    { id: 'settings' as ScreenId, label: 'تغییر نام، لوگو و تم', badge: 'برندینگ اختصاصی' },
-                                ].map((scr) => {
-                                    const isActive = activeScreen === scr.id;
-                                    return (
-                                        <button
-                                            key={scr.id}
-                                            onClick={() => setActiveScreen(scr.id)}
-                                            className={`p-3 rounded-2xl border text-right transition flex flex-col justify-between gap-1.5 ${
-                                                isActive
-                                                    ? 'bg-slate-900 text-white border-amber-400 shadow-md ring-1 ring-amber-400'
-                                                    : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-emerald-500'
-                                            }`}
+                        {/* ==================== COURSES SCREEN (یادگیری) ==================== */}
+                        {activeScreen === 'courses' && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h1
+                                            className="font-black text-xl"
+                                            style={{ color: colors.text }}
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs font-black">{scr.label}</span>
-                                            </div>
-                                            <span
-                                                className={`px-2 py-0.5 rounded text-[9px] font-bold self-start ${
-                                                    isActive
-                                                        ? 'bg-amber-400 text-slate-950 font-black'
-                                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                                                }`}
-                                            >
-                                                {scr.badge}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Complete In-App Admin Matrix */}
-                        <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                                        <ShieldCheck className="w-5 h-5 text-amber-500" />
-                                        دسترسی مستقیم درون‌برنامه‌ای به تمام ماژول‌های ادمین سایت
-                                    </h2>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                        مدیر می‌تواند تمام این امور را بدون نیاز به باز کردن سایت و به راحتی از داخل اپ موبایل انجام دهد:
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setActiveScreen('admin')}
-                                    className="px-3.5 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs font-black shrink-0 hover:bg-amber-500"
-                                >
-                                    باز کردن پنل ادمین گوشی
-                                </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                {[
-                                    { title: 'مدیریت دوره‌ها و قیمت‌گذاری', tab: 'courses' as AdminSubTab, sub: 'افزودن دوره، سوئیچ انتشار، ویرایش فوری قیمت و تعداد دانشجویان' },
-                                    { title: 'تایید فیش‌های کارت‌به‌کارت و سفارش‌ها', tab: 'orders' as AdminSubTab, sub: 'بررسی فیش‌های واریزی دانشجویان و فعال‌سازی آنی دسترسی دوره با ۱ کلیک' },
-                                    { title: 'کاربران و سطوح دسترسی (RBAC)', tab: 'users' as AdminSubTab, sub: 'تغییر نقش (مدیر، استاد، VIP)، مسدودسازی و شارژ کیف پول' },
-                                    { title: 'خط لوله سرنخ‌ها و فروش (CRM)', tab: 'crm' as AdminSubTab, sub: 'پیگیری لیدها، انتقال مراحل فروش و تماس مستقیم' },
-                                    { title: 'تعریف کدهای تخفیف با درصد دلخواه', tab: 'discounts' as AdminSubTab, sub: 'ایجاد کدهای تخفیف زمان‌دار با تعداد استفاده محدود' },
-                                    { title: 'ارسال پیامک انبوه و اتوماسیون', tab: 'automations' as AdminSubTab, sub: 'سامانه کاوه‌نگار، وب‌هوک پرس‌لاین و اعلان‌های سراسری' },
-                                    { title: 'میز پاسخگویی تیکت‌های پشتیبانی', tab: 'tickets' as AdminSubTab, sub: 'پاسخ مستقیم به تیکت‌های کاربران و بستن تیکت از داخل اپ' },
-                                    { title: 'کنترل سوئیچ‌های کلان سایت', tab: 'site_switches' as AdminSubTab, sub: 'حالت تعمیر سایت، پذیرش ثبت‌نام و اعلان‌های فوری' },
-                                ].map((mod) => (
-                                    <button
-                                        key={mod.title}
-                                        onClick={() => {
-                                            setActiveScreen('admin');
-                                            setAdminSubTab(mod.tab);
-                                        }}
-                                        className="text-right p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-amber-400 bg-slate-50/70 dark:bg-slate-800/40 transition flex items-center justify-between gap-3 group"
+                                            آکادمی و یادگیری
+                                        </h1>
+                                        <p
+                                            className="text-xs mt-1"
+                                            style={{ color: colors.muted }}
+                                        >
+                                            دوره‌های تخصصی با پوستر رسمی و اساتید هر آیتم
+                                        </p>
+                                    </div>
+                                    <div
+                                        className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                                        style={{ backgroundColor: colors.primarySoft }}
                                     >
-                                        <div className="min-w-0">
-                                            <div className="text-xs font-black text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400">
-                                                {mod.title}
+                                        <GraduationCap className="w-6 h-6" style={{ color: colors.primary }} />
+                                    </div>
+                                </div>
+
+                                {/* Search Input with Fixed Background/Text Color */}
+                                <div
+                                    className="w-full rounded-2xl px-3.5 py-2.5 border flex items-center gap-2.5"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <Search className="w-4 h-4 shrink-0" style={{ color: colors.muted }} />
+                                    <input
+                                        type="text"
+                                        aria-label="جستجوی دوره"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder="جستجوی دوره..."
+                                        className="roshd-app-input roshd-search-input w-full text-sm bg-transparent outline-none border-0 p-0 focus:ring-0"
+                                        style={{
+                                            color: colors.text,
+                                            backgroundColor: 'transparent',
+                                        }}
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            type="button"
+                                            aria-label="پاک کردن جستجو"
+                                            onClick={() => setSearchQuery('')}
+                                            className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                color: colors.muted,
+                                            }}
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="flex gap-2 overflow-x-auto pb-1">
+                                    {[
+                                        'همه',
+                                        'نوجوانان و والدین',
+                                        'استعدادیابی بزرگسالان',
+                                        'کوچینگ حرفه‌ای',
+                                        'کارآفرینی',
+                                    ].map((cat) => {
+                                        const active = selectedCategory === cat;
+                                        return (
+                                            <button
+                                                key={cat}
+                                                type="button"
+                                                onClick={() => setSelectedCategory(cat)}
+                                                className="px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 border transition"
+                                                style={{
+                                                    backgroundColor: active
+                                                        ? colors.primary
+                                                        : colors.surface,
+                                                    color: active ? '#FFFFFF' : colors.text,
+                                                    borderColor: active
+                                                        ? colors.primary
+                                                        : colors.border,
+                                                }}
+                                            >
+                                                {cat}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="space-y-3">
+                                    {filteredCourses.map((course) => {
+                                        const isUserEnrolledInThisCourse =
+                                            course.is_vip && isVipEnrolled;
+                                        return (
+                                            <div
+                                                key={course.id}
+                                                onClick={() => openCourse(course.slug)}
+                                                className="rounded-[22px] border p-3.5 space-y-2.5 cursor-pointer transition hover:shadow-md"
+                                                style={{
+                                                    backgroundColor: colors.surface,
+                                                    borderColor: course.is_vip
+                                                        ? '#F59E0B'
+                                                        : colors.border,
+                                                }}
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    {/* Course Poster Frame (matching website poster slot) */}
+                                                    <div
+                                                        className="w-20 h-26 rounded-2xl overflow-hidden border shrink-0 relative bg-[#123E30]"
+                                                        style={{
+                                                            borderColor: course.is_vip
+                                                                ? '#F59E0B'
+                                                                : colors.border,
+                                                        }}
+                                                    >
+                                                        <img
+                                                            src={
+                                                                course.is_vip
+                                                                    ? vipConfig.posterUrl
+                                                                    : course.poster ||
+                                                                      course.thumbnail
+                                                            }
+                                                            alt={course.title}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        <span className="absolute bottom-1 inset-x-1 text-[8px] font-black text-center py-0.5 rounded bg-black/75 text-[#D6F39A] truncate px-1">
+                                                            {course.is_vip
+                                                                ? vipConfig.posterBadge
+                                                                : course.posterTag ||
+                                                                  'پوستر دوره'}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="flex-1 min-w-0 space-y-1.5">
+                                                        <div className="flex items-center justify-between text-[10px]">
+                                                            <span
+                                                                className="font-bold truncate"
+                                                                style={{ color: colors.primary }}
+                                                            >
+                                                                {course.category}
+                                                                {course.is_vip ? ' · VIP' : ''}
+                                                            </span>
+                                                            <span
+                                                                className="flex items-center gap-1 shrink-0"
+                                                                style={{ color: colors.muted }}
+                                                            >
+                                                                <Clock className="w-3 h-3" />
+                                                                <span>{course.duration}</span>
+                                                            </span>
+                                                        </div>
+                                                        <h3
+                                                            className="font-black text-xs leading-5"
+                                                            style={{ color: colors.text }}
+                                                        >
+                                                            {course.is_vip
+                                                                ? vipConfig.title
+                                                                : course.title}
+                                                        </h3>
+                                                        <p
+                                                            className="text-[11px] leading-4 line-clamp-2"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            {course.is_vip
+                                                                ? vipConfig.subtitle
+                                                                : course.summary}
+                                                        </p>
+                                                        <div className="flex items-center gap-1.5 pt-0.5 text-[10px] font-bold">
+                                                            <span
+                                                                className="px-2 py-0.5 rounded-md"
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        colors.primarySoft,
+                                                                    color: colors.primary,
+                                                                }}
+                                                            >
+                                                                {faNum(
+                                                                    course.instructors_count || 1
+                                                                )}{' '}
+                                                                مدرس تخصصی
+                                                            </span>
+                                                            <span
+                                                                style={{ color: colors.muted }}
+                                                            >
+                                                                • {faNum(course.lessons_count)} جلسه
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div
+                                                    className="pt-2.5 border-t flex items-center justify-between"
+                                                    style={{ borderColor: colors.border }}
+                                                >
+                                                    <span
+                                                        className="text-[11px] flex items-center gap-1.5"
+                                                        style={{ color: colors.muted }}
+                                                    >
+                                                        <img
+                                                            src={course.instructor.avatar}
+                                                            alt={course.instructor.name}
+                                                            className="w-5 h-5 rounded-full object-cover"
+                                                        />
+                                                        <span>
+                                                            سرپرست علمی: {course.instructor.name}
+                                                        </span>
+                                                    </span>
+                                                    {isUserEnrolledInThisCourse ? (
+                                                        <span
+                                                            className="font-extrabold text-[11px] inline-flex items-center gap-1"
+                                                            style={{ color: colors.primary }}
+                                                        >
+                                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                                            <span>ثبت‌نام‌شده • مشاهده آیتم‌ها</span>
+                                                        </span>
+                                                    ) : (
+                                                        <span
+                                                            className="font-extrabold text-xs"
+                                                            style={{ color: colors.primary }}
+                                                        >
+                                                            {course.is_free
+                                                                ? 'رایگان'
+                                                                : formatPrice(
+                                                                      course.discount_price ||
+                                                                          course.price
+                                                                  )}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                                                {mod.sub}
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ==================== COURSE DETAIL SCREEN (With Official Poster, Per-Item Instructors & Chat Shortcuts) ==================== */}
+                        {activeScreen === 'courseDetail' && (
+                            <div className="space-y-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveScreen('courses')}
+                                    className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                    style={{ color: colors.primary }}
+                                >
+                                    <ArrowRight className="w-4 h-4" />
+                                    <span>بازگشت به آکادمی</span>
+                                </button>
+
+                                {/* Official Course Poster & Hero Card */}
+                                <div className="rounded-[26px] overflow-hidden bg-[#123E30] text-white border border-amber-400/50">
+                                    <div className="p-4 flex items-start gap-3.5 border-b border-white/10">
+                                        <div className="w-24 h-32 rounded-2xl overflow-hidden border-2 border-amber-300/70 shrink-0 relative shadow-lg bg-[#0A261D]">
+                                            <img
+                                                src={
+                                                    selectedCourse.is_vip
+                                                        ? vipConfig.posterUrl
+                                                        : selectedCourse.poster ||
+                                                          selectedCourse.thumbnail
+                                                }
+                                                alt={selectedCourse.title}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <span className="absolute bottom-1 inset-x-1 bg-black/75 text-[#D6F39A] text-[8px] font-black text-center py-0.5 rounded">
+                                                {selectedCourse.is_vip
+                                                    ? vipConfig.posterBadge
+                                                    : selectedCourse.posterTag || 'پوستر رسمی'}
+                                            </span>
+                                        </div>
+                                        <div className="space-y-1.5 min-w-0 flex-1">
+                                            <div className="text-[10px] text-[#D6F39A] font-bold">
+                                                {selectedCourse.category} ·{' '}
+                                                {faNum(selectedCourse.instructors_count || 4)} مدرس تخصصی
+                                            </div>
+                                            <h1 className="font-black text-sm leading-6">
+                                                {selectedCourse.is_vip
+                                                    ? vipConfig.title
+                                                    : selectedCourse.title}
+                                            </h1>
+                                            <p className="text-[11px] text-[#C5D7CA] leading-5">
+                                                {selectedCourse.is_vip
+                                                    ? vipConfig.description
+                                                    : selectedCourse.description}
                                             </p>
                                         </div>
-                                        <ChevronLeft className="w-4 h-4 text-slate-400 group-hover:text-amber-500 shrink-0" />
+                                    </div>
+
+                                    {/* Quick Course Group & General Support Bar */}
+                                    <div className="p-3 bg-black/20 grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={openCourseGroupChat}
+                                            className="py-2 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white text-[11px] font-bold flex items-center justify-center gap-1.5"
+                                        >
+                                            <Users className="w-3.5 h-3.5 text-amber-300" />
+                                            <span>گروه تخصصی دوره</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={openCourseSupportChat}
+                                            className="py-2 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white text-[11px] font-bold flex items-center justify-center gap-1.5"
+                                        >
+                                            <MessageCircle className="w-3.5 h-3.5 text-[#D6F39A]" />
+                                            <span>پشتیبانی کلی دوره</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Per-Item Specialized Instructors List with Direct Private Chat */}
+                                <div
+                                    className="rounded-[22px] border p-4 space-y-3"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h3
+                                                className="font-black text-sm"
+                                                style={{ color: colors.text }}
+                                            >
+                                                آیتم‌های آموزشی و اساتید اختصاصی هر بخش
+                                            </h3>
+                                            <p
+                                                className="text-[11px]"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                برای هر آیتم می‌توانید مستقیماً با مدرس همان آیتم چت خصوصی داشته باشید
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2.5">
+                                        {courseItems.map((item) => (
+                                            <div
+                                                key={item.itemId}
+                                                className="p-3 rounded-2xl border space-y-2"
+                                                style={{
+                                                    backgroundColor: colors.surfaceAlt,
+                                                    borderColor: colors.border,
+                                                }}
+                                            >
+                                                <div className="flex items-center justify-between text-[11px]">
+                                                    <span
+                                                        className="font-black"
+                                                        style={{ color: colors.primary }}
+                                                    >
+                                                        {item.itemTitle}
+                                                    </span>
+                                                    <span style={{ color: colors.muted }}>
+                                                        {faNum(item.sessionsCount)} جلسه
+                                                    </span>
+                                                </div>
+                                                <p
+                                                    className="text-[11px] leading-5"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    {item.itemSubtitle}
+                                                </p>
+                                                <div
+                                                    className="pt-2 border-t flex items-center justify-between gap-2"
+                                                    style={{ borderColor: colors.border }}
+                                                >
+                                                    <div className="min-w-0">
+                                                        <div
+                                                            className="font-bold text-xs"
+                                                            style={{ color: colors.text }}
+                                                        >
+                                                            {item.instructorName}
+                                                        </div>
+                                                        <div
+                                                            className="text-[10px]"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            {item.instructorRole}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            openItemInstructorChat(item.itemId)
+                                                        }
+                                                        className="px-3 py-1.5 rounded-xl bg-[#153F31] text-white text-[11px] font-bold inline-flex items-center gap-1.5 shrink-0"
+                                                    >
+                                                        <MessageSquare className="w-3.5 h-3.5 text-[#D6F39A]" />
+                                                        <span>چت با مدرس آیتم</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {selectedCourse.slug === 'designing-teen-future-vip' ? (
+                                    <>
+                                        {/* Location & Schedule Info */}
+                                        <div
+                                            className="rounded-[22px] border p-4 space-y-2 text-xs"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
+                                            }}
+                                        >
+                                            <div className="font-bold text-sm mb-1" style={{ color: colors.text }}>
+                                                شرایط و زمان‌بندی کلاس‌ها
+                                            </div>
+                                            <div style={{ color: colors.muted }}>
+                                                محل برگزاری حضوری: {vipConfig.inPersonLocation}
+                                            </div>
+                                            <div style={{ color: colors.muted }}>
+                                                زمان‌بندی هفتگی: {vipConfig.scheduleSummary}
+                                            </div>
+                                            <div
+                                                className="pt-2 border-t flex items-center justify-between"
+                                                style={{ borderColor: colors.border }}
+                                            >
+                                                <span style={{ color: colors.muted }}>شهریه دوره:</span>
+                                                <span
+                                                    className="font-black text-sm"
+                                                    style={{ color: colors.primary }}
+                                                >
+                                                    {formatPrice(vipConfig.discountPrice)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPreviewRole('vip_student');
+                                                setActiveScreen('vipClub');
+                                                showToast('ورود به باشگاه و برنامه کلاس‌های دوره VIP');
+                                            }}
+                                            className="w-full py-3.5 rounded-2xl bg-[#D6F39A] text-[#153F32] font-black text-sm shadow-sm inline-flex items-center justify-center gap-2"
+                                        >
+                                            <Crown className="w-4 h-4" />
+                                            <span>
+                                                {isVipEnrolled
+                                                    ? 'ورود به باشگاه و تقویم جلسات VIP'
+                                                    : 'ثبت‌نام در دوره و دریافت مهر VIP'}
+                                            </span>
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('learning')}
+                                        className="w-full py-3.5 rounded-2xl bg-[#D6F39A] text-[#153F32] font-black text-sm shadow-sm inline-flex items-center justify-center gap-2"
+                                    >
+                                        <span>ورود به اتاق یادگیری دوره</span>
+                                        <ArrowLeft className="w-4 h-4" />
                                     </button>
-                                ))}
+                                )}
                             </div>
-                        </div>
+                        )}
+
+                        {/* ==================== LEARNING ROOM SCREEN ==================== */}
+                        {activeScreen === 'learning' && (
+                            <div className="space-y-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveScreen('home')}
+                                    className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                    style={{ color: colors.primary }}
+                                >
+                                    <ArrowRight className="w-4 h-4" />
+                                    <span>بازگشت</span>
+                                </button>
+
+                                <div className="bg-[#123E30] rounded-[24px] p-5 text-white space-y-3">
+                                    <div className="text-xs text-[#D6F39A] font-bold flex items-center gap-1.5">
+                                        <Play className="w-3.5 h-3.5 fill-current" />
+                                        <span>در حال پخش جلسه ۴ از ۲۴</span>
+                                    </div>
+                                    <h2 className="font-bold text-base">
+                                        تحلیل ۵ استعداد غالب در محیط کار
+                                    </h2>
+                                    <div className="h-40 rounded-2xl bg-black/40 flex items-center justify-center border border-white/10 relative overflow-hidden">
+                                        <img
+                                            src="/images/growth-editorial.png"
+                                            alt=""
+                                            className="w-32 h-32 object-contain opacity-25 absolute"
+                                        />
+                                        <div className="w-14 h-14 rounded-full bg-[#D6F39A] text-[#123E30] flex items-center justify-center shadow-lg relative z-10">
+                                            <Play className="w-6 h-6 fill-current" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    className="rounded-[22px] border p-4 space-y-2.5"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div
+                                        className="font-bold text-sm"
+                                        style={{ color: colors.text }}
+                                    >
+                                        سرفصل‌های این بخش
+                                    </div>
+                                    {[
+                                        '۱. آشنایی با مدل استعدادهای کلیفتون',
+                                        '۲. تفاوت استعداد، دانش و مهارت',
+                                        '۳. تحلیل ۵ استعداد غالب در محیط کار',
+                                        '۴. تدوین برنامه اقدام شخصی (Action Plan)',
+                                    ].map((item, idx) => (
+                                        <div
+                                            key={item}
+                                            className="p-3 rounded-xl text-xs flex items-center justify-between"
+                                            style={{
+                                                backgroundColor:
+                                                    idx === 2
+                                                        ? colors.primarySoft
+                                                        : colors.surfaceAlt,
+                                                color: colors.text,
+                                            }}
+                                        >
+                                            <span>{item}</span>
+                                            <span>
+                                                {idx < 2 ? (
+                                                    <Check
+                                                        className="w-4 h-4"
+                                                        style={{ color: colors.primary }}
+                                                    />
+                                                ) : idx === 2 ? (
+                                                    <Play
+                                                        className="w-4 h-4 fill-current"
+                                                        style={{ color: colors.primary }}
+                                                    />
+                                                ) : (
+                                                    <Lock
+                                                        className="w-4 h-4"
+                                                        style={{ color: colors.muted }}
+                                                    />
+                                                )}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ==================== DEDICATED CHAT HUB SCREEN (گفتگو: چت خصوصی مدرس هر آیتم + گروه دوره + پشتیبانی کلی) ==================== */}
+                        {activeScreen === 'chat' && (
+                            <div className="space-y-3.5">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h1
+                                            className="font-black text-lg"
+                                            style={{ color: colors.text }}
+                                        >
+                                            مرکز گفتگو و ارتباطات دوره
+                                        </h1>
+                                        <p
+                                            className="text-[11px] mt-0.5"
+                                            style={{ color: colors.muted }}
+                                        >
+                                            چت خصوصی با مدرس هر آیتم، گروه تخصصی دوره و پشتیبانی کلی
+                                        </p>
+                                    </div>
+                                    <div
+                                        className="w-10 h-10 rounded-2xl flex items-center justify-center"
+                                        style={{ backgroundColor: colors.primarySoft }}
+                                    >
+                                        <MessageSquare
+                                            className="w-5 h-5"
+                                            style={{ color: colors.primary }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* 3 Channel Switcher Tabs */}
+                                <div
+                                    className="grid grid-cols-3 gap-1.5 p-1.5 rounded-2xl border"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    {[
+                                        {
+                                            id: 'instructor' as const,
+                                            label: 'چت با مدرس آیتم',
+                                            Icon: UserCheck,
+                                        },
+                                        {
+                                            id: 'group' as const,
+                                            label: 'گروه تخصصی دوره',
+                                            Icon: Users,
+                                        },
+                                        {
+                                            id: 'support' as const,
+                                            label: 'پشتیبانی کلی',
+                                            Icon: MessageCircle,
+                                        },
+                                    ].map((ch) => {
+                                        const active = chatChannel === ch.id;
+                                        const ChIcon = ch.Icon;
+                                        return (
+                                            <button
+                                                key={ch.id}
+                                                type="button"
+                                                onClick={() => setChatChannel(ch.id)}
+                                                className="py-2 px-1.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 transition"
+                                                style={{
+                                                    backgroundColor: active
+                                                        ? colors.primary
+                                                        : 'transparent',
+                                                    color: active ? '#FFFFFF' : colors.text,
+                                                }}
+                                            >
+                                                <ChIcon className="w-3.5 h-3.5 shrink-0" />
+                                                <span className="truncate">{ch.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* CHANNEL 1: Per-Item Instructor Selector */}
+                                {chatChannel === 'instructor' && (
+                                    <div
+                                        className="rounded-[22px] border p-3.5 space-y-2.5"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span
+                                                className="text-xs font-black"
+                                                style={{ color: colors.text }}
+                                            >
+                                                انتخاب آیتم دوره و مدرس مربوطه:
+                                            </span>
+                                            <span
+                                                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                                style={{
+                                                    backgroundColor: colors.primarySoft,
+                                                    color: colors.primary,
+                                                }}
+                                            >
+                                                {faNum(courseItems.length)} مدرس تخصصی
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                            {courseItems.map((item) => {
+                                                const active = item.itemId === selectedItemId;
+                                                return (
+                                                    <button
+                                                        key={item.itemId}
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setSelectedItemId(item.itemId)
+                                                        }
+                                                        className="p-2.5 rounded-xl border text-right space-y-0.5 transition"
+                                                        style={{
+                                                            backgroundColor: active
+                                                                ? '#123E30'
+                                                                : colors.surfaceAlt,
+                                                            borderColor: active
+                                                                ? '#F59E0B'
+                                                                : colors.border,
+                                                            color: active
+                                                                ? '#FFFFFF'
+                                                                : colors.text,
+                                                        }}
+                                                    >
+                                                        <div className="text-[10px] font-black truncate">
+                                                            {item.itemTitle}
+                                                        </div>
+                                                        <div
+                                                            className="text-[10px] truncate"
+                                                            style={{
+                                                                color: active
+                                                                    ? '#D6F39A'
+                                                                    : colors.muted,
+                                                            }}
+                                                        >
+                                                            {item.instructorName}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Selected Item Instructor Profile Banner */}
+                                        <div className="p-3 rounded-2xl bg-[#123E30] text-white flex items-center justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <div className="text-[10px] text-[#D6F39A] font-bold">
+                                                    چت خصوصی اختصاصی · {selectedCourseItem.itemTitle}
+                                                </div>
+                                                <div className="font-black text-xs mt-0.5">
+                                                    {selectedCourseItem.instructorName}
+                                                </div>
+                                                <div className="text-[10px] text-emerald-100/80">
+                                                    {selectedCourseItem.instructorRole} · پاسخگویی: {selectedCourseItem.responseTime}
+                                                </div>
+                                            </div>
+                                            <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-[#D6F39A] text-[10px] font-bold shrink-0">
+                                                آنلاین
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* CHANNEL 2: Course Group Header + Admin Enable/Disable Control */}
+                                {chatChannel === 'group' && (
+                                    <div
+                                        className="rounded-[22px] border p-3.5 space-y-2.5"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: groupChatEnabled
+                                                ? colors.border
+                                                : '#F59E0B',
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <h2
+                                                        className="font-black text-xs"
+                                                        style={{ color: colors.text }}
+                                                    >
+                                                        گروه تخصصی دانش‌پذیران «طراحی آینده نوجوان»
+                                                    </h2>
+                                                    <span
+                                                        className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
+                                                            groupChatEnabled
+                                                                ? 'bg-emerald-500/15 text-emerald-700'
+                                                                : 'bg-amber-500/20 text-amber-700'
+                                                        }`}
+                                                    >
+                                                        {groupChatEnabled
+                                                            ? 'فعال برای اعضا'
+                                                            : 'قفل‌شده توسط ادمین'}
+                                                    </span>
+                                                </div>
+                                                <p
+                                                    className="text-[10px] mt-0.5"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    ۲۴ عضو VIP و ۴ مدرس آیتم‌های دوره در این گروه حضور دارند
+                                                </p>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                aria-label="تغییر وضعیت فعال بودن گروه دوره توسط ادمین"
+                                                onClick={() => {
+                                                    setGroupChatEnabled((prev) => !prev);
+                                                    showToast(
+                                                        !groupChatEnabled
+                                                            ? 'ارسال پیام دانش‌پذیران در گروه تخصصی دوره توسط ادمین فعال شد.'
+                                                            : 'ارسال پیام دانش‌پذیران در گروه تخصصی دوره توسط ادمین غیرفعال شد.'
+                                                    );
+                                                }}
+                                                className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black shrink-0 transition ${
+                                                    groupChatEnabled
+                                                        ? 'bg-amber-500/20 text-amber-800'
+                                                        : 'bg-[#153F31] text-white'
+                                                }`}
+                                            >
+                                                {groupChatEnabled
+                                                    ? 'قفل گروه (ادمین)'
+                                                    : 'فعال‌سازی گروه'}
+                                            </button>
+                                        </div>
+
+                                        {!groupChatEnabled && (
+                                            <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-[11px] font-bold text-amber-800 flex items-center gap-2">
+                                                <Lock className="w-4 h-4 shrink-0" />
+                                                <span>
+                                                    ارسال پیام در گروه تخصصی دوره موقتاً توسط مدیر دوره غیرفعال شده است (فقط مشاهده اطلاعیه‌ها).
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* CHANNEL 3: General Course Support Header */}
+                                {chatChannel === 'support' && (
+                                    <div className="rounded-[22px] bg-[#123E30] text-white p-3.5 flex items-center justify-between">
+                                        <div>
+                                            <div className="text-[10px] text-[#D6F39A] font-bold">
+                                                پشتیبانی کلی دوره (امور اجرایی، اقلام و جلسات)
+                                            </div>
+                                            <div className="font-black text-xs mt-0.5">
+                                                واحد آموزش و هماهنگی آکادمی رشد
+                                            </div>
+                                            <div className="text-[10px] text-emerald-100/80 mt-0.5">
+                                                پاسخگویی سریع به سوالات ثبت‌نام، زمان‌بندی کلاس‌ها و بسته‌های آموزشی
+                                            </div>
+                                        </div>
+                                        <MessageCircle className="w-6 h-6 text-[#D6F39A] shrink-0" />
+                                    </div>
+                                )}
+
+                                {/* Messages Thread */}
+                                <div
+                                    className="rounded-[22px] border p-3.5 space-y-2.5 max-h-[300px] overflow-y-auto"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    {(chatChannel === 'instructor'
+                                        ? selectedCourseItem.initialMessages
+                                        : chatChannel === 'group'
+                                        ? groupMessages
+                                        : supportMessages
+                                    ).map((msg) => {
+                                        const isMe = msg.sender === 'student';
+                                        return (
+                                            <div
+                                                key={msg.id}
+                                                className={`p-3 rounded-2xl space-y-1 text-xs ${
+                                                    isMe ? 'mr-4' : 'ml-4'
+                                                }`}
+                                                style={{
+                                                    backgroundColor: isMe
+                                                        ? colors.primarySoft
+                                                        : colors.surfaceAlt,
+                                                    color: colors.text,
+                                                }}
+                                            >
+                                                <div className="flex items-center justify-between text-[10px]">
+                                                    <span
+                                                        className="font-black"
+                                                        style={{
+                                                            color: isMe
+                                                                ? colors.primary
+                                                                : '#B45309',
+                                                        }}
+                                                    >
+                                                        {msg.senderName}
+                                                        {msg.roleBadge ? ` · ${msg.roleBadge}` : ''}
+                                                    </span>
+                                                    <span style={{ color: colors.muted }}>
+                                                        {msg.timestamp}
+                                                    </span>
+                                                </div>
+                                                <p className="leading-5 text-xs">{msg.text}</p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Message Composer */}
+                                <div
+                                    className="rounded-2xl border p-2 flex items-center gap-2"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <input
+                                        type="text"
+                                        aria-label="متن پیام گفتگو"
+                                        disabled={
+                                            chatChannel === 'group' &&
+                                            !groupChatEnabled &&
+                                            previewRole !== 'instructor'
+                                        }
+                                        value={chatDraft}
+                                        onChange={(e) => setChatDraft(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSendChatMessage();
+                                        }}
+                                        placeholder={
+                                            chatChannel === 'group' &&
+                                            !groupChatEnabled &&
+                                            previewRole !== 'instructor'
+                                                ? 'گروه توسط ادمین غیرفعال شده است...'
+                                                : chatChannel === 'instructor'
+                                                ? `پیام خصوصی به ${selectedCourseItem.instructorName}...`
+                                                : chatChannel === 'group'
+                                                ? 'ارسال پیام در گروه تخصصی دوره...'
+                                                : 'پیام به پشتیبانی کلی دوره...'
+                                        }
+                                        className="roshd-app-input flex-1 text-xs bg-transparent outline-none border-0 px-2 py-1.5"
+                                        style={{
+                                            color: colors.text,
+                                            backgroundColor: 'transparent',
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleSendChatMessage}
+                                        disabled={
+                                            chatChannel === 'group' &&
+                                            !groupChatEnabled &&
+                                            previewRole !== 'instructor'
+                                        }
+                                        className="px-3.5 py-2 rounded-xl bg-[#153F31] text-white text-xs font-black inline-flex items-center gap-1.5 disabled:opacity-40 shrink-0"
+                                    >
+                                        <Send className="w-3.5 h-3.5 text-[#D6F39A]" />
+                                        <span>ارسال</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+
+                        {/* ==================== SHOP SCREEN (فروشگاه) ==================== */}
+                        {activeScreen === 'shop' && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h1
+                                            className="font-black text-xl"
+                                            style={{ color: colors.text }}
+                                        >
+                                            فروشگاه و محصولات رشد
+                                        </h1>
+                                        <p
+                                            className="text-xs mt-1"
+                                            style={{ color: colors.muted }}
+                                        >
+                                            کتاب‌ها و پادکست‌های درون‌برنامه‌ای، بسته‌های ارزیابی و کتاب کار
+                                        </p>
+                                    </div>
+                                    <div
+                                        className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                                        style={{ backgroundColor: colors.primarySoft }}
+                                    >
+                                        <ShoppingBag className="w-6 h-6" style={{ color: colors.primary }} />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {mockProducts.map((product) => {
+                                        const isOwned = ownedProductSlugs.includes(product.slug);
+                                        const mode = resolveProductConsumptionMode(product);
+                                        return (
+                                            <div
+                                                key={product.id}
+                                                onClick={() => openProductDetail(product.slug)}
+                                                className="rounded-[22px] border p-3.5 space-y-2.5 cursor-pointer transition hover:shadow-md"
+                                                style={{
+                                                    backgroundColor: colors.surface,
+                                                    borderColor: colors.border,
+                                                }}
+                                            >
+                                                <div className="flex items-center justify-between text-[11px]">
+                                                    <span
+                                                        className="font-bold px-2 py-0.5 rounded-full"
+                                                        style={{
+                                                            backgroundColor: colors.primarySoft,
+                                                            color: colors.primary,
+                                                        }}
+                                                    >
+                                                        {product.type}
+                                                    </span>
+                                                    <span
+                                                        className="text-[10px] font-bold"
+                                                        style={{
+                                                            color: mode.isNonDownloadable
+                                                                ? '#B45309'
+                                                                : colors.muted,
+                                                        }}
+                                                    >
+                                                        {mode.badgeText}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex items-start gap-3 pt-0.5">
+                                                    <img
+                                                        src={product.poster || product.image}
+                                                        alt={product.title}
+                                                        className="w-16 h-20 rounded-2xl object-cover shrink-0 border"
+                                                        style={{ borderColor: colors.border }}
+                                                    />
+                                                    <div className="space-y-1 min-w-0 flex-1">
+                                                        <h3
+                                                            className="font-black text-xs leading-5"
+                                                            style={{ color: colors.text }}
+                                                        >
+                                                            {product.title}
+                                                        </h3>
+                                                        <p
+                                                            className="text-[11px] leading-4 line-clamp-2"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            {product.summary}
+                                                        </p>
+                                                        <div
+                                                            className="text-[10px] pt-0.5"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            اثر: {product.author}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div
+                                                    className="pt-2.5 border-t flex items-center justify-between"
+                                                    style={{ borderColor: colors.border }}
+                                                >
+                                                    <span
+                                                        className="font-extrabold text-xs"
+                                                        style={{ color: colors.primary }}
+                                                    >
+                                                        {isOwned
+                                                            ? 'موجود در کتابخانه من'
+                                                            : formatPrice(
+                                                                  product.discount_price ||
+                                                                      product.price
+                                                              )}
+                                                    </span>
+                                                    <span
+                                                        className="px-3 py-1.5 rounded-xl text-[11px] font-bold text-white inline-flex items-center gap-1.5"
+                                                        style={{ backgroundColor: colors.primary }}
+                                                    >
+                                                        {product.deliveryType ===
+                                                        'in_app_podcast' ? (
+                                                            <Headphones className="w-3.5 h-3.5 text-[#D6F39A]" />
+                                                        ) : product.deliveryType ===
+                                                          'in_app_book' ? (
+                                                            <BookOpen className="w-3.5 h-3.5 text-[#D6F39A]" />
+                                                        ) : (
+                                                            <ShoppingBag className="w-3.5 h-3.5 text-[#D6F39A]" />
+                                                        )}
+                                                        <span>معرفی و پیش‌نمایش محصول</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ==================== PRODUCT DETAIL & PREVIEW SCREEN (صفحه معرفی و پیش‌نمایش محصول) ==================== */}
+                        {activeScreen === 'productDetail' && (
+                            <div className="space-y-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveScreen('shop')}
+                                    className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                    style={{ color: colors.primary }}
+                                >
+                                    <ArrowRight className="w-4 h-4" />
+                                    <span>بازگشت به فروشگاه</span>
+                                </button>
+
+                                {/* Product Poster & Header Card */}
+                                <div className="rounded-[26px] overflow-hidden bg-[#123E30] text-white border border-amber-400/40 p-4 space-y-3">
+                                    <div className="flex items-start gap-3.5">
+                                        <div className="w-24 h-32 rounded-2xl overflow-hidden border-2 border-[#D6F39A]/60 shrink-0 bg-[#0A261D] shadow-lg">
+                                            <img
+                                                src={
+                                                    selectedProduct.poster ||
+                                                    selectedProduct.image
+                                                }
+                                                alt={selectedProduct.title}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5 min-w-0 flex-1">
+                                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black">
+                                                {
+                                                    resolveProductConsumptionMode(
+                                                        selectedProduct
+                                                    ).badgeText
+                                                }
+                                            </span>
+                                            <h1 className="font-black text-sm leading-6">
+                                                {selectedProduct.title}
+                                            </h1>
+                                            <div className="text-[11px] text-[#D6F39A] font-bold">
+                                                {selectedProduct.author}
+                                            </div>
+                                            <div className="text-[10px] text-emerald-100/85">
+                                                {selectedProduct.pagesOrDuration} · امتیاز{' '}
+                                                {faNum(selectedProduct.rating || '4.9')}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {selectedProduct.inAppOnly && (
+                                        <div className="p-2.5 rounded-xl bg-amber-400/15 border border-amber-300/30 text-[11px] text-amber-200 flex items-center gap-2">
+                                            <Lock className="w-4 h-4 shrink-0 text-amber-300" />
+                                            <span>
+                                                این محصول غیردانلودی است و صرفاً در کتاب‌خوان / پخش‌کننده امن درون اپلیکیشن باز می‌شود.
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <p className="text-xs text-emerald-100/90 leading-6">
+                                        {selectedProduct.description || selectedProduct.summary}
+                                    </p>
+
+                                    {/* Action Buttons: Open In-App Reader/Player or Free Sample */}
+                                    <div className="grid grid-cols-1 gap-2 pt-1">
+                                        {selectedProduct.inAppOnly ? (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    openInAppContent(selectedProduct.slug)
+                                                }
+                                                className="w-full py-3 rounded-2xl bg-[#D6F39A] text-[#123E30] font-black text-xs flex items-center justify-center gap-2 shadow"
+                                            >
+                                                {selectedProduct.deliveryType ===
+                                                'in_app_podcast' ? (
+                                                    <Headphones className="w-4 h-4" />
+                                                ) : (
+                                                    <BookOpen className="w-4 h-4" />
+                                                )}
+                                                <span>
+                                                    {
+                                                        resolveProductConsumptionMode(
+                                                            selectedProduct
+                                                        ).primaryCtaLabel
+                                                    }
+                                                </span>
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (
+                                                        !ownedProductSlugs.includes(
+                                                            selectedProduct.slug
+                                                        )
+                                                    ) {
+                                                        setOwnedProductSlugs((prev) => [
+                                                            ...prev,
+                                                            selectedProduct.slug,
+                                                        ]);
+                                                    }
+                                                    showToast(
+                                                        `سفارش «${selectedProduct.title}» ثبت شد.`
+                                                    );
+                                                }}
+                                                className="w-full py-3 rounded-2xl bg-[#D6F39A] text-[#123E30] font-black text-xs flex items-center justify-center gap-2 shadow"
+                                            >
+                                                <ShoppingBag className="w-4 h-4" />
+                                                <span>
+                                                    ثبت سفارش نسخه چاپی (
+                                                    {formatPrice(
+                                                        selectedProduct.discount_price ||
+                                                            selectedProduct.price
+                                                    )}
+                                                    )
+                                                </span>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Product Features / Highlights */}
+                                {selectedProduct.highlights && (
+                                    <div
+                                        className="rounded-[22px] border p-4 space-y-2.5"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <h3
+                                            className="font-black text-xs"
+                                            style={{ color: colors.text }}
+                                        >
+                                            ویژگی‌ها و امکانات این محصول در اپلیکیشن
+                                        </h3>
+                                        <div className="space-y-1.5">
+                                            {selectedProduct.highlights.map((hl: string) => (
+                                                <div
+                                                    key={hl}
+                                                    className="flex items-center gap-2 text-xs p-2 rounded-xl"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        color: colors.text,
+                                                    }}
+                                                >
+                                                    <CheckCircle2
+                                                        className="w-4 h-4 shrink-0"
+                                                        style={{ color: colors.primary }}
+                                                    />
+                                                    <span>{hl}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Chapters / Episodes Preview List */}
+                                {selectedProduct.chaptersOrEpisodes && (
+                                    <div
+                                        className="rounded-[22px] border p-4 space-y-2.5"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <h3
+                                                className="font-black text-xs"
+                                                style={{ color: colors.text }}
+                                            >
+                                                {selectedProduct.deliveryType === 'in_app_podcast'
+                                                    ? 'فهرست اپیزودهای پادکست (پخش درون‌برنامه‌ای)'
+                                                    : 'فهرست فصل‌های کتاب (مطالعه درون‌برنامه‌ای)'}
+                                            </h3>
+                                            <span
+                                                className="text-[10px] font-bold"
+                                                style={{ color: colors.primary }}
+                                            >
+                                                {faNum(
+                                                    selectedProduct.chaptersOrEpisodes.length
+                                                )}{' '}
+                                                بخش
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            {selectedProduct.chaptersOrEpisodes.map(
+                                                (ch: any) => (
+                                                    <div
+                                                        key={ch.id}
+                                                        className="p-3 rounded-2xl border flex items-center justify-between gap-2"
+                                                        style={{
+                                                            backgroundColor: colors.surfaceAlt,
+                                                            borderColor: colors.border,
+                                                        }}
+                                                    >
+                                                        <div className="min-w-0">
+                                                            <div
+                                                                className="font-bold text-xs truncate"
+                                                                style={{ color: colors.text }}
+                                                            >
+                                                                {ch.title}
+                                                            </div>
+                                                            <div
+                                                                className="text-[10px] mt-0.5 flex items-center gap-2"
+                                                                style={{ color: colors.muted }}
+                                                            >
+                                                                <span>
+                                                                    {ch.durationOrPages}
+                                                                </span>
+                                                                {ch.isFreeSample && (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 font-bold">
+                                                                        پیش‌نمایش رایگان
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                openInAppContent(
+                                                                    selectedProduct.slug,
+                                                                    ch.id
+                                                                )
+                                                            }
+                                                            className="px-3 py-1.5 rounded-xl bg-[#153F31] text-white text-[11px] font-bold inline-flex items-center gap-1 shrink-0"
+                                                        >
+                                                            {selectedProduct.deliveryType ===
+                                                            'in_app_podcast' ? (
+                                                                <Play className="w-3 h-3 fill-current text-[#D6F39A]" />
+                                                            ) : (
+                                                                <BookOpen className="w-3 h-3 text-[#D6F39A]" />
+                                                            )}
+                                                            <span>باز کردن در اپ</span>
+                                                        </button>
+                                                    </div>
+                                                )
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ==================== IN-APP BOOK READER SCREEN (کتاب‌خوان درون‌برنامه‌ای غیردانلودی) ==================== */}
+                        {activeScreen === 'inAppReader' && (
+                            <div className="space-y-3.5">
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('productDetail')}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                        style={{ color: colors.primary }}
+                                    >
+                                        <ArrowRight className="w-4 h-4" />
+                                        <span>بازگشت به معرفی کتاب</span>
+                                    </button>
+                                    <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-800 text-[10px] font-black inline-flex items-center gap-1">
+                                        <Lock className="w-3 h-3" />
+                                        <span>نسخه غیردانلودی · فقط مطالعه در اپ</span>
+                                    </span>
+                                </div>
+
+                                {/* Reader Controls Bar */}
+                                <div
+                                    className="rounded-2xl border p-3 flex items-center justify-between gap-2"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center gap-1.5">
+                                        <span
+                                            className="text-[11px] font-bold"
+                                            style={{ color: colors.muted }}
+                                        >
+                                            اندازه قلم:
+                                        </span>
+                                        {(['sm', 'md', 'lg'] as const).map((sz) => (
+                                            <button
+                                                key={sz}
+                                                type="button"
+                                                onClick={() => setReaderFontSize(sz)}
+                                                className={`px-2.5 py-1 rounded-lg text-[11px] font-black ${
+                                                    readerFontSize === sz
+                                                        ? 'bg-[#153F31] text-white'
+                                                        : 'bg-stone-200/70 text-stone-700'
+                                                }`}
+                                            >
+                                                {sz === 'sm'
+                                                    ? 'کوچک'
+                                                    : sz === 'md'
+                                                    ? 'متوسط'
+                                                    : 'بزرگ'}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="flex items-center gap-1">
+                                        {(
+                                            [
+                                                { id: 'light', label: 'روشن' },
+                                                { id: 'sepia', label: 'کاغذی' },
+                                                { id: 'dark', label: 'شب' },
+                                            ] as const
+                                        ).map((th) => (
+                                            <button
+                                                key={th.id}
+                                                type="button"
+                                                onClick={() => setReaderTheme(th.id)}
+                                                className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${
+                                                    readerTheme === th.id
+                                                        ? 'border-[#153F31] font-black'
+                                                        : 'border-transparent opacity-70'
+                                                }`}
+                                                style={{
+                                                    backgroundColor:
+                                                        th.id === 'sepia'
+                                                            ? '#F6EFE2'
+                                                            : th.id === 'dark'
+                                                            ? '#18221D'
+                                                            : '#FFFFFF',
+                                                    color:
+                                                        th.id === 'dark' ? '#F3F6F4' : '#13241D',
+                                                }}
+                                            >
+                                                {th.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Chapter Selector */}
+                                {selectedProduct.chaptersOrEpisodes && (
+                                    <div className="flex gap-1.5 overflow-x-auto pb-1">
+                                        {selectedProduct.chaptersOrEpisodes.map((ch: any) => {
+                                            const active =
+                                                (activeChapterOrEpisode?.id || 101) === ch.id;
+                                            return (
+                                                <button
+                                                    key={ch.id}
+                                                    type="button"
+                                                    onClick={() => setSelectedChapterId(ch.id)}
+                                                    className="px-3 py-1.5 rounded-xl text-[11px] font-bold shrink-0 border transition"
+                                                    style={{
+                                                        backgroundColor: active
+                                                            ? colors.primary
+                                                            : colors.surface,
+                                                        color: active
+                                                            ? '#FFFFFF'
+                                                            : colors.text,
+                                                        borderColor: active
+                                                            ? colors.primary
+                                                            : colors.border,
+                                                    }}
+                                                >
+                                                    {ch.title}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Reading Canvas */}
+                                <div
+                                    className="rounded-[26px] border p-5 space-y-3 shadow-inner"
+                                    style={{
+                                        backgroundColor:
+                                            readerTheme === 'sepia'
+                                                ? '#F8F1E3'
+                                                : readerTheme === 'dark'
+                                                ? '#14201B'
+                                                : '#FFFFFF',
+                                        borderColor: colors.border,
+                                        color:
+                                            readerTheme === 'dark' ? '#E8F0EC' : '#1F2924',
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between border-b pb-2.5 border-stone-300/40">
+                                        <div>
+                                            <div className="text-[10px] font-bold opacity-75">
+                                                {selectedProduct.title}
+                                            </div>
+                                            <h2 className="font-black text-sm mt-0.5">
+                                                {activeChapterOrEpisode?.title ||
+                                                    'فصل اول: تفاوت علاقه زودگذر با استعداد ذاتی'}
+                                            </h2>
+                                        </div>
+                                        <span className="text-[10px] font-bold opacity-75">
+                                            {activeChapterOrEpisode?.durationOrPages ||
+                                                '۳۴ صفحه'}
+                                        </span>
+                                    </div>
+
+                                    <p
+                                        className={`leading-8 text-justify ${
+                                            readerFontSize === 'sm'
+                                                ? 'text-xs'
+                                                : readerFontSize === 'lg'
+                                                ? 'text-base'
+                                                : 'text-sm'
+                                        }`}
+                                    >
+                                        {activeChapterOrEpisode?.contentPreview ||
+                                            selectedProduct.description}
+                                    </p>
+
+                                    <p
+                                        className={`leading-8 text-justify ${
+                                            readerFontSize === 'sm'
+                                                ? 'text-xs'
+                                                : readerFontSize === 'lg'
+                                                ? 'text-base'
+                                                : 'text-sm'
+                                        }`}
+                                    >
+                                        در ارزیابی‌های کارگاه «طراحی آینده نوجوان»، ما به جای تمرکز صرف بر نمره درسی، سه لایه اصلی یعنی «استعدادهای شناختی»، «انگیزش درونی» و «مهارت‌های اجرایی» را در موقعیت‌های واقعی می‌سنجیم. هر نوجوان زمانی که در مسیر استعداد طبیعی خود قرار می‌گیرد، یادگیری را با انرژی مضاعف تجربه می‌کند.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ==================== IN-APP PODCAST AUDIO PLAYER SCREEN (پخش‌کننده صوتی درون‌برنامه‌ای غیردانلودی) ==================== */}
+                        {activeScreen === 'inAppAudioPlayer' && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('productDetail')}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                        style={{ color: colors.primary }}
+                                    >
+                                        <ArrowRight className="w-4 h-4" />
+                                        <span>بازگشت به معرفی پادکست</span>
+                                    </button>
+                                    <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-800 text-[10px] font-black inline-flex items-center gap-1">
+                                        <Lock className="w-3 h-3" />
+                                        <span>پخش امن درون‌برنامه‌ای (غیردانلودی)</span>
+                                    </span>
+                                </div>
+
+                                <div className="rounded-[28px] bg-gradient-to-br from-[#10382B] via-[#153F31] to-[#0B231B] text-white p-5 space-y-4 border border-amber-400/40 shadow-xl">
+                                    <div className="flex items-center gap-3.5">
+                                        <img
+                                            src={
+                                                selectedProduct.poster ||
+                                                selectedProduct.image
+                                            }
+                                            alt={selectedProduct.title}
+                                            className="w-20 h-20 rounded-2xl object-cover border-2 border-[#D6F39A]/60 shrink-0"
+                                        />
+                                        <div className="space-y-1 min-w-0">
+                                            <span className="text-[10px] text-[#D6F39A] font-bold">
+                                                پادکست اختصاصی آکادمی رشد
+                                            </span>
+                                            <h2 className="font-black text-sm leading-6">
+                                                {activeChapterOrEpisode?.title ||
+                                                    selectedProduct.title}
+                                            </h2>
+                                            <div className="text-[11px] text-emerald-100/80">
+                                                {selectedProduct.author} ·{' '}
+                                                {activeChapterOrEpisode?.durationOrPages ||
+                                                    '۲۸ دقیقه'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-xs text-emerald-100/90 leading-6 bg-black/20 p-3 rounded-2xl">
+                                        {activeChapterOrEpisode?.contentPreview ||
+                                            selectedProduct.summary}
+                                    </p>
+
+                                    {/* Audio Progress Bar */}
+                                    <div className="space-y-1.5">
+                                        <input
+                                            type="range"
+                                            aria-label="نوار زمان پادکست"
+                                            min={0}
+                                            max={100}
+                                            value={audioProgress}
+                                            onChange={(e) =>
+                                                setAudioProgress(Number(e.target.value))
+                                            }
+                                            className="w-full accent-[#D6F39A] cursor-pointer"
+                                        />
+                                        <div className="flex items-center justify-between text-[10px] text-emerald-100/80">
+                                            <span>{faNum(audioProgress)}٪ پخش‌شده</span>
+                                            <span>
+                                                {activeChapterOrEpisode?.durationOrPages ||
+                                                    '۲۸ دقیقه'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Play/Pause & Speed Controls */}
+                                    <div className="flex items-center justify-between pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const nextSpeed =
+                                                    audioSpeed === 1
+                                                        ? 1.25
+                                                        : audioSpeed === 1.25
+                                                        ? 1.5
+                                                        : audioSpeed === 1.5
+                                                        ? 2
+                                                        : 1;
+                                                setAudioSpeed(nextSpeed);
+                                            }}
+                                            className="px-3 py-1.5 rounded-xl bg-white/10 text-xs font-black text-[#D6F39A]"
+                                        >
+                                            سرعت {faNum(audioSpeed)}x
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            aria-label={
+                                                audioPlaying ? 'توقف پادکست' : 'پخش پادکست'
+                                            }
+                                            onClick={() => setAudioPlaying((prev) => !prev)}
+                                            className="w-14 h-14 rounded-full bg-[#D6F39A] text-[#123E30] flex items-center justify-center shadow-lg"
+                                        >
+                                            {audioPlaying ? (
+                                                <Pause className="w-6 h-6 fill-current" />
+                                            ) : (
+                                                <Play className="w-6 h-6 fill-current" />
+                                            )}
+                                        </button>
+
+                                        <span className="text-[11px] text-emerald-100/85 inline-flex items-center gap-1">
+                                            <Volume2 className="w-4 h-4 text-[#D6F39A]" />
+                                            <span>کیفیت بالا</span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Other Episodes List */}
+                                {selectedProduct.chaptersOrEpisodes && (
+                                    <div
+                                        className="rounded-[22px] border p-4 space-y-2"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <div
+                                            className="font-black text-xs mb-1"
+                                            style={{ color: colors.text }}
+                                        >
+                                            سایر اپیزودهای این مجموعه
+                                        </div>
+                                        {selectedProduct.chaptersOrEpisodes.map((ep: any) => {
+                                            const active =
+                                                (activeChapterOrEpisode?.id || 201) === ep.id;
+                                            return (
+                                                <button
+                                                    key={ep.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedChapterId(ep.id);
+                                                        setAudioPlaying(true);
+                                                    }}
+                                                    className="w-full p-3 rounded-xl border flex items-center justify-between text-right text-xs transition"
+                                                    style={{
+                                                        backgroundColor: active
+                                                            ? colors.primarySoft
+                                                            : colors.surfaceAlt,
+                                                        borderColor: active
+                                                            ? colors.primary
+                                                            : colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                >
+                                                    <span className="font-bold truncate">
+                                                        {ep.title}
+                                                    </span>
+                                                    <span
+                                                        className="text-[10px] shrink-0"
+                                                        style={{ color: colors.muted }}
+                                                    >
+                                                        {ep.durationOrPages}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+
+                        {/* ==================== DASHBOARD SCREEN (رشد من — مرکز دوره‌ها، آیتم‌های مدرسین، گفتگوها و کتابخانه درون‌برنامه‌ای) ==================== */}
+                        {activeScreen === 'dashboard' && (
+                            <div className="space-y-4">
+                                {/* Header */}
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div
+                                            className="text-[12px] font-bold"
+                                            style={{ color: colors.muted }}
+                                        >
+                                            میز کار آموزشی و رشد تو
+                                        </div>
+                                        <h1
+                                            className="font-black text-[20px]"
+                                            style={{ color: colors.text }}
+                                        >
+                                            رشد من · {userProfile.name}
+                                        </h1>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('profile')}
+                                        className="px-3 py-2 rounded-2xl border text-xs font-bold flex items-center gap-1.5"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                            color: colors.text,
+                                        }}
+                                    >
+                                        <User className="w-4 h-4" style={{ color: colors.primary }} />
+                                        <span>کارنامه و حساب من</span>
+                                    </button>
+                                </div>
+
+                                {/* 1. ACTIVE COURSE HERO + POSTER & PROGRESS */}
+                                <div className="rounded-[26px] bg-gradient-to-br from-[#0F382A] via-[#154534] to-[#1D5944] p-4 text-white space-y-3.5 border border-emerald-500/25">
+                                    <div className="flex items-start gap-3.5">
+                                        <div className="w-20 h-26 rounded-2xl overflow-hidden border border-white/20 shrink-0 relative bg-[#0B291F]">
+                                            <img
+                                                src={mockCourses[0].poster || mockCourses[0].thumbnail}
+                                                alt={vipConfig.title}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <span className="absolute bottom-1 right-1 left-1 text-center px-1 py-0.5 rounded bg-amber-400 text-[#0D2E22] text-[8px] font-black truncate">
+                                                پوستر دوره
+                                            </span>
+                                        </div>
+                                        <div className="flex-1 min-w-0 space-y-1.5">
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                <span className="px-2 py-0.5 rounded-md bg-amber-400 text-[#0D2E22] text-[10px] font-black">
+                                                    دوره فعال VIP
+                                                </span>
+                                                <span className="text-[11px] text-[#D4F095] font-bold">
+                                                    {faNum(courseItems.length)} آیتم و مدرس تخصصی
+                                                </span>
+                                            </div>
+                                            <h2 className="font-black text-sm leading-6 text-white">
+                                                {vipConfig.title}
+                                            </h2>
+                                            <p className="text-[11px] text-emerald-100/85">
+                                                کلاس بعدی: سه‌شنبه ۱۷:۰۰ · کارگاه عملی تصمیم‌گیری
+                                            </p>
+                                            <div className="pt-1 flex items-center gap-2 flex-wrap">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setActiveScreen('vipClub')}
+                                                    className="px-3 py-1.5 rounded-xl bg-[#D4F095] text-[#103F32] font-black text-[11px] inline-flex items-center gap-1"
+                                                >
+                                                    <Play className="w-3.5 h-3.5 fill-current" />
+                                                    <span>ورود به باشگاه دوره</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openCourseDetail(mockCourses[0])}
+                                                    className="px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/20 text-white font-bold text-[11px]"
+                                                >
+                                                    سرفصل‌ها
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-white/15 pt-3 flex items-center justify-between gap-3">
+                                        <div className="flex-1 space-y-1">
+                                            <div className="flex items-center justify-between text-[11px] text-emerald-100">
+                                                <span>پیشرفت کل آیتم‌های دوره</span>
+                                                <span className="font-black text-[#D4F095]">
+                                                    {faNum(64)}٪ ({faNum(145)} دقیقه این هفته)
+                                                </span>
+                                            </div>
+                                            <div className="h-1.5 rounded-full bg-black/30 overflow-hidden">
+                                                <div
+                                                    className="h-full bg-[#D4F095] rounded-full"
+                                                    style={{ width: '64%' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 1.5. ONLINE WEBINARS & LIVE CLASSES HUB IN MY GROWTH (ورود مستقیم به اسکای‌روم، گوگل میت و ادوبی کانکت) */}
+                                <div
+                                    className="rounded-[24px] border p-4 space-y-3"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className="w-8 h-8 rounded-xl flex items-center justify-center relative"
+                                                style={{
+                                                    backgroundColor: isDark
+                                                        ? 'rgba(52, 211, 153, 0.16)'
+                                                        : '#D1FAE5',
+                                                    color: isDark ? '#34D399' : '#047857',
+                                                }}
+                                            >
+                                                <Video className="w-4 h-4" />
+                                                <span className="w-2 h-2 rounded-full bg-rose-500 -top-0.5 -right-0.5 absolute" />
+                                            </span>
+                                            <div>
+                                                <h3
+                                                    className="font-black text-sm"
+                                                    style={{ color: colors.text }}
+                                                >
+                                                    وبینارها و کلاس‌های آنلاین
+                                                </h3>
+                                                <p
+                                                    className="text-[10px]"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    ورود مستقیم به اسکای‌روم، گوگل میت و ادوبی کانکت
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('sessions')}
+                                            className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold inline-flex items-center gap-1"
+                                            style={{
+                                                backgroundColor: colors.primarySoft,
+                                                color: colors.primary,
+                                            }}
+                                        >
+                                            <span>همه لینک‌ها ({faNum(onlineWebinars.length)})</span>
+                                            <ArrowLeft className="w-3 h-3" />
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-2.5">
+                                        {onlineWebinars.slice(0, 2).map((wb) => {
+                                            const isSkyroom = wb.platform === 'skyroom';
+                                            const isLive = wb.status === 'live';
+                                            return (
+                                                <div
+                                                    key={wb.id}
+                                                    className="p-3 rounded-2xl border space-y-2"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        borderColor: isLive
+                                                            ? isDark
+                                                                ? 'rgba(52, 211, 153, 0.45)'
+                                                                : '#6EE7B7'
+                                                            : colors.border,
+                                                    }}
+                                                >
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span
+                                                            className="px-2 py-0.5 rounded-lg text-[10px] font-black"
+                                                            style={{
+                                                                backgroundColor: isSkyroom
+                                                                    ? isDark
+                                                                        ? 'rgba(56, 189, 248, 0.20)'
+                                                                        : '#E0F2FE'
+                                                                    : isDark
+                                                                    ? 'rgba(52, 211, 153, 0.20)'
+                                                                    : '#DCFCE7',
+                                                                color: isSkyroom
+                                                                    ? isDark
+                                                                        ? '#7DD3FC'
+                                                                        : '#0369A1'
+                                                                    : isDark
+                                                                    ? '#6EE7B7'
+                                                                    : '#15803D',
+                                                            }}
+                                                        >
+                                                            {wb.platformLabel}
+                                                        </span>
+                                                        <span
+                                                            className={`px-2 py-0.5 rounded-full text-[9px] font-black inline-flex items-center gap-1 ${
+                                                                isLive
+                                                                    ? 'bg-rose-500/15 text-rose-500'
+                                                                    : 'bg-amber-500/15 text-amber-600'
+                                                            }`}
+                                                        >
+                                                            {isLive && (
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                                            )}
+                                                            <span>
+                                                                {isLive
+                                                                    ? `در حال برگزاری · ${faNum(wb.participantsCount)} حاضر`
+                                                                    : 'کلاس پیش‌رو'}
+                                                            </span>
+                                                        </span>
+                                                    </div>
+
+                                                    <div>
+                                                        <div
+                                                            className="font-black text-xs leading-5"
+                                                            style={{ color: colors.text }}
+                                                        >
+                                                            {wb.title}
+                                                        </div>
+                                                        <div
+                                                            className="text-[10px] mt-0.5"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            {wb.instructor} · {wb.date} ({wb.time})
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 pt-0.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setActiveWebinarGatewayId(wb.id);
+                                                                setActiveScreen('sessions');
+                                                            }}
+                                                            className="flex-1 py-2 rounded-xl bg-[#153F31] text-white text-[11px] font-black inline-flex items-center justify-center gap-1.5"
+                                                        >
+                                                            <ExternalLink className="w-3.5 h-3.5 text-[#D4F095]" />
+                                                            <span>
+                                                                ورود به {isSkyroom ? 'اسکای‌روم' : 'کلاس آنلاین'}
+                                                            </span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleCopyWebinarLink(
+                                                                    wb.id,
+                                                                    wb.link,
+                                                                    wb.title
+                                                                )
+                                                            }
+                                                            className="px-3 py-2 rounded-xl border text-[11px] font-bold inline-flex items-center gap-1"
+                                                            style={{
+                                                                backgroundColor: colors.surface,
+                                                                borderColor: colors.border,
+                                                                color: colors.text,
+                                                            }}
+                                                        >
+                                                            {copiedWebinarId === wb.id ? (
+                                                                <>
+                                                                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                                                    <span>کپی شد</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Copy className="w-3.5 h-3.5" />
+                                                                    <span>کپی لینک</span>
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* 2. QUICK COMMUNICATION HUB (گروه تخصصی دوره، چت مدرسین آیتم‌ها، پشتیبانی کلی) */}
+                                <div
+                                    className="rounded-[24px] border p-4 space-y-3"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <MessageSquare
+                                                className="w-4 h-4"
+                                                style={{ color: colors.primary }}
+                                            />
+                                            <h3
+                                                className="font-black text-sm"
+                                                style={{ color: colors.text }}
+                                            >
+                                                مرکز گفتگو و ارتباطات دوره
+                                            </h3>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('chat')}
+                                            className="text-[11px] font-bold"
+                                            style={{ color: colors.primary }}
+                                        >
+                                            مشاهده همه چت‌ها
+                                        </button>
+                                    </div>
+
+                                    {/* Group & Support Row */}
+                                    <div className="grid grid-cols-2 gap-2.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => openCourseGroupChat()}
+                                            className="p-3 rounded-2xl border text-right space-y-1 transition hover:opacity-95"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                            }}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <Users
+                                                    className="w-4 h-4"
+                                                    style={{ color: colors.primary }}
+                                                />
+                                                <span
+                                                    className={`px-1.5 py-0.5 rounded text-[9px] font-black ${
+                                                        groupChatEnabled
+                                                            ? 'bg-emerald-500/15 text-emerald-600'
+                                                            : 'bg-amber-500/15 text-amber-600'
+                                                    }`}
+                                                >
+                                                    {groupChatEnabled ? 'گروه فعال' : 'قفل توسط ادمین'}
+                                                </span>
+                                            </div>
+                                            <div
+                                                className="font-black text-xs pt-0.5"
+                                                style={{ color: colors.text }}
+                                            >
+                                                گروه تخصصی دوره
+                                            </div>
+                                            <div
+                                                className="text-[10px] truncate"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                گفتگوی تمام اعضای دوره
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => openCourseSupportChat()}
+                                            className="p-3 rounded-2xl border text-right space-y-1 transition hover:opacity-95"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                            }}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <Headphones
+                                                    className="w-4 h-4"
+                                                    style={{ color: colors.primary }}
+                                                />
+                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-sky-500/15 text-sky-600">
+                                                    پاسخگویی سریع
+                                                </span>
+                                            </div>
+                                            <div
+                                                className="font-black text-xs pt-0.5"
+                                                style={{ color: colors.text }}
+                                            >
+                                                پشتیبانی کلی دوره
+                                            </div>
+                                            <div
+                                                className="text-[10px] truncate"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                هماهنگی کلاس‌ها و امور اجرایی
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    {/* Per-Item Instructor Private Chats */}
+                                    <div className="pt-1 space-y-2">
+                                        <div
+                                            className="text-[11px] font-bold"
+                                            style={{ color: colors.muted }}
+                                        >
+                                            چت خصوصی با مدرس هر آیتم دوره ({faNum(courseItems.length)} مدرس):
+                                        </div>
+                                        <div className="space-y-2">
+                                            {courseItems.map((item) => (
+                                                <div
+                                                    key={item.itemId}
+                                                    className="p-2.5 rounded-2xl border flex items-center justify-between gap-2"
+                                                    style={{
+                                                        backgroundColor: colors.bg,
+                                                        borderColor: colors.border,
+                                                    }}
+                                                >
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span
+                                                                className="px-1.5 py-0.5 rounded text-[9px] font-black"
+                                                                style={{
+                                                                    backgroundColor: colors.primarySoft,
+                                                                    color: colors.primary,
+                                                                }}
+                                                            >
+                                                                {item.itemCategory}
+                                                            </span>
+                                                            <span
+                                                                className="font-black text-xs truncate"
+                                                                style={{ color: colors.text }}
+                                                            >
+                                                                {item.itemTitle}
+                                                            </span>
+                                                        </div>
+                                                        <div
+                                                            className="text-[11px] mt-0.5 truncate"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            {item.instructorName} · {item.instructorRole}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openInstructorItemChat(item.itemId)}
+                                                        className="px-2.5 py-1.5 rounded-xl bg-[#153F31] text-white text-[10px] font-bold inline-flex items-center gap-1 shrink-0"
+                                                    >
+                                                        <MessageSquare className="w-3 h-3 text-[#D4F095]" />
+                                                        <span>چت با مدرس</span>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 3. IN-APP LIBRARY (کتابخانه و پادکست‌های درون‌برنامه‌ای من — غیردانلودی) */}
+                                <div
+                                    className="rounded-[24px] border p-4 space-y-3"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <BookOpen
+                                                className="w-4 h-4"
+                                                style={{ color: colors.primary }}
+                                            />
+                                            <h3
+                                                className="font-black text-sm"
+                                                style={{ color: colors.text }}
+                                            >
+                                                کتابخانه و پادکست‌های درون‌برنامه‌ای من
+                                            </h3>
+                                        </div>
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600">
+                                            پخش در اپلیکیشن
+                                        </span>
+                                    </div>
+                                    <p
+                                        className="text-[11px] leading-5"
+                                        style={{ color: colors.muted }}
+                                    >
+                                        این کتاب‌ها و پادکست‌ها غیردانلودی هستند و مستقیماً داخل کتاب‌خوان و پخش‌کننده صوتی اپلیکیشن باز می‌شوند:
+                                    </p>
+
+                                    <div className="space-y-2.5">
+                                        {mockProducts
+                                            .filter((p) => p.inAppOnly)
+                                            .map((prod) => {
+                                                const isBook = prod.deliveryType === 'in_app_book';
+                                                return (
+                                                    <div
+                                                        key={prod.slug}
+                                                        className="p-3 rounded-2xl border flex items-center justify-between gap-3"
+                                                        style={{
+                                                            backgroundColor: colors.surfaceAlt,
+                                                            borderColor: colors.border,
+                                                        }}
+                                                    >
+                                                        <div
+                                                            onClick={() => openProductDetail(prod)}
+                                                            className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+                                                        >
+                                                            <img
+                                                                src={prod.cover}
+                                                                alt={prod.title}
+                                                                className="w-11 h-14 rounded-xl object-cover shrink-0 border"
+                                                                style={{ borderColor: colors.border }}
+                                                            />
+                                                            <div className="min-w-0 flex-1 space-y-0.5">
+                                                                <span className="text-[10px] font-bold text-amber-600 block">
+                                                                    {isBook
+                                                                        ? 'کتاب دیجیتال درون‌برنامه‌ای'
+                                                                        : 'پادکست صوتی درون‌برنامه‌ای'}
+                                                                </span>
+                                                                <div
+                                                                    className="font-black text-xs truncate"
+                                                                    style={{ color: colors.text }}
+                                                                >
+                                                                    {prod.title}
+                                                                </div>
+                                                                <div
+                                                                    className="text-[10px] truncate"
+                                                                    style={{ color: colors.muted }}
+                                                                >
+                                                                    {prod.author} · {prod.pagesOrDuration}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col gap-1.5 shrink-0">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    openInAppContent(prod.slug)
+                                                                }
+                                                                className="px-2.5 py-1.5 rounded-xl bg-[#153F31] text-white text-[10px] font-bold inline-flex items-center gap-1"
+                                                            >
+                                                                {isBook ? (
+                                                                    <>
+                                                                        <BookOpen className="w-3 h-3 text-[#D4F095]" />
+                                                                        <span>مطالعه در اپ</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Headphones className="w-3 h-3 text-[#D4F095]" />
+                                                                        <span>پخش در اپ</span>
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openProductDetail(prod)}
+                                                                className="text-[10px] font-bold text-center"
+                                                                style={{ color: colors.primary }}
+                                                            >
+                                                                صفحه معرفی
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                    </div>
+                                </div>
+
+                                {/* 4. GOALS & COMPANION TOOLS */}
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('goals')}
+                                        className="p-3.5 rounded-[20px] border text-right space-y-1 transition hover:opacity-95"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <Flag className="w-5 h-5" style={{ color: colors.primary }} />
+                                        <div
+                                            className="font-black text-xs pt-1"
+                                            style={{ color: colors.text }}
+                                        >
+                                            اهداف ۹۰ روزه و تمرین‌ها
+                                        </div>
+                                        <div
+                                            className="text-[11px]"
+                                            style={{ color: colors.muted }}
+                                        >
+                                            {faNum(75)}٪ پیشرفت پروژه‌ها
+                                        </div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('reminders')}
+                                        className="p-3.5 rounded-[20px] border text-right space-y-1 transition hover:opacity-95"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <Bell className="w-5 h-5" style={{ color: colors.primary }} />
+                                        <div
+                                            className="font-black text-xs pt-1"
+                                            style={{ color: colors.text }}
+                                        >
+                                            یادآور کلاس‌ها
+                                        </div>
+                                        <div
+                                            className="text-[11px]"
+                                            style={{ color: colors.muted }}
+                                        >
+                                            تنظیم هشدارهای برنامه
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ==================== ONLINE WEBINARS & LIVE CLASSES HUB (وبینارها و کلاس‌های آنلاین — اسکای‌روم، گوگل میت، ادوبی کانکت) ==================== */}
+                        {activeScreen === 'sessions' && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('dashboard')}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                        style={{ color: colors.primary }}
+                                    >
+                                        <ArrowRight className="w-4 h-4" />
+                                        <span>بازگشت به رشد من</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('home')}
+                                        className="text-[11px] font-bold"
+                                        style={{ color: colors.muted }}
+                                    >
+                                        صفحه خانه
+                                    </button>
+                                </div>
+
+                                {/* Hero Banner for Online Webinars & Classes */}
+                                <div
+                                    className="rounded-[26px] p-4 text-white space-y-3 border relative overflow-hidden"
+                                    style={{
+                                        background:
+                                            'linear-gradient(135deg, #0D3327 0%, #144937 55%, #0F3847 100%)',
+                                        borderColor: 'rgba(154, 217, 105, 0.30)',
+                                    }}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="space-y-1">
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/25 border border-rose-400/40 text-rose-200 text-[10px] font-black">
+                                                <span className="w-2 h-2 rounded-full bg-rose-400" />
+                                                <span>درگاه مستقیم کلاس‌های آنلاین و وبینارها</span>
+                                            </div>
+                                            <h1 className="font-black text-base text-white pt-0.5">
+                                                وبینارها و کلاس‌های آنلاین رشد
+                                            </h1>
+                                            <p className="text-[11px] text-emerald-100/85 leading-5">
+                                                از این بخش می‌توانید مستقیماً وارد اتاق‌های اسکای‌روم (Skyroom)، گوگل میت (Google Meet) و ادوبی کانکت شوید یا لینک هر جلسه را کپی کنید.
+                                            </p>
+                                        </div>
+                                        <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center shrink-0">
+                                            <Video className="w-5 h-5 text-[#D6F39A]" />
+                                        </div>
+                                    </div>
+
+                                    {/* Supported Platforms Quick Badges */}
+                                    <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                                        {[
+                                            { label: 'Skyroom · اسکای‌روم', color: '#7DD3FC' },
+                                            { label: 'Google Meet · گوگل میت', color: '#6EE7B7' },
+                                            { label: 'Adobe Connect · ادوبی کانکت', color: '#FCD34D' },
+                                            { label: 'BigBlueButton · بیگ‌بلوباتن', color: '#C4B5FD' },
+                                        ].map((pl) => (
+                                            <span
+                                                key={pl.label}
+                                                className="px-2 py-1 rounded-lg bg-black/25 border border-white/10 text-[9px] font-bold"
+                                                style={{ color: pl.color }}
+                                            >
+                                                {pl.label}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Platform & Status Filter Tabs */}
+                                <div className="flex gap-1.5 overflow-x-auto pb-1">
+                                    {(
+                                        [
+                                            { id: 'all', label: `همه (${faNum(onlineWebinars.length)})` },
+                                            { id: 'live', label: 'در حال برگزاری' },
+                                            { id: 'skyroom', label: 'اسکای‌روم (Skyroom)' },
+                                            { id: 'google_meet', label: 'گوگل میت' },
+                                            { id: 'other', label: 'ادوبی کانکت و سایر' },
+                                        ] as const
+                                    ).map((tab) => {
+                                        const active = webinarFilter === tab.id;
+                                        return (
+                                            <button
+                                                key={tab.id}
+                                                type="button"
+                                                onClick={() => setWebinarFilter(tab.id)}
+                                                className="px-3 py-1.5 rounded-xl text-[11px] font-bold shrink-0 border transition"
+                                                style={{
+                                                    backgroundColor: active
+                                                        ? colors.primary
+                                                        : colors.surface,
+                                                    color: active ? '#FFFFFF' : colors.text,
+                                                    borderColor: active
+                                                        ? colors.primary
+                                                        : colors.border,
+                                                }}
+                                            >
+                                                {tab.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Active In-App Gateway / Room Launcher Modal Card (When user clicks a webinar) */}
+                                {activeWebinarGatewayId !== null && (() => {
+                                    const selectedWb =
+                                        onlineWebinars.find((w) => w.id === activeWebinarGatewayId) ||
+                                        onlineWebinars[0];
+                                    return (
+                                        <div
+                                            className="rounded-[24px] p-4 border-2 space-y-3 relative"
+                                            style={{
+                                                background: isDark
+                                                    ? 'linear-gradient(145deg, #102B22 0%, #0D2129 100%)'
+                                                    : 'linear-gradient(145deg, #F0FDF4 0%, #E0F2FE 100%)',
+                                                borderColor: isDark ? '#34D399' : '#10B981',
+                                            }}
+                                        >
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div>
+                                                    <span className="px-2 py-0.5 rounded-md bg-emerald-500 text-white text-[9px] font-black">
+                                                        درگاه اتصال به {selectedWb.platformLabel}
+                                                    </span>
+                                                    <h3
+                                                        className="font-black text-sm mt-1"
+                                                        style={{ color: colors.text }}
+                                                    >
+                                                        {selectedWb.title}
+                                                    </h3>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setActiveWebinarGatewayId(null)}
+                                                    className="p-1 rounded-lg border"
+                                                    style={{
+                                                        backgroundColor: colors.surface,
+                                                        borderColor: colors.border,
+                                                        color: colors.muted,
+                                                    }}
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+
+                                            <div
+                                                className="p-3 rounded-2xl border space-y-2 text-xs"
+                                                style={{
+                                                    backgroundColor: colors.surface,
+                                                    borderColor: colors.border,
+                                                }}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span style={{ color: colors.muted }}>
+                                                        نام کاربری پیشنهادی ورود:
+                                                    </span>
+                                                    <span
+                                                        className="font-black"
+                                                        style={{ color: colors.text }}
+                                                    >
+                                                        {userProfile.name} ({faNum(userProfile.phone)})
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span style={{ color: colors.muted }}>
+                                                        کد اتاق / شناسه جلسه:
+                                                    </span>
+                                                    <span
+                                                        className="font-mono font-black px-2 py-0.5 rounded bg-amber-500/15 text-amber-600"
+                                                    >
+                                                        {selectedWb.roomCode}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between gap-2 pt-1 border-t" style={{ borderColor: colors.border }}>
+                                                    <span className="text-[10px] truncate" dir="ltr" style={{ color: colors.muted }}>
+                                                        {selectedWb.link}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleCopyWebinarLink(
+                                                                selectedWb.id,
+                                                                selectedWb.link,
+                                                                selectedWb.title
+                                                            )
+                                                        }
+                                                        className="text-[10px] font-black shrink-0"
+                                                        style={{ color: colors.primary }}
+                                                    >
+                                                        کپی آدرس
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <a
+                                                    href={selectedWb.link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        showToast(
+                                                            `در حال باز کردن ${selectedWb.platformLabel} برای «${selectedWb.title}»...`
+                                                        );
+                                                    }}
+                                                    className="py-2.5 px-3 rounded-xl bg-[#153F31] text-[#D6F39A] font-black text-xs inline-flex items-center justify-center gap-1.5"
+                                                >
+                                                    <ExternalLink className="w-3.5 h-3.5" />
+                                                    <span>ورود مستقیم به لینک</span>
+                                                </a>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleCopyWebinarLink(
+                                                            selectedWb.id,
+                                                            selectedWb.link,
+                                                            selectedWb.title
+                                                        )
+                                                    }
+                                                    className="py-2.5 px-3 rounded-xl border font-bold text-xs inline-flex items-center justify-center gap-1.5"
+                                                    style={{
+                                                        backgroundColor: colors.surface,
+                                                        borderColor: colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                >
+                                                    <Copy className="w-3.5 h-3.5" />
+                                                    <span>کپی لینک برای مرورگر</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Webinars & Online Classes List */}
+                                <div className="space-y-3">
+                                    {onlineWebinars
+                                        .filter((wb) => {
+                                            if (webinarFilter === 'live') return wb.status === 'live';
+                                            if (webinarFilter === 'skyroom') return wb.platform === 'skyroom';
+                                            if (webinarFilter === 'google_meet')
+                                                return wb.platform === 'google_meet';
+                                            if (webinarFilter === 'other')
+                                                return (
+                                                    wb.platform === 'adobe_connect' ||
+                                                    wb.platform === 'bigbluebutton'
+                                                );
+                                            return true;
+                                        })
+                                        .map((wb) => {
+                                            const isSkyroom = wb.platform === 'skyroom';
+                                            const isMeet = wb.platform === 'google_meet';
+                                            const isLive = wb.status === 'live';
+                                            return (
+                                                <div
+                                                    key={wb.id}
+                                                    className="rounded-[22px] border p-4 space-y-3 transition"
+                                                    style={{
+                                                        backgroundColor: colors.surface,
+                                                        borderColor: isLive
+                                                            ? isDark
+                                                                ? 'rgba(52, 211, 153, 0.45)'
+                                                                : '#34D399'
+                                                            : colors.border,
+                                                    }}
+                                                >
+                                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span
+                                                                className="px-2.5 py-1 rounded-xl text-[10px] font-black"
+                                                                style={{
+                                                                    backgroundColor: isSkyroom
+                                                                        ? isDark
+                                                                            ? 'rgba(56, 189, 248, 0.18)'
+                                                                            : '#E0F2FE'
+                                                                        : isMeet
+                                                                        ? isDark
+                                                                            ? 'rgba(52, 211, 153, 0.18)'
+                                                                            : '#DCFCE7'
+                                                                        : isDark
+                                                                        ? 'rgba(251, 191, 36, 0.18)'
+                                                                        : '#FEF3C7',
+                                                                    color: isSkyroom
+                                                                        ? isDark
+                                                                            ? '#38BDF8'
+                                                                            : '#0369A1'
+                                                                        : isMeet
+                                                                        ? isDark
+                                                                            ? '#34D399'
+                                                                            : '#15803D'
+                                                                        : isDark
+                                                                        ? '#FBBF24'
+                                                                        : '#B45309',
+                                                                }}
+                                                            >
+                                                                {wb.platformLabel}
+                                                            </span>
+                                                            {wb.isVipOnly && (
+                                                                <span className="px-2 py-0.5 rounded-lg bg-amber-400/20 text-amber-500 text-[9px] font-black inline-flex items-center gap-1">
+                                                                    <Crown className="w-2.5 h-2.5" />
+                                                                    <span>ویژه دوره VIP</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        <span
+                                                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
+                                                                isLive
+                                                                    ? 'bg-rose-500/15 text-rose-500'
+                                                                    : wb.status === 'upcoming'
+                                                                    ? 'bg-emerald-500/15 text-emerald-600'
+                                                                    : 'bg-stone-500/15 text-stone-500'
+                                                            }`}
+                                                        >
+                                                            {isLive && (
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                                            )}
+                                                            <span>
+                                                                {isLive
+                                                                    ? `زنده · ${faNum(wb.participantsCount)} نفر آنلاین`
+                                                                    : wb.status === 'upcoming'
+                                                                    ? 'در انتظار برگزاری'
+                                                                    : 'ضبط‌شده (بازپخش)'}
+                                                            </span>
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="space-y-1">
+                                                        <h2
+                                                            className="font-black text-sm leading-6"
+                                                            style={{ color: colors.text }}
+                                                        >
+                                                            {wb.title}
+                                                        </h2>
+                                                        <div
+                                                            className="text-xs font-medium"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            {wb.instructor}
+                                                        </div>
+                                                    </div>
+
+                                                    <div
+                                                        className="p-2.5 rounded-2xl border space-y-1.5 text-[11px]"
+                                                        style={{
+                                                            backgroundColor: colors.surfaceAlt,
+                                                            borderColor: colors.border,
+                                                        }}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <span
+                                                                className="inline-flex items-center gap-1 font-bold"
+                                                                style={{ color: colors.text }}
+                                                            >
+                                                                <Calendar className="w-3.5 h-3.5" style={{ color: colors.primary }} />
+                                                                <span>{wb.date}</span>
+                                                            </span>
+                                                            <span
+                                                                className="inline-flex items-center gap-1 font-bold"
+                                                                style={{ color: colors.muted }}
+                                                            >
+                                                                <Clock className="w-3.5 h-3.5" />
+                                                                <span>{wb.time}</span>
+                                                            </span>
+                                                        </div>
+                                                        <div
+                                                            className="text-[10px] pt-1 border-t flex items-center justify-between gap-2"
+                                                            style={{
+                                                                borderColor: colors.border,
+                                                                color: colors.muted,
+                                                            }}
+                                                        >
+                                                            <span>{wb.accessHint}</span>
+                                                            <span className="font-mono font-bold text-[10px]" style={{ color: colors.primary }}>
+                                                                {wb.roomCode}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Link Preview & Direct Entry Buttons */}
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setActiveWebinarGatewayId(wb.id);
+                                                                showToast(
+                                                                    `درگاه ورود به «${wb.platformLabel}» آماده شد.`
+                                                                );
+                                                            }}
+                                                            className="flex-1 py-2.5 px-3 rounded-xl bg-[#153F31] text-white font-black text-xs inline-flex items-center justify-center gap-1.5 shadow-xs active:scale-[0.99] transition"
+                                                        >
+                                                            <ExternalLink className="w-3.5 h-3.5 text-[#D6F39A]" />
+                                                            <span>
+                                                                ورود به {isSkyroom ? 'اسکای‌روم' : isMeet ? 'گوگل میت' : 'اتاق آنلاین'}
+                                                            </span>
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleCopyWebinarLink(
+                                                                    wb.id,
+                                                                    wb.link,
+                                                                    wb.title
+                                                                )
+                                                            }
+                                                            className="py-2.5 px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 shrink-0"
+                                                            style={{
+                                                                backgroundColor: colors.surfaceAlt,
+                                                                borderColor: colors.border,
+                                                                color: colors.text,
+                                                            }}
+                                                        >
+                                                            {copiedWebinarId === wb.id ? (
+                                                                <>
+                                                                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                                                    <span>کپی شد</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Copy className="w-3.5 h-3.5" />
+                                                                    <span>کپی لینک</span>
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+
+                                {/* Add New Online Class / Webinar Link Box (For Instructor / Admin or Testing) */}
+                                <div
+                                    className="rounded-[24px] border p-4 space-y-3"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Plus className="w-4 h-4" style={{ color: colors.primary }} />
+                                            <h3
+                                                className="font-black text-xs"
+                                                style={{ color: colors.text }}
+                                            >
+                                                افزودن لینک وبینار یا کلاس آنلاین جدید (پنل مدرس / ادمین)
+                                            </h3>
+                                        </div>
+                                        <span
+                                            className="text-[10px] font-bold px-2 py-0.5 rounded-lg"
+                                            style={{
+                                                backgroundColor: colors.primarySoft,
+                                                color: colors.primary,
+                                            }}
+                                        >
+                                            اسکای‌روم و سایر پلتفرم‌ها
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-2.5">
+                                        <input
+                                            type="text"
+                                            value={newWebinarTitle}
+                                            onChange={(e) => setNewWebinarTitle(e.target.value)}
+                                            placeholder="عنوان وبینار یا کلاس آنلاین (مثلاً: کارگاه آنلاین اسکای‌روم فصل ۳)..."
+                                            className="w-full rounded-xl border px-3 py-2 text-xs font-bold outline-none"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                                color: colors.text,
+                                            }}
+                                        />
+
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <select
+                                                value={newWebinarPlatform}
+                                                onChange={(e) =>
+                                                    setNewWebinarPlatform(
+                                                        e.target.value as
+                                                            | 'skyroom'
+                                                            | 'google_meet'
+                                                            | 'adobe_connect'
+                                                            | 'bigbluebutton'
+                                                    )
+                                                }
+                                                className="rounded-xl border px-2.5 py-2 text-xs font-bold outline-none"
+                                                style={{
+                                                    backgroundColor: colors.surfaceAlt,
+                                                    borderColor: colors.border,
+                                                    color: colors.text,
+                                                }}
+                                            >
+                                                <option value="skyroom">اسکای‌روم (Skyroom)</option>
+                                                <option value="google_meet">گوگل میت (Google Meet)</option>
+                                                <option value="adobe_connect">ادوبی کانکت (Adobe Connect)</option>
+                                                <option value="bigbluebutton">بیگ‌بلوباتن (BigBlueButton)</option>
+                                            </select>
+
+                                            <input
+                                                type="text"
+                                                value={newWebinarInstructor}
+                                                onChange={(e) => setNewWebinarInstructor(e.target.value)}
+                                                placeholder="نام مدرس وبینار..."
+                                                className="rounded-xl border px-3 py-2 text-xs font-bold outline-none"
+                                                style={{
+                                                    backgroundColor: colors.surfaceAlt,
+                                                    borderColor: colors.border,
+                                                    color: colors.text,
+                                                }}
+                                            />
+                                        </div>
+
+                                        <input
+                                            type="url"
+                                            dir="ltr"
+                                            value={newWebinarLink}
+                                            onChange={(e) => setNewWebinarLink(e.target.value)}
+                                            placeholder="https://www.skyroom.online/ch/roshd-academy/..."
+                                            className="w-full rounded-xl border px-3 py-2 text-xs outline-none text-left"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                                color: colors.text,
+                                            }}
+                                        />
+
+                                        <input
+                                            type="text"
+                                            value={newWebinarDateTime}
+                                            onChange={(e) => setNewWebinarDateTime(e.target.value)}
+                                            placeholder="زمان برگزاری (مثلاً: پنج‌شنبه ۱۸ اردیبهشت · ساعت ۱۸:۰۰)"
+                                            className="w-full rounded-xl border px-3 py-2 text-xs outline-none"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                                color: colors.text,
+                                            }}
+                                        />
+
+                                        <button
+                                            type="button"
+                                            onClick={handleAddWebinar}
+                                            className="w-full py-2.5 rounded-xl bg-[#153F31] text-[#D6F39A] font-black text-xs inline-flex items-center justify-center gap-1.5"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            <span>ثبت و انتشار لینک کلاس آنلاین</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeScreen === 'goals' && (
+                            <div className="space-y-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveScreen('dashboard')}
+                                    className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                    style={{ color: colors.primary }}
+                                >
+                                    <ArrowRight className="w-4 h-4" />
+                                    <span>بازگشت به رشد من</span>
+                                </button>
+                                <h1
+                                    className="font-black text-xl"
+                                    style={{ color: colors.text }}
+                                >
+                                    هدف‌ها و گواهینامه‌ها
+                                </h1>
+                                <div
+                                    className="rounded-[22px] border p-4 space-y-3"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Award className="w-5 h-5" style={{ color: colors.primary }} />
+                                        <div
+                                            className="font-bold text-sm"
+                                            style={{ color: colors.text }}
+                                        >
+                                            تکمیل پروژه‌های کارگاه طراحی آینده نوجوان
+                                        </div>
+                                    </div>
+                                    <div
+                                        className="h-2 rounded-full overflow-hidden"
+                                        style={{ backgroundColor: colors.surfaceAlt }}
+                                    >
+                                        <div
+                                            className="h-full rounded-full"
+                                            style={{
+                                                width: '75%',
+                                                backgroundColor: colors.primary,
+                                            }}
+                                        />
+                                    </div>
+                                    <div
+                                        className="text-xs"
+                                        style={{ color: colors.muted }}
+                                    >
+                                        ۷۵٪ پیشرفت · گواهی VIP در پایان دوره
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeScreen === 'reminders' && (
+                            <div className="space-y-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveScreen('dashboard')}
+                                    className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                    style={{ color: colors.primary }}
+                                >
+                                    <ArrowRight className="w-4 h-4" />
+                                    <span>بازگشت به رشد من</span>
+                                </button>
+                                <h1
+                                    className="font-black text-xl"
+                                    style={{ color: colors.text }}
+                                >
+                                    یادآوری‌های هوشمند کلاس‌ها
+                                </h1>
+                                <div className="space-y-3">
+                                    {reminders.map((r) => (
+                                        <div
+                                            key={r.id}
+                                            onClick={() => toggleReminder(r.id)}
+                                            className="rounded-[22px] border p-4 flex items-center justify-between cursor-pointer"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div
+                                                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                                                    style={{ backgroundColor: colors.primarySoft }}
+                                                >
+                                                    <Bell
+                                                        className="w-4 h-4"
+                                                        style={{ color: colors.primary }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <div
+                                                        className="font-bold text-sm"
+                                                        style={{ color: colors.text }}
+                                                    >
+                                                        {r.title}
+                                                    </div>
+                                                    <div
+                                                        className="text-xs mt-1"
+                                                        style={{ color: colors.muted }}
+                                                    >
+                                                        ساعت {r.time} · {r.days}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div
+                                                className="px-3 py-1 rounded-full text-xs font-bold"
+                                                style={{
+                                                    backgroundColor: r.enabled
+                                                        ? colors.primarySoft
+                                                        : colors.surfaceAlt,
+                                                    color: r.enabled
+                                                        ? colors.primary
+                                                        : colors.muted,
+                                                }}
+                                            >
+                                                {r.enabled ? 'فعال' : 'غیرفعال'}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeScreen === 'support' && (
+                            <div className="space-y-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveScreen('dashboard')}
+                                    className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                    style={{ color: colors.primary }}
+                                >
+                                    <ArrowRight className="w-4 h-4" />
+                                    <span>بازگشت به رشد من</span>
+                                </button>
+                                <h1
+                                    className="font-black text-xl"
+                                    style={{ color: colors.text }}
+                                >
+                                    تیکت و پشتیبانی
+                                </h1>
+                                <div
+                                    className="rounded-[22px] border p-4 flex items-center justify-between gap-3"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div
+                                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                                            style={{ backgroundColor: colors.primarySoft }}
+                                        >
+                                            <MessageCircle
+                                                className="w-5 h-5"
+                                                style={{ color: colors.primary }}
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div
+                                                className="font-bold text-sm"
+                                                style={{ color: colors.text }}
+                                            >
+                                                هماهنگی حضور در کارگاه سه‌شنبه طراحی آینده نوجوان
+                                            </div>
+                                            <div
+                                                className="text-xs"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                پاسخ داده شده توسط پشتیبانی رشد
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => openCourseSupportChat()}
+                                        className="px-3 py-1.5 rounded-xl bg-[#153F31] text-white text-[11px] font-bold shrink-0"
+                                    >
+                                        ورود به چت پشتیبانی
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ==================== PROFILE SCREEN (حساب من — کارنامه شخصی، پرونده استعدادیابی، تنظیمات و شخصی‌سازی) ==================== */}
+                        {activeScreen === 'profile' && (
+                            <div className="space-y-4">
+                                {/* 1. PERSONAL IDENTITY CARD, LEVEL PROGRESS, 3 KEY STATS & EDIT CONTROLS (بدون QR) */}
+                                <div
+                                    className="rounded-[26px] p-5 text-white relative overflow-hidden border"
+                                    style={{
+                                        background: isVipEnrolled
+                                            ? 'linear-gradient(135deg, #10382B 0%, #174938 60%, #1F5B46 100%)'
+                                            : 'linear-gradient(135deg, #153F31 0%, #1E5240 100%)',
+                                        borderColor: isVipEnrolled ? '#F59E0B' : colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3.5 min-w-0">
+                                            <div className="relative shrink-0">
+                                                <img
+                                                    src="/images/roshd-logo.png"
+                                                    alt={userProfile.name}
+                                                    className="w-15 h-15 rounded-2xl object-cover border-2"
+                                                    style={{
+                                                        borderColor: isVipEnrolled
+                                                            ? '#FBBF24'
+                                                            : 'rgba(255,255,255,0.25)',
+                                                    }}
+                                                />
+                                                {isVipEnrolled && (
+                                                    <span
+                                                        className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-400 text-[#0D2E22] flex items-center justify-center shadow"
+                                                        title="عضو رسمی VIP"
+                                                    >
+                                                        <Crown className="w-3.5 h-3.5" />
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <h1 className="font-black text-base text-white truncate">
+                                                        {userProfile.name}
+                                                    </h1>
+                                                    <span className="text-[11px] text-[#D6F39A] font-bold">
+                                                        {isVipEnrolled
+                                                            ? `کد دانش‌پذیری: ${userProfile.studentCode}`
+                                                            : 'کاربر آکادمی رشد'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-emerald-100/90 mt-0.5 truncate">
+                                                    {userProfile.gradeAndField} · {userProfile.city}
+                                                </p>
+                                                <p className="text-[11px] text-amber-300/95 font-bold mt-1">
+                                                    کارنامه رشد شخصی، تنظیمات و شخصی‌سازی حساب
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Quick Action Button: Profile Edit */}
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                            <button
+                                                type="button"
+                                                aria-label="ویرایش مشخصات"
+                                                onClick={() => {
+                                                    setProfileDraft({
+                                                        name: userProfile.name,
+                                                        gradeAndField: userProfile.gradeAndField,
+                                                        city: userProfile.city,
+                                                        phone: userProfile.phone,
+                                                        parentPhone: userProfile.parentPhone,
+                                                        bio: userProfile.bio,
+                                                    });
+                                                    setProfileError(null);
+                                                    setIsEditingProfile((prev) => !prev);
+                                                }}
+                                                className="px-3 h-9 rounded-xl bg-white/15 hover:bg-white/25 text-white text-[11px] font-bold flex items-center gap-1.5 transition"
+                                            >
+                                                {isEditingProfile ? (
+                                                    <>
+                                                        <X className="w-3.5 h-3.5" />
+                                                        <span>بستن</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Edit3 className="w-3.5 h-3.5" />
+                                                        <span>ویرایش</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Level & XP Progress Bar */}
+                                    <div className="mt-4 pt-3.5 border-t border-white/15">
+                                        <div className="flex items-center justify-between text-xs mb-1.5">
+                                            <span className="font-black text-[#D6F39A] inline-flex items-center gap-1.5">
+                                                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                                                <span>
+                                                    سطح {faNum(userProfile.levelNumber)}: {userProfile.levelTitle}
+                                                </span>
+                                            </span>
+                                            <span className="text-[11px] text-emerald-100">
+                                                {faNum(userProfile.xp)} از {faNum(userProfile.nextLevelXp)} امتیاز رشد ({faNum(levelProgressPercent)}٪)
+                                            </span>
+                                        </div>
+                                        <div className="w-full h-2 rounded-full bg-black/25 overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-gradient-to-l from-amber-400 to-[#D6F39A] transition-all duration-300"
+                                                style={{ width: `${levelProgressPercent}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* 3 Key Metrics */}
+                                    <div className="grid grid-cols-3 gap-2 mt-4">
+                                        <div className="rounded-2xl bg-white/10 px-3 py-2.5 text-center">
+                                            <div className="font-black text-sm text-white">
+                                                {faNum(userProfile.learningHours)} ساعت
+                                            </div>
+                                            <div className="text-[10px] text-emerald-100/80 mt-0.5">
+                                                ساعت آموزش
+                                            </div>
+                                        </div>
+                                        <div className="rounded-2xl bg-white/10 px-3 py-2.5 text-center">
+                                            <div className="font-black text-sm text-amber-300">
+                                                {faNum(userProfile.attendanceRate)}٪ حضور
+                                            </div>
+                                            <div className="text-[10px] text-emerald-100/80 mt-0.5">
+                                                نظم کلاس VIP
+                                            </div>
+                                        </div>
+                                        <div className="rounded-2xl bg-white/10 px-3 py-2.5 text-center">
+                                            <div className="font-black text-sm text-[#D6F39A]">
+                                                {faNum(userProfile.badgesCount)} دستاورد
+                                            </div>
+                                            <div className="text-[10px] text-emerald-100/80 mt-0.5">
+                                                نشان و گواهینامه
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* PERSONALIZATION & APPEARANCE BAR (شخصی‌سازی ظاهر و دسترسی سریع به رشد من) */}
+                                <div
+                                    className="rounded-[22px] border p-3.5 flex items-center justify-between gap-2"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                        <div
+                                            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                                            style={{
+                                                backgroundColor: colors.primarySoft,
+                                                color: colors.primary,
+                                            }}
+                                        >
+                                            {isDark ? (
+                                                <Moon className="w-4 h-4" />
+                                            ) : (
+                                                <Sun className="w-4 h-4" />
+                                            )}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div
+                                                className="font-black text-xs"
+                                                style={{ color: colors.text }}
+                                            >
+                                                شخصی‌سازی پوسته اپلیکیشن
+                                            </div>
+                                            <div
+                                                className="text-[10px]"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                حالت فعلی: {isDark ? 'پوسته تیره (شب)' : 'پوسته روشن (روز)'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsDark((d) => !d)}
+                                            className="px-3 py-1.5 rounded-xl border text-[11px] font-bold"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                                color: colors.text,
+                                            }}
+                                        >
+                                            تغییر به {isDark ? 'روشن' : 'تیره'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('dashboard')}
+                                            className="px-2.5 py-1.5 rounded-xl bg-[#153F31] text-white text-[11px] font-bold"
+                                        >
+                                            رشد من
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* INLINE PROFILE EDITOR FORM */}
+                                {isEditingProfile && (
+                                    <div
+                                        className="rounded-[24px] border p-4 space-y-3"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <h2
+                                                className="font-black text-sm"
+                                                style={{ color: colors.text }}
+                                            >
+                                                ویرایش مشخصات فردی و پرونده نوجوان
+                                            </h2>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditingProfile(false)}
+                                                className="text-xs font-bold"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                انصراف
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                            <label className="block space-y-1">
+                                                <span
+                                                    className="text-[11px] font-bold"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    نام و نام خانوادگی
+                                                </span>
+                                                <input
+                                                    type="text"
+                                                    value={profileDraft.name}
+                                                    onChange={(e) =>
+                                                        setProfileDraft((p) => ({
+                                                            ...p,
+                                                            name: e.target.value,
+                                                        }))
+                                                    }
+                                                    className="w-full rounded-xl border px-3 py-2 text-xs font-bold outline-none"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        borderColor: colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                />
+                                            </label>
+                                            <label className="block space-y-1">
+                                                <span
+                                                    className="text-[11px] font-bold"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    پایه تحصیلی و گرایش
+                                                </span>
+                                                <input
+                                                    type="text"
+                                                    value={profileDraft.gradeAndField}
+                                                    onChange={(e) =>
+                                                        setProfileDraft((p) => ({
+                                                            ...p,
+                                                            gradeAndField: e.target.value,
+                                                        }))
+                                                    }
+                                                    className="w-full rounded-xl border px-3 py-2 text-xs font-bold outline-none"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        borderColor: colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                />
+                                            </label>
+                                            <label className="block space-y-1">
+                                                <span
+                                                    className="text-[11px] font-bold"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    شهر محل سکونت
+                                                </span>
+                                                <input
+                                                    type="text"
+                                                    value={profileDraft.city}
+                                                    onChange={(e) =>
+                                                        setProfileDraft((p) => ({
+                                                            ...p,
+                                                            city: e.target.value,
+                                                        }))
+                                                    }
+                                                    className="w-full rounded-xl border px-3 py-2 text-xs font-bold outline-none"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        borderColor: colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                />
+                                            </label>
+                                            <label className="block space-y-1">
+                                                <span
+                                                    className="text-[11px] font-bold"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    شماره موبایل دانش‌پذیر
+                                                </span>
+                                                <input
+                                                    type="tel"
+                                                    value={profileDraft.phone}
+                                                    onChange={(e) =>
+                                                        setProfileDraft((p) => ({
+                                                            ...p,
+                                                            phone: e.target.value,
+                                                        }))
+                                                    }
+                                                    className="w-full rounded-xl border px-3 py-2 text-xs font-bold outline-none"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        borderColor: colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                />
+                                            </label>
+                                        </div>
+
+                                        <label className="block space-y-1">
+                                            <span
+                                                className="text-[11px] font-bold"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                شماره همراه والدین (جهت دریافت پیامک حضور و کارنامه هفتگی)
+                                            </span>
+                                            <input
+                                                type="tel"
+                                                value={profileDraft.parentPhone}
+                                                onChange={(e) =>
+                                                    setProfileDraft((p) => ({
+                                                        ...p,
+                                                        parentPhone: e.target.value,
+                                                    }))
+                                                }
+                                                className="w-full rounded-xl border px-3 py-2 text-xs font-bold outline-none"
+                                                style={{
+                                                    backgroundColor: colors.surfaceAlt,
+                                                    borderColor: colors.border,
+                                                    color: colors.text,
+                                                }}
+                                            />
+                                        </label>
+
+                                        <label className="block space-y-1">
+                                            <span
+                                                className="text-[11px] font-bold"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                هدف و معرفی کوتاه من
+                                            </span>
+                                            <textarea
+                                                rows={2}
+                                                value={profileDraft.bio}
+                                                onChange={(e) =>
+                                                    setProfileDraft((p) => ({
+                                                        ...p,
+                                                        bio: e.target.value,
+                                                    }))
+                                                }
+                                                className="w-full rounded-xl border px-3 py-2 text-xs outline-none resize-none"
+                                                style={{
+                                                    backgroundColor: colors.surfaceAlt,
+                                                    borderColor: colors.border,
+                                                    color: colors.text,
+                                                }}
+                                            />
+                                        </label>
+
+                                        {profileError && (
+                                            <div className="text-xs font-bold text-red-600">
+                                                {profileError}
+                                            </div>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveProfile}
+                                            className="w-full py-2.5 rounded-xl bg-[#153F31] text-white font-black text-xs hover:opacity-95 transition"
+                                        >
+                                            ذخیره تغییرات پروفایل
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* 2. TEEN TALENT DOSSIER, COACH FEEDBACK & PARENT REPORT PANEL */}
+                                <div
+                                    className="rounded-[24px] border p-4 space-y-4"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className="w-8 h-8 rounded-xl flex items-center justify-center"
+                                                style={{ backgroundColor: colors.primarySoft }}
+                                            >
+                                                <Compass
+                                                    className="w-4 h-4"
+                                                    style={{ color: colors.primary }}
+                                                />
+                                            </span>
+                                            <div>
+                                                <h2
+                                                    className="font-black text-sm"
+                                                    style={{ color: colors.text }}
+                                                >
+                                                    پرونده استعدادیابی نوجوان و بازخورد کوچ
+                                                </h2>
+                                                <p
+                                                    className="text-[11px]"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    ارزیابی اختصاصی کارگاه‌های طراحی آینده نوجوان
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {isVipEnrolled && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setActiveScreen('vipClub')}
+                                                className="text-[11px] font-bold"
+                                                style={{ color: colors.primary }}
+                                            >
+                                                برنامه کلاس‌ها
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* 3 Talent Dimensions */}
+                                    <div className="space-y-2.5">
+                                        {talentDimensions.map((dim) => (
+                                            <div key={dim.id} className="space-y-1">
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span
+                                                        className="font-bold"
+                                                        style={{ color: colors.text }}
+                                                    >
+                                                        {dim.title}
+                                                    </span>
+                                                    <span
+                                                        className="font-black"
+                                                        style={{ color: colors.primary }}
+                                                    >
+                                                        {faNum(dim.score)}٪
+                                                    </span>
+                                                </div>
+                                                <div
+                                                    className="w-full h-1.5 rounded-full overflow-hidden"
+                                                    style={{ backgroundColor: colors.surfaceAlt }}
+                                                >
+                                                    <div
+                                                        className="h-full rounded-full bg-[#153F31]"
+                                                        style={{ width: `${dim.score}%` }}
+                                                    />
+                                                </div>
+                                                <p
+                                                    className="text-[11px]"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    {dim.summary}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Latest Coach Feedback Box */}
+                                    <div
+                                        className="rounded-2xl p-3.5 space-y-1.5"
+                                        style={{ backgroundColor: colors.surfaceAlt }}
+                                    >
+                                        <div className="flex items-center justify-between text-[11px]">
+                                            <span
+                                                className="font-black"
+                                                style={{ color: colors.primary }}
+                                            >
+                                                آخرین بازخورد اختصاصی مدرس دوره
+                                            </span>
+                                            <span style={{ color: colors.muted }}>
+                                                استاد سارا درس · کارگاه چهارم
+                                            </span>
+                                        </div>
+                                        <p
+                                            className="text-xs leading-relaxed"
+                                            style={{ color: colors.text }}
+                                        >
+                                            «{userProfile.name} در کارگاه ترسیم بوم نقشه راه ۹۰ روزه تمرکز و قدرت تحلیل بسیار خوبی نشان داد. پیشنهاد می‌کنم تمرین گفت‌وگو با خانواده درباره هدف‌های تابستان را این هفته تکمیل کند.»
+                                        </p>
+                                    </div>
+
+                                    {/* Parent Coordination & Weekly Report Status */}
+                                    <div
+                                        className="pt-3 border-t space-y-2.5"
+                                        style={{ borderColor: colors.border }}
+                                    >
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <div
+                                                    className="font-bold text-xs flex items-center gap-1.5"
+                                                    style={{ color: colors.text }}
+                                                >
+                                                    <Phone
+                                                        className="w-3.5 h-3.5"
+                                                        style={{ color: colors.primary }}
+                                                    />
+                                                    <span>گزارش هفتگی والدین ({faNum(userProfile.parentPhone)})</span>
+                                                </div>
+                                                <div
+                                                    className="text-[11px] mt-0.5"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    آخرین ارسال: {userProfile.lastParentReportSentAt}
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                aria-label="ارسال خودکار گزارش هفتگی به والدین"
+                                                onClick={() => {
+                                                    setUserProfile((prev) => ({
+                                                        ...prev,
+                                                        parentWeeklyReportEnabled:
+                                                            !prev.parentWeeklyReportEnabled,
+                                                    }));
+                                                    showToast(
+                                                        !userProfile.parentWeeklyReportEnabled
+                                                            ? 'ارسال خودکار کارنامه هفتگی به والدین فعال شد.'
+                                                            : 'ارسال خودکار کارنامه هفتگی به والدین متوقف شد.'
+                                                    );
+                                                }}
+                                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                                                    userProfile.parentWeeklyReportEnabled
+                                                        ? 'bg-emerald-700 text-white'
+                                                        : 'bg-stone-200 text-stone-700'
+                                                }`}
+                                            >
+                                                {userProfile.parentWeeklyReportEnabled
+                                                    ? 'ارسال خودکار: فعال'
+                                                    : 'ارسال خودکار: غیرفعال'}
+                                            </button>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={handleSendParentReport}
+                                            className="w-full py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition hover:opacity-85"
+                                            style={{
+                                                borderColor: colors.border,
+                                                color: colors.primary,
+                                                backgroundColor: colors.primarySoft,
+                                            }}
+                                        >
+                                            <Send className="w-3.5 h-3.5" />
+                                            <span>ارسال کارنامه این هفته به والدین</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* 3. DIGITAL WALLET, ORDERS & INVOICES */}
+                                <div
+                                    className="rounded-[24px] border p-4 space-y-4"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className="w-8 h-8 rounded-xl flex items-center justify-center"
+                                                style={{ backgroundColor: colors.primarySoft }}
+                                            >
+                                                <Wallet
+                                                    className="w-4 h-4"
+                                                    style={{ color: colors.primary }}
+                                                />
+                                            </span>
+                                            <div>
+                                                <h2
+                                                    className="font-black text-sm"
+                                                    style={{ color: colors.text }}
+                                                >
+                                                    کیف پول دیجیتال و تاریخچه سفارش‌ها
+                                                </h2>
+                                                <p
+                                                    className="text-[11px]"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    اعتبار هدیه باشگاه: {formatPrice(userProfile.giftCredit)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-left">
+                                            <div
+                                                className="font-black text-sm"
+                                                style={{ color: colors.primary }}
+                                            >
+                                                {formatPrice(userProfile.walletBalance)}
+                                            </div>
+                                            <div
+                                                className="text-[10px]"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                موجودی قابل استفاده
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Quick Top-Up Buttons */}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleWalletTopUp(200000)}
+                                            className="py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition hover:opacity-85"
+                                            style={{
+                                                borderColor: colors.border,
+                                                backgroundColor: colors.surfaceAlt,
+                                                color: colors.text,
+                                            }}
+                                        >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            <span>شارژ ۲۰۰٬۰۰۰ تومان</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleWalletTopUp(500000)}
+                                            className="py-2 px-3 rounded-xl bg-[#153F31] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition hover:opacity-90"
+                                        >
+                                            <CreditCard className="w-3.5 h-3.5" />
+                                            <span>شارژ ۵۰۰٬۰۰۰ تومان</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Orders & Invoices List */}
+                                    <div
+                                        className="pt-3 border-t space-y-2.5"
+                                        style={{ borderColor: colors.border }}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span
+                                                className="font-bold text-xs flex items-center gap-1.5"
+                                                style={{ color: colors.text }}
+                                            >
+                                                <Receipt
+                                                    className="w-3.5 h-3.5"
+                                                    style={{ color: colors.primary }}
+                                                />
+                                                <span>سفارش‌ها و فاکتورهای من ({faNum(walletOrders.length)})</span>
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAllOrders((prev) => !prev)}
+                                                className="text-[11px] font-bold"
+                                                style={{ color: colors.primary }}
+                                            >
+                                                {showAllOrders ? 'نمایش خلاصه' : 'مشاهده همه فاکتورها'}
+                                            </button>
+                                        </div>
+
+                                        <div className="divide-y" style={{ borderColor: colors.border }}>
+                                            {(showAllOrders
+                                                ? walletOrders
+                                                : walletOrders.slice(0, 2)
+                                            ).map((order) => (
+                                                <div
+                                                    key={order.id}
+                                                    className="py-2.5 flex items-center justify-between gap-2"
+                                                >
+                                                    <div className="min-w-0">
+                                                        <div
+                                                            className="font-bold text-xs truncate"
+                                                            style={{ color: colors.text }}
+                                                        >
+                                                            {order.title}
+                                                        </div>
+                                                        <div
+                                                            className="text-[11px] mt-0.5"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            {order.category} · {order.date} · {order.invoiceCode}
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-left shrink-0">
+                                                        <div
+                                                            className="font-black text-xs"
+                                                            style={{ color: colors.text }}
+                                                        >
+                                                            {formatPrice(order.amount)}
+                                                        </div>
+                                                        <div className="text-[10px] text-emerald-700 font-bold">
+                                                            پرداخت موفق
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 4. CERTIFICATES SHOWCASE, BADGES & GROWTH REPORT CARD */}
+                                <div
+                                    className="rounded-[24px] border p-4 space-y-4"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className="w-8 h-8 rounded-xl flex items-center justify-center"
+                                                style={{ backgroundColor: colors.primarySoft }}
+                                            >
+                                                <Award
+                                                    className="w-4 h-4"
+                                                    style={{ color: colors.primary }}
+                                                />
+                                            </span>
+                                            <div>
+                                                <h2
+                                                    className="font-black text-sm"
+                                                    style={{ color: colors.text }}
+                                                >
+                                                    ویترین گواهینامه‌ها، نشان‌های افتخار و کارنامه
+                                                </h2>
+                                                <p
+                                                    className="text-[11px]"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    دستاوردهای ثبت‌شده در مسیر رشد نوجوان
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('dashboard')}
+                                            className="text-[11px] font-bold inline-flex items-center gap-1"
+                                            style={{ color: colors.primary }}
+                                        >
+                                            <TrendingUp className="w-3.5 h-3.5" />
+                                            <span>کارنامه رشد</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Badges Grid */}
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {earnedBadges.map((badge, idx) => {
+                                            const BadgeIcon =
+                                                idx === 0 ? Crown : idx === 1 ? Compass : Flame;
+                                            return (
+                                                <div
+                                                    key={badge.id}
+                                                    className="rounded-2xl p-2.5 text-center space-y-1"
+                                                    style={{ backgroundColor: colors.surfaceAlt }}
+                                                >
+                                                    <div
+                                                        className="w-8 h-8 rounded-xl mx-auto flex items-center justify-center"
+                                                        style={{ backgroundColor: colors.primarySoft }}
+                                                    >
+                                                        <BadgeIcon
+                                                            className="w-4 h-4"
+                                                            style={{ color: colors.primary }}
+                                                        />
+                                                    </div>
+                                                    <div
+                                                        className="font-black text-[11px] leading-tight"
+                                                        style={{ color: colors.text }}
+                                                    >
+                                                        {badge.title}
+                                                    </div>
+                                                    <div
+                                                        className="text-[10px] leading-tight"
+                                                        style={{ color: colors.muted }}
+                                                    >
+                                                        {badge.earnedDate}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Official Certificate Item */}
+                                    <div
+                                        className="rounded-2xl p-3.5 flex items-center justify-between gap-3"
+                                        style={{ backgroundColor: colors.surfaceAlt }}
+                                    >
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="w-9 h-9 rounded-xl bg-amber-400/20 text-amber-700 flex items-center justify-center shrink-0">
+                                                <FileText className="w-4 h-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div
+                                                    className="font-bold text-xs truncate"
+                                                    style={{ color: colors.text }}
+                                                >
+                                                    گواهینامه مرحله اول طراحی آینده نوجوان
+                                                </div>
+                                                <div
+                                                    className="text-[11px]"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    صادرشده با مهر رسمی آکادمی رشد · کد ثبت ۴۰۴۱۲
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowCertPreviewModal((prev) => !prev)
+                                            }
+                                            className="px-3 py-1.5 rounded-xl bg-[#153F31] text-white text-[11px] font-bold shrink-0"
+                                        >
+                                            {showCertPreviewModal ? 'بستن گواهی' : 'مشاهده گواهی'}
+                                        </button>
+                                    </div>
+
+                                    {showCertPreviewModal && (
+                                        <div className="rounded-2xl border-2 border-amber-400/70 bg-[#FAF7EE] p-4 text-center space-y-2 text-[#13241D]">
+                                            <div className="inline-flex items-center gap-1.5 text-amber-700 font-black text-xs">
+                                                <Award className="w-4 h-4" />
+                                                <span>گواهینامه رسمی آکادمی رشد</span>
+                                            </div>
+                                            <div className="font-black text-sm">
+                                                بدین‌وسیله گواهی می‌شود دانش‌پذیر گرامی «{userProfile.name}»
+                                            </div>
+                                            <p className="text-xs text-stone-600 leading-relaxed">
+                                                فاز نخست کارگاه‌های عملی «طراحی آینده نوجوان» (خودشناسی، استعدادیابی و هدف‌گذاری ۹۰ روزه) را با موفقیت و نظم حضور {faNum(userProfile.attendanceRate)}٪ به پایان رسانده است.
+                                            </p>
+                                            <div className="text-[11px] font-bold text-emerald-800 pt-1">
+                                                شماره گواهینامه: ROSHD-CERT-40412 · تاییدشده توسط استاد سارا درس
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 5. SMART SMS REMINDER SETTINGS & REFERRAL CLUB */}
+                                <div
+                                    className="rounded-[24px] border p-4 space-y-4"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className="w-8 h-8 rounded-xl flex items-center justify-center"
+                                                style={{ backgroundColor: colors.primarySoft }}
+                                            >
+                                                <Bell
+                                                    className="w-4 h-4"
+                                                    style={{ color: colors.primary }}
+                                                />
+                                            </span>
+                                            <div>
+                                                <h2
+                                                    className="font-black text-sm"
+                                                    style={{ color: colors.text }}
+                                                >
+                                                    تنظیمات پیامک یادآور کلاس‌ها و اعلان‌ها
+                                                </h2>
+                                                <p
+                                                    className="text-[11px]"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    هماهنگی خودکار کارگاه‌های حضوری و جلسات آنلاین
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('reminders')}
+                                            className="text-[11px] font-bold"
+                                            style={{ color: colors.primary }}
+                                        >
+                                            زمان‌بندی دقیق
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        {[
+                                            {
+                                                key: 'classSmsTwoHoursBefore' as const,
+                                                label: 'پیامک یادآور ۲ ساعت قبل از کلاس حضوری و آنلاین',
+                                                sub: `ارسال به شماره ${faNum(userProfile.phone)}`,
+                                            },
+                                            {
+                                                key: 'parentAttendanceSms' as const,
+                                                label: 'ارسال پیامک ثبت حضور و غیاب کارگاه به والدین',
+                                                sub: `ارسال به شماره ${faNum(userProfile.parentPhone)}`,
+                                            },
+                                            {
+                                                key: 'dailyGoalAndHomeworkPush' as const,
+                                                label: 'یادآور تمرین‌های هفتگی و ژورنال هدف‌گذاری',
+                                                sub: 'اعلان هوشمند درون‌برنامه‌ای ساعت ۲۱:۰۰',
+                                            },
+                                        ].map((item) => {
+                                            const active = notifSettings[item.key];
+                                            return (
+                                                <div
+                                                    key={item.key}
+                                                    className="flex items-center justify-between gap-3 py-2"
+                                                >
+                                                    <div className="min-w-0">
+                                                        <div
+                                                            className="font-bold text-xs"
+                                                            style={{ color: colors.text }}
+                                                        >
+                                                            {item.label}
+                                                        </div>
+                                                        <div
+                                                            className="text-[11px]"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            {item.sub}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        role="switch"
+                                                        aria-checked={active}
+                                                        onClick={() => {
+                                                            setNotifSettings((prev) => ({
+                                                                ...prev,
+                                                                [item.key]: !prev[item.key],
+                                                            }));
+                                                            showToast('تنظیمات پیامک و اعلان به‌روزرسانی شد.');
+                                                        }}
+                                                        className={`w-11 h-6 rounded-full p-0.5 transition flex items-center shrink-0 ${
+                                                            active
+                                                                ? 'bg-[#153F31] justify-start'
+                                                                : 'bg-stone-300 justify-end'
+                                                        }`}
+                                                    >
+                                                        <span className="w-5 h-5 rounded-full bg-white shadow" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Referral Club Card */}
+                                    <div
+                                        className="rounded-2xl p-3.5 flex items-center justify-between gap-3"
+                                        style={{ backgroundColor: '#E8F2D5' }}
+                                    >
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                            <div className="w-9 h-9 rounded-xl bg-[#153F31] text-[#D6F39A] flex items-center justify-center shrink-0">
+                                                <Gift className="w-4 h-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="font-black text-xs text-[#153F31]">
+                                                    باشگاه دعوت دوستان · ۱۵۰٬۰۰۰ تومان هدیه
+                                                </div>
+                                                <div className="text-[11px] text-[#355E4B] truncate">
+                                                    کد اختصاصی: {userProfile.referralCode}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleCopyReferral}
+                                            className="px-3 py-1.5 rounded-xl bg-[#153F31] text-white text-[11px] font-bold inline-flex items-center gap-1 shrink-0"
+                                        >
+                                            <Copy className="w-3.5 h-3.5" />
+                                            <span>{copiedReferral ? 'کپی شد' : 'کپی کد'}</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Support Quick Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('support')}
+                                        className="w-full py-2.5 px-3.5 rounded-xl border flex items-center justify-between text-xs font-bold transition hover:opacity-85"
+                                        style={{
+                                            borderColor: colors.border,
+                                            color: colors.text,
+                                            backgroundColor: colors.surfaceAlt,
+                                        }}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <MessageCircle
+                                                className="w-4 h-4"
+                                                style={{ color: colors.primary }}
+                                            />
+                                            <span>گفت‌وگو با پشتیبانی و هماهنگی کلاس‌ها</span>
+                                        </span>
+                                        <ChevronLeft
+                                            className="w-4 h-4"
+                                            style={{ color: colors.muted }}
+                                        />
+                                    </button>
+                                </div>
+
+                                {/* 6. DISTINCT SEPARATED INSTRUCTOR & ADMIN ACCESS BOX AT THE BOTTOM */}
+                                <div
+                                    className="rounded-[24px] border-2 border-dashed p-4 space-y-3"
+                                    style={{
+                                        backgroundColor: isDark ? '#131F1A' : '#F4F6F0',
+                                        borderColor: isDark ? '#2E473B' : '#C9D6C8',
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-7 h-7 rounded-lg bg-[#123E30] text-[#D6F39A] flex items-center justify-center">
+                                                <ShieldCheck className="w-4 h-4" />
+                                            </span>
+                                            <div>
+                                                <h3
+                                                    className="font-black text-xs"
+                                                    style={{ color: colors.text }}
+                                                >
+                                                    دسترسی ویژه کادر آموزشی و مدیریت
+                                                </h3>
+                                                <p
+                                                    className="text-[10px]"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    مجزا از محیط دانش‌پذیر · ویژه مدرس دوره و مدیر سایت
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('vipManage')}
+                                            className="w-full px-3.5 py-3 rounded-2xl bg-[#123E30] text-white flex items-center justify-between text-right text-xs font-bold transition hover:opacity-95"
+                                        >
+                                            <span className="flex items-center gap-2.5">
+                                                <UserCheck className="w-4 h-4 text-[#D6F39A]" />
+                                                <span>پنل مدرس: حضور و غیاب و تنظیمات دوره VIP</span>
+                                            </span>
+                                            <ChevronLeft className="w-4 h-4 text-[#D6F39A]" />
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('admin')}
+                                            className="w-full px-3.5 py-2.5 rounded-2xl border flex items-center justify-between text-right text-xs font-bold transition hover:opacity-85"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
+                                                color: colors.text,
+                                            }}
+                                        >
+                                            <span className="flex items-center gap-2.5">
+                                                <Settings
+                                                    className="w-4 h-4"
+                                                    style={{ color: colors.primary }}
+                                                />
+                                                <span>پنل مدیریت کل سایت (Admin)</span>
+                                            </span>
+                                            <ChevronLeft
+                                                className="w-4 h-4"
+                                                style={{ color: colors.muted }}
+                                            />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ==================== VIP INSTRUCTOR & COURSE MANAGEMENT (Inside Profile / Admin) ==================== */}
+                        {activeScreen === 'vipManage' && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('profile')}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                        style={{ color: colors.primary }}
+                                    >
+                                        <ArrowRight className="w-4 h-4" />
+                                        <span>بازگشت به حساب من</span>
+                                    </button>
+                                    <span className="px-2.5 py-1 rounded-full bg-[#123E30] text-[#D6F39A] text-[11px] font-bold">
+                                        پنل مدرس و مدیریت VIP
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <h1
+                                        className="font-black text-lg"
+                                        style={{ color: colors.text }}
+                                    >
+                                        مدیریت دوره «طراحی آینده نوجوان»
+                                    </h1>
+                                    <p
+                                        className="text-xs mt-0.5"
+                                        style={{ color: colors.muted }}
+                                    >
+                                        حضور و غیاب (حضوری/مجازی)، ارسال یادآور کلاس و تنظیمات معرفی دوره
+                                    </p>
+                                </div>
+
+                                {/* 3 Management Tabs */}
+                                <div
+                                    className="grid grid-cols-3 gap-1.5 p-1.5 rounded-2xl border"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    {[
+                                        { id: 'attendance' as const, label: 'حضور و غیاب' },
+                                        { id: 'sessions' as const, label: 'جلسات و یادآور' },
+                                        { id: 'settings' as const, label: 'تنظیمات دوره' },
+                                    ].map((t) => {
+                                        const active = vipManageTab === t.id;
+                                        return (
+                                            <button
+                                                key={t.id}
+                                                type="button"
+                                                onClick={() => setVipManageTab(t.id)}
+                                                className="py-2 rounded-xl text-xs font-bold transition"
+                                                style={{
+                                                    backgroundColor: active
+                                                        ? colors.primary
+                                                        : 'transparent',
+                                                    color: active ? '#FFFFFF' : colors.text,
+                                                }}
+                                            >
+                                                {t.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* TAB 1: LIVE INSTRUCTOR ROLL-CALL & VIP STAMP */}
+                                {vipManageTab === 'attendance' && (
+                                    <div className="space-y-3.5">
+                                        <div
+                                            className="rounded-[22px] border p-3.5 space-y-2.5"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
+                                            }}
+                                        >
+                                            <label
+                                                className="block text-xs font-bold"
+                                                style={{ color: colors.text }}
+                                            >
+                                                انتخاب جلسه برای ثبت حضور و غیاب:
+                                            </label>
+                                            <select
+                                                value={selectedSessionId}
+                                                onChange={(e) =>
+                                                    setSelectedSessionId(Number(e.target.value))
+                                                }
+                                                className="w-full rounded-xl border px-3 py-2 text-xs font-bold outline-none"
+                                                style={{
+                                                    backgroundColor: colors.surfaceAlt,
+                                                    borderColor: colors.border,
+                                                    color: colors.text,
+                                                }}
+                                            >
+                                                {vipSessions.map((s) => (
+                                                    <option key={s.id} value={s.id}>
+                                                        جلسه {faNum(s.number)} ({s.mode === 'in_person' ? 'حضوری' : 'مجازی'}) — {s.date}
+                                                    </option>
+                                                ))}
+                                            </select>
+
+                                            <div className="flex items-center justify-between pt-1">
+                                                <span
+                                                    className="text-[11px]"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    ساعت کلاس: {activeSession.time}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        sendSessionReminderToAll(activeSession.id)
+                                                    }
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400 text-[#0D2E22] font-black text-[11px]"
+                                                >
+                                                    <Send className="w-3.5 h-3.5" />
+                                                    <span>ارسال یادآور کلاس به همه</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Summary Counts */}
+                                        <div className="grid grid-cols-4 gap-2 text-center">
+                                            {[
+                                                {
+                                                    label: 'حاضر حضوری',
+                                                    count: vipStudents.filter(
+                                                        (s) => s.status === 'present_in_person'
+                                                    ).length,
+                                                    tone: '#153F31',
+                                                },
+                                                {
+                                                    label: 'حاضر آنلاین',
+                                                    count: vipStudents.filter(
+                                                        (s) => s.status === 'present_online'
+                                                    ).length,
+                                                    tone: '#0284C7',
+                                                },
+                                                {
+                                                    label: 'با تاخیر',
+                                                    count: vipStudents.filter(
+                                                        (s) => s.status === 'late'
+                                                    ).length,
+                                                    tone: '#D97706',
+                                                },
+                                                {
+                                                    label: 'غایب',
+                                                    count: vipStudents.filter(
+                                                        (s) => s.status === 'absent'
+                                                    ).length,
+                                                    tone: '#DC2626',
+                                                },
+                                            ].map((st) => (
+                                                <div
+                                                    key={st.label}
+                                                    className="rounded-2xl border p-2"
+                                                    style={{
+                                                        backgroundColor: colors.surface,
+                                                        borderColor: colors.border,
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="font-black text-base"
+                                                        style={{ color: st.tone }}
+                                                    >
+                                                        {faNum(st.count)}
+                                                    </div>
+                                                    <div
+                                                        className="text-[10px]"
+                                                        style={{ color: colors.muted }}
+                                                    >
+                                                        {st.label}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Student Roster Cards */}
+                                        <div className="space-y-2.5">
+                                            {vipStudents.map((st) => (
+                                                <div
+                                                    key={st.id}
+                                                    className="rounded-[20px] border p-3.5 space-y-2.5"
+                                                    style={{
+                                                        backgroundColor: colors.surface,
+                                                        borderColor: st.isVip
+                                                            ? '#F59E0B'
+                                                            : colors.border,
+                                                    }}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div
+                                                                className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm"
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        colors.primarySoft,
+                                                                    color: colors.primary,
+                                                                }}
+                                                            >
+                                                                {st.name.slice(0, 1)}
+                                                            </div>
+                                                            <div>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span
+                                                                        className="font-bold text-xs"
+                                                                        style={{
+                                                                            color: colors.text,
+                                                                        }}
+                                                                    >
+                                                                        {st.name}
+                                                                    </span>
+                                                                    {st.isVip && (
+                                                                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-400 text-[#0D2E22] font-black text-[9px]">
+                                                                            <Crown className="w-2.5 h-2.5" />
+                                                                            <span>VIP</span>
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div
+                                                                    className="text-[11px]"
+                                                                    style={{
+                                                                        color: colors.muted,
+                                                                    }}
+                                                                >
+                                                                    {st.grade} · ثبت ورود: {st.checkInTime}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                toggleStudentVipStamp(st.id)
+                                                            }
+                                                            className="text-[10px] font-bold px-2 py-1 rounded-lg border"
+                                                            style={{
+                                                                borderColor: colors.border,
+                                                                color: st.isVip
+                                                                    ? '#B45309'
+                                                                    : colors.muted,
+                                                            }}
+                                                        >
+                                                            {st.isVip ? 'مهر VIP فعال' : 'اعطای VIP'}
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-4 gap-1.5 pt-1">
+                                                        {[
+                                                            {
+                                                                key: 'present_in_person' as const,
+                                                                label: 'حاضر حضوری',
+                                                                activeBg: '#153F31',
+                                                            },
+                                                            {
+                                                                key: 'present_online' as const,
+                                                                label: 'حاضر آنلاین',
+                                                                activeBg: '#0284C7',
+                                                            },
+                                                            {
+                                                                key: 'late' as const,
+                                                                label: 'تاخیر',
+                                                                activeBg: '#D97706',
+                                                            },
+                                                            {
+                                                                key: 'absent' as const,
+                                                                label: 'غایب',
+                                                                activeBg: '#DC2626',
+                                                            },
+                                                        ].map((opt) => {
+                                                            const active = st.status === opt.key;
+                                                            return (
+                                                                <button
+                                                                    key={opt.key}
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        updateStudentAttendance(
+                                                                            st.id,
+                                                                            opt.key
+                                                                        )
+                                                                    }
+                                                                    className="py-1.5 rounded-xl text-[10px] font-bold transition"
+                                                                    style={{
+                                                                        backgroundColor: active
+                                                                            ? opt.activeBg
+                                                                            : colors.surfaceAlt,
+                                                                        color: active
+                                                                            ? '#FFFFFF'
+                                                                            : colors.text,
+                                                                    }}
+                                                                >
+                                                                    {opt.label}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TAB 2: HYBRID SESSIONS & REMINDERS MANAGER */}
+                                {vipManageTab === 'sessions' && (
+                                    <div className="space-y-3.5">
+                                        <div
+                                            className="rounded-[22px] border p-4 space-y-3"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
+                                            }}
+                                        >
+                                            <div
+                                                className="font-bold text-sm"
+                                                style={{ color: colors.text }}
+                                            >
+                                                تعریف جلسه جدید (حضوری یا مجازی)
+                                            </div>
+                                            <input
+                                                type="text"
+                                                value={newSessionTitle}
+                                                onChange={(e) =>
+                                                    setNewSessionTitle(e.target.value)
+                                                }
+                                                placeholder="عنوان جلسه (مثلاً: کارگاه تصمیم‌گیری و حل مسئله)"
+                                                className="w-full rounded-xl border px-3 py-2 text-xs outline-none"
+                                                style={{
+                                                    backgroundColor: colors.surfaceAlt,
+                                                    borderColor: colors.border,
+                                                    color: colors.text,
+                                                }}
+                                            />
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNewSessionMode('in_person')}
+                                                    className="py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5"
+                                                    style={{
+                                                        backgroundColor:
+                                                            newSessionMode === 'in_person'
+                                                                ? colors.primary
+                                                                : colors.surfaceAlt,
+                                                        color:
+                                                            newSessionMode === 'in_person'
+                                                                ? '#FFFFFF'
+                                                                : colors.text,
+                                                        borderColor: colors.border,
+                                                    }}
+                                                >
+                                                    <Building2 className="w-3.5 h-3.5" />
+                                                    <span>کلاس حضوری</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNewSessionMode('online')}
+                                                    className="py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5"
+                                                    style={{
+                                                        backgroundColor:
+                                                            newSessionMode === 'online'
+                                                                ? colors.primary
+                                                                : colors.surfaceAlt,
+                                                        color:
+                                                            newSessionMode === 'online'
+                                                                ? '#FFFFFF'
+                                                                : colors.text,
+                                                        borderColor: colors.border,
+                                                    }}
+                                                >
+                                                    <Video className="w-3.5 h-3.5" />
+                                                    <span>کلاس مجازی</span>
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={newSessionDate}
+                                                    onChange={(e) =>
+                                                        setNewSessionDate(e.target.value)
+                                                    }
+                                                    placeholder="تاریخ جلسه"
+                                                    className="rounded-xl border px-3 py-2 text-xs outline-none"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        borderColor: colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={newSessionTime}
+                                                    onChange={(e) =>
+                                                        setNewSessionTime(e.target.value)
+                                                    }
+                                                    placeholder="ساعت برگزاری"
+                                                    className="rounded-xl border px-3 py-2 text-xs outline-none"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        borderColor: colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={addVipSession}
+                                                className="w-full py-2.5 rounded-xl text-xs font-bold text-white inline-flex items-center justify-center gap-1.5"
+                                                style={{ backgroundColor: colors.primary }}
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                                <span>افزودن جلسه به تقویم دوره</span>
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-2.5">
+                                            {vipSessions.map((sess) => (
+                                                <div
+                                                    key={sess.id}
+                                                    className="rounded-[20px] border p-3.5 flex items-center justify-between gap-2"
+                                                    style={{
+                                                        backgroundColor: colors.surface,
+                                                        borderColor: colors.border,
+                                                    }}
+                                                >
+                                                    <div className="space-y-1">
+                                                        <div
+                                                            className="font-bold text-xs"
+                                                            style={{ color: colors.text }}
+                                                        >
+                                                            جلسه {faNum(sess.number)}: {sess.title}
+                                                        </div>
+                                                        <div
+                                                            className="text-[11px]"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            {sess.mode === 'in_person'
+                                                                ? 'حضوری'
+                                                                : 'مجازی'}{' '}
+                                                            · {sess.date} · ساعت {sess.time}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            sendSessionReminderToAll(sess.id)
+                                                        }
+                                                        className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold shrink-0"
+                                                        style={{
+                                                            backgroundColor: sess.reminderSent
+                                                                ? colors.primarySoft
+                                                                : '#FEF3C7',
+                                                            color: sess.reminderSent
+                                                                ? colors.primary
+                                                                : '#92400E',
+                                                        }}
+                                                    >
+                                                        {sess.reminderSent
+                                                            ? 'یادآور ارسال شد'
+                                                            : 'ارسال یادآور'}
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TAB 3: COURSE DESCRIPTION, ITEMS, GROUP CHAT & POSTER SETTINGS */}
+                                {vipManageTab === 'settings' && (
+                                    <div className="space-y-3.5">
+                                        {/* Admin Group Chat Enable/Disable & Course Poster Control */}
+                                        <div
+                                            className="rounded-[22px] border p-4 space-y-3"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
+                                            }}
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="space-y-0.5">
+                                                    <div
+                                                        className="font-black text-xs flex items-center gap-1.5"
+                                                        style={{ color: colors.text }}
+                                                    >
+                                                        <Users
+                                                            className="w-4 h-4"
+                                                            style={{ color: colors.primary }}
+                                                        />
+                                                        <span>گروه تخصصی گفتگوی اعضای دوره</span>
+                                                    </div>
+                                                    <div
+                                                        className="text-[11px]"
+                                                        style={{ color: colors.muted }}
+                                                    >
+                                                        {groupChatEnabled
+                                                            ? 'دانش‌پذیران می‌توانند در گروه دوره پیام ارسال کنند'
+                                                            : 'ارسال پیام توسط دانش‌پذیران غیرفعال شده است (قفل ادمین)'}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleToggleGroupChatByAdmin}
+                                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-black shrink-0 inline-flex items-center gap-1 ${
+                                                        groupChatEnabled
+                                                            ? 'bg-emerald-500/15 text-emerald-600'
+                                                            : 'bg-amber-500/15 text-amber-600'
+                                                    }`}
+                                                >
+                                                    {groupChatEnabled ? (
+                                                        <>
+                                                            <Unlock className="w-3.5 h-3.5" />
+                                                            <span>فعال (امکان چت)</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Lock className="w-3.5 h-3.5" />
+                                                            <span>غیرفعال توسط ادمین</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+
+                                            <div
+                                                className="pt-3 border-t flex items-center gap-3"
+                                                style={{ borderColor: colors.border }}
+                                            >
+                                                <img
+                                                    src={vipConfig.posterUrl}
+                                                    alt="پوستر دوره"
+                                                    className="w-12 h-16 rounded-xl object-cover border shrink-0"
+                                                    style={{ borderColor: colors.border }}
+                                                />
+                                                <div className="flex-1 min-w-0 space-y-1">
+                                                    <label
+                                                        className="text-[11px] font-bold block"
+                                                        style={{ color: colors.muted }}
+                                                    >
+                                                        برچسب روی پوستر دوره (مشابه سایت):
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={vipConfig.posterBadge}
+                                                        onChange={(e) =>
+                                                            setVipConfig({
+                                                                ...vipConfig,
+                                                                posterBadge: e.target.value,
+                                                            })
+                                                        }
+                                                        className="roshd-app-input w-full rounded-xl border px-3 py-1.5 text-xs outline-none"
+                                                        style={{
+                                                            backgroundColor: colors.surfaceAlt,
+                                                            borderColor: colors.border,
+                                                            color: colors.text,
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            className="rounded-[22px] border p-4 space-y-3"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
+                                            }}
+                                        >
+                                            <div
+                                                className="font-bold text-sm"
+                                                style={{ color: colors.text }}
+                                            >
+                                                تنظیمات معرفی و توضیحات دوره
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label
+                                                    className="text-[11px] font-bold"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    عنوان دوره پرچمدار:
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={vipConfig.title}
+                                                    onChange={(e) =>
+                                                        setVipConfig({
+                                                            ...vipConfig,
+                                                            title: e.target.value,
+                                                        })
+                                                    }
+                                                    className="roshd-app-input w-full rounded-xl border px-3 py-2 text-xs outline-none"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        borderColor: colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label
+                                                    className="text-[11px] font-bold"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    توضیحات معرفی دوره:
+                                                </label>
+                                                <textarea
+                                                    rows={3}
+                                                    value={vipConfig.description}
+                                                    onChange={(e) =>
+                                                        setVipConfig({
+                                                            ...vipConfig,
+                                                            description: e.target.value,
+                                                        })
+                                                    }
+                                                    className="roshd-app-input w-full rounded-xl border px-3 py-2 text-xs outline-none leading-5"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        borderColor: colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label
+                                                    className="text-[11px] font-bold"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    محل برگزاری کلاس‌های حضوری:
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={vipConfig.inPersonLocation}
+                                                    onChange={(e) =>
+                                                        setVipConfig({
+                                                            ...vipConfig,
+                                                            inPersonLocation: e.target.value,
+                                                        })
+                                                    }
+                                                    className="roshd-app-input w-full rounded-xl border px-3 py-2 text-xs outline-none"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        borderColor: colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label
+                                                    className="text-[11px] font-bold"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    برنامه زمانی کلاس‌ها (حضوری و مجازی):
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={vipConfig.scheduleSummary}
+                                                    onChange={(e) =>
+                                                        setVipConfig({
+                                                            ...vipConfig,
+                                                            scheduleSummary: e.target.value,
+                                                        })
+                                                    }
+                                                    className="roshd-app-input w-full rounded-xl border px-3 py-2 text-xs outline-none"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        borderColor: colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    showToast('تنظیمات دوره طراحی آینده نوجوان ذخیره شد.')
+                                                }
+                                                className="w-full py-2.5 rounded-xl text-xs font-bold text-white"
+                                                style={{ backgroundColor: colors.primary }}
+                                            >
+                                                ذخیره تغییرات معرفی دوره
+                                            </button>
+                                        </div>
+
+                                        {/* Manage Course Items & Capabilities */}
+                                        <div
+                                            className="rounded-[22px] border p-4 space-y-3"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
+                                            }}
+                                        >
+                                            <div
+                                                className="font-bold text-sm"
+                                                style={{ color: colors.text }}
+                                            >
+                                                مدیریت آیتم‌ها و قابلیت‌های دوره VIP
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={newFeatureText}
+                                                    onChange={(e) =>
+                                                        setNewFeatureText(e.target.value)
+                                                    }
+                                                    placeholder="آیتم یا قابلیت جدید دوره..."
+                                                    className="roshd-app-input flex-1 rounded-xl border px-3 py-2 text-xs outline-none"
+                                                    style={{
+                                                        backgroundColor: colors.surfaceAlt,
+                                                        borderColor: colors.border,
+                                                        color: colors.text,
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={addVipFeature}
+                                                    className="px-3 py-2 rounded-xl text-xs font-bold text-white shrink-0"
+                                                    style={{ backgroundColor: colors.primary }}
+                                                >
+                                                    افزودن
+                                                </button>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                {vipFeatures.map((feat) => (
+                                                    <div
+                                                        key={feat.id}
+                                                        onClick={() => toggleVipFeature(feat.id)}
+                                                        className="p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer"
+                                                        style={{
+                                                            backgroundColor: colors.surfaceAlt,
+                                                            borderColor: colors.border,
+                                                            color: colors.text,
+                                                        }}
+                                                    >
+                                                        <span
+                                                            className={
+                                                                feat.active
+                                                                    ? 'font-medium'
+                                                                    : 'line-through opacity-50'
+                                                            }
+                                                        >
+                                                            {feat.title}
+                                                        </span>
+                                                        <span
+                                                            className="px-2 py-0.5 rounded-md text-[10px] font-bold"
+                                                            style={{
+                                                                backgroundColor: feat.active
+                                                                    ? colors.primarySoft
+                                                                    : colors.border,
+                                                                color: feat.active
+                                                                    ? colors.primary
+                                                                    : colors.muted,
+                                                            }}
+                                                        >
+                                                            {feat.active ? 'فعال' : 'غیرفعال'}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ==================== ADMIN SCREEN ==================== */}
+                        {activeScreen === 'admin' && (
+                            <div className="space-y-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveScreen('profile')}
+                                    className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                    style={{ color: colors.primary }}
+                                >
+                                    <ArrowRight className="w-4 h-4" />
+                                    <span>بازگشت به حساب من</span>
+                                </button>
+                                <h1
+                                    className="font-black text-xl"
+                                    style={{ color: colors.text }}
+                                >
+                                    پنل مدیریت کل سایت (Admin)
+                                </h1>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                        { label: 'اعضای VIP آینده نوجوان', value: '۲۴ نفر' },
+                                        { label: 'میانگین حضور در کلاس', value: '۹۲٪' },
+                                        { label: 'فروش ماه جاری', value: '۱۸۴ میلیون' },
+                                        { label: 'تیکت‌های باز', value: '۷' },
+                                    ].map((stat) => (
+                                        <div
+                                            key={stat.label}
+                                            className="rounded-2xl border p-4"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
+                                            }}
+                                        >
+                                            <div
+                                                className="text-xs"
+                                                style={{ color: colors.muted }}
+                                            >
+                                                {stat.label}
+                                            </div>
+                                            <div
+                                                className="font-black text-lg mt-1"
+                                                style={{ color: colors.primary }}
+                                            >
+                                                {stat.value}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveScreen('vipManage')}
+                                    className="w-full py-3.5 rounded-2xl bg-[#123E30] text-[#D6F39A] font-black text-xs inline-flex items-center justify-center gap-2"
+                                >
+                                    <Settings className="w-4 h-4" />
+                                    <span>مدیریت کامل دوره پریمیوم «طراحی آینده نوجوان»</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* RoshdTabBar (6 Tabs including گفتگو) */}
+                    <div
+                        className="border-t px-1.5 pt-2 pb-3 flex items-center justify-around shrink-0"
+                        style={{
+                            backgroundColor: colors.surface,
+                            borderColor: colors.border,
+                        }}
+                    >
+                        {[
+                            { id: 'home' as ScreenId, label: 'خانه', Icon: Home },
+                            { id: 'courses' as ScreenId, label: 'دوره‌ها', Icon: GraduationCap },
+                            { id: 'chat' as ScreenId, label: 'گفتگو', Icon: MessageSquare },
+                            { id: 'shop' as ScreenId, label: 'فروشگاه', Icon: ShoppingBag },
+                            { id: 'dashboard' as ScreenId, label: 'رشد من', Icon: Leaf },
+                            { id: 'profile' as ScreenId, label: 'حساب من', Icon: User },
+                        ].map((tab) => {
+                            const active = activeTab === tab.id;
+                            const TabIcon = tab.Icon;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => setActiveScreen(tab.id)}
+                                    className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[52px]"
+                                >
+                                    <div
+                                        className="w-10 h-[28px] rounded-[14px] flex items-center justify-center transition relative"
+                                        style={{
+                                            backgroundColor: active
+                                                ? colors.primarySoft
+                                                : 'transparent',
+                                        }}
+                                    >
+                                        <TabIcon
+                                            className="w-4.5 h-4.5"
+                                            style={{
+                                                color: active ? colors.primary : colors.muted,
+                                            }}
+                                        />
+                                    </div>
+                                    <span
+                                        className="text-[10px]"
+                                        style={{
+                                            fontWeight: active ? 700 : 400,
+                                            color: active ? colors.primary : colors.muted,
+                                        }}
+                                    >
+                                        {tab.label}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
-        </UserDashboardLayout>
+        </>
     );
 }

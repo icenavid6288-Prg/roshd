@@ -21,9 +21,11 @@ export default function MobileAppNav({ items, ariaLabel = 'ناوبری سریع
     const isActive = (item: MobileAppNavItem) => {
         if (typeof item.active === 'boolean') return item.active;
         if (!item.href || item.href.startsWith('#')) return false;
-        if (item.href === '/') return url === '/';
-        if (item.href === '/dashboard') return url === '/dashboard';
-        return url === item.href || url.startsWith(`${item.href}/`);
+        const cleanUrl = url.split('?')[0];
+        if (item.href === '/') return cleanUrl === '/';
+        if (item.href === '/web') return cleanUrl === '/web' || cleanUrl === '/home';
+        if (item.href === '/dashboard') return cleanUrl === '/dashboard';
+        return cleanUrl === item.href || cleanUrl.startsWith(`${item.href}/`);
     };
 
     return (

@@ -7,6 +7,7 @@ import {
     Text,
     View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Chip, Loading, PrimaryButton, Screen } from '../components';
 import { api } from '../api/client';
 import type { ReminderSettingsPayload } from '../api/types';
@@ -120,7 +121,7 @@ export function RemindersScreen() {
 
                 {banner ? (
                     <View style={[styles.bannerBox, { backgroundColor: colors.successSoft, borderColor: colors.primary }]}>
-                        <Text style={[styles.bannerText, { color: colors.primary }]}>✓ {banner}</Text>
+                        <Text style={[styles.bannerText, { color: colors.primary }]}>{banner}</Text>
                     </View>
                 ) : null}
 
@@ -128,7 +129,10 @@ export function RemindersScreen() {
                 <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     <View style={styles.rowBetween}>
                         <View style={{ flex: 1 }}>
-                            <Text style={[styles.cardTitle, { color: colors.text }]}>📚 یادآوری دوره‌های ناتمام</Text>
+                            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                                <Ionicons name="book-outline" size={20} color={colors.primary} />
+                                <Text style={[styles.cardTitle, { color: colors.text }]}>یادآوری دوره‌های ناتمام</Text>
+                            </View>
                             <Text style={[styles.cardSubtitle, { color: colors.muted }]}>
                                 پیگیری هوشمند درس‌هایی که نیمه‌تمام رها شده‌اند
                             </Text>
@@ -165,7 +169,10 @@ export function RemindersScreen() {
                     </View>
 
                     <View style={[styles.timeRow, { backgroundColor: colors.surfaceAlt }]}>
-                        <Text style={[styles.timeLabel, { color: colors.text }]}>⏰ ساعت ترجیحی مطالعه روزانه:</Text>
+                        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                            <Ionicons name="time-outline" size={16} color={colors.primary} />
+                            <Text style={[styles.timeLabel, { color: colors.text }]}>ساعت ترجیحی مطالعه روزانه:</Text>
+                        </View>
                         <View style={styles.timeOptions}>
                             {['18:00', '20:00', '21:30'].map((t) => {
                                 const active = settings.course_preferred_time === t;
@@ -192,7 +199,10 @@ export function RemindersScreen() {
                 <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     <View style={styles.rowBetween}>
                         <View style={{ flex: 1 }}>
-                            <Text style={[styles.cardTitle, { color: colors.text }]}>🎯 یادآوری جلسات کوچینگ</Text>
+                            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                                <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                                <Text style={[styles.cardTitle, { color: colors.text }]}>یادآوری جلسات کوچینگ</Text>
+                            </View>
                             <Text style={[styles.cardSubtitle, { color: colors.muted }]}>
                                 اعلام زمان جلسه و ارسال لینک ورود به اتاق آنلاین
                             </Text>
@@ -221,7 +231,7 @@ export function RemindersScreen() {
                                     ]}
                                 >
                                     <Text style={{ color: active ? colors.white : colors.text, fontSize: 12, fontWeight: '700' }}>
-                                        {active ? '✓ ' : ''}{lt.label}
+                                        {lt.label}
                                     </Text>
                                 </Pressable>
                             );
@@ -231,13 +241,16 @@ export function RemindersScreen() {
 
                 {/* Notification Channels */}
                 <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                    <Text style={[styles.cardTitle, { color: colors.text }]}>📲 کانال‌های دریافت اعلان</Text>
+                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                        <Ionicons name="notifications-outline" size={20} color={colors.primary} />
+                        <Text style={[styles.cardTitle, { color: colors.text }]}>کانال‌های دریافت اعلان</Text>
+                    </View>
                     <View style={styles.channelsGrid}>
                         {[
-                            { key: 'push' as const, label: 'پوش نوتیفیکیشن موبایل', icon: '🔔' },
-                            { key: 'sms' as const, label: 'پیامک (SMS)', icon: '💬' },
-                            { key: 'telegram' as const, label: 'ربات تلگرام', icon: '✈️' },
-                            { key: 'email' as const, label: 'ایمیل', icon: '✉️' },
+                            { key: 'push' as const, label: 'پوش نوتیفیکیشن موبایل', icon: 'notifications-outline' as const },
+                            { key: 'sms' as const, label: 'پیامک (SMS)', icon: 'chatbubble-ellipses-outline' as const },
+                            { key: 'telegram' as const, label: 'ربات تلگرام', icon: 'paper-plane-outline' as const },
+                            { key: 'email' as const, label: 'ایمیل', icon: 'mail-outline' as const },
                         ].map((ch) => {
                             const active = settings.channels[ch.key];
                             return (
@@ -252,7 +265,7 @@ export function RemindersScreen() {
                                         },
                                     ]}
                                 >
-                                    <Text style={styles.channelIcon}>{ch.icon}</Text>
+                                    <Ionicons name={ch.icon} size={18} color={active ? colors.primary : colors.muted} />
                                     <Text style={[styles.channelLabel, { color: colors.text }]}>{ch.label}</Text>
                                     <Chip label={active ? 'فعال' : 'غیرفعال'} tone={active ? 'primary' : 'muted'} />
                                 </Pressable>
@@ -262,7 +275,10 @@ export function RemindersScreen() {
 
                     <View style={[styles.quietRow, { borderTopColor: colors.border }]}>
                         <View style={{ flex: 1 }}>
-                            <Text style={[styles.label, { color: colors.text, marginTop: 0 }]}>🌙 ساعات سکوت شبانه</Text>
+                            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                                <Ionicons name="moon-outline" size={16} color={colors.primary} />
+                                <Text style={[styles.label, { color: colors.text, marginTop: 0 }]}>ساعات سکوت شبانه</Text>
+                            </View>
                             <Text style={[styles.cardSubtitle, { color: colors.muted }]}>
                                 عدم ارسال پیام بین ساعت {faNum(settings.quiet_hours_start)} تا {faNum(settings.quiet_hours_end)}
                             </Text>
@@ -284,7 +300,10 @@ export function RemindersScreen() {
 
                 {/* Recent Logs */}
                 <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                    <Text style={[styles.cardTitle, { color: colors.text }]}>📋 تاریخچه آخرین یادآوری‌های ارسالی</Text>
+                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                        <Ionicons name="list-outline" size={20} color={colors.primary} />
+                        <Text style={[styles.cardTitle, { color: colors.text }]}>تاریخچه آخرین یادآوری‌های ارسالی</Text>
+                    </View>
                     {settings.recent_logs.map((log) => (
                         <View key={log.id} style={[styles.logRow, { borderBottomColor: colors.border }]}>
                             <View style={{ flex: 1, gap: 2 }}>

@@ -17,8 +17,10 @@ import {
     Route,
     Settings,
     ShoppingBag,
+    Smartphone,
     Target,
     UserRound,
+    Video,
     X,
     Sparkles,
     Flame,
@@ -47,15 +49,16 @@ const groups: NavGroup[] = [
         label: 'یادگیری و رسالت',
         items: [
             { label: 'نمای کلی داشبورد', href: '/dashboard', icon: LayoutDashboard },
-            { label: 'دوره‌های من', href: '/dashboard/courses', icon: BookOpen, badge: '۱ فعال' },
+            { label: 'دوره‌های من', href: '/dashboard/courses', icon: BookOpen, badge: '۲ فعال' },
+            { label: 'وبینارها و کلاس‌های آنلاین', href: '/events?type=webinar', icon: Video, badge: '۱ زنده' },
             { label: 'تکلیف‌ها و بازخورد', href: '/dashboard/assignments', icon: ClipboardList, badge: '۱ منتظر' },
             { label: 'گواهینامه‌های رسمی', href: '/dashboard/certificates', icon: Award },
             { label: 'کتابخانه و ورک‌بوک', href: '/dashboard/library', icon: Headphones },
             { label: 'علاقه‌مندی‌ها', href: '/dashboard/wishlist', icon: Heart },
             { label: 'نقشه سفر رشد', href: '/dashboard/goals', icon: Route },
-            { label: 'جلسات با دکتر بیدی', href: '/dashboard/sessions', icon: CalendarDays, badge: '۱ پیش‌رو' },
+            { label: 'جلسات با دکتر بیدی', href: '/dashboard/sessions', icon: CalendarDays, badge: '۲ پیش‌رو' },
             { label: 'یادآوری‌های خودکار', href: '/dashboard/reminders', icon: Bell, badge: 'پیامک فعال' },
-            { label: 'پیش‌نمایش اپ موبایل', href: '/mobile-app', icon: Globe, badge: 'نسخه جدید' },
+            { label: 'سوپراپلیکیشن موبایل', href: '/mobile-app', icon: Smartphone, badge: 'Roshd 1.3' },
         ],
     },
     {
@@ -69,7 +72,7 @@ const groups: NavGroup[] = [
     },
 ];
 
-export default function UserDashboardLayout({ children }: { children: ReactNode }) {
+export default function UserDashboardLayout({ children, title }: { children: ReactNode; title?: string }) {
     const { auth } = usePage<PageProps>().props;
     const currentUrl = usePage<PageProps>().url.split('?')[0];
     const [open, setOpen] = useState(false);
@@ -78,8 +81,12 @@ export default function UserDashboardLayout({ children }: { children: ReactNode 
 
     const logout = () => router.post('/logout');
 
-    const isActive = (href: string) =>
-        href === '/dashboard' ? currentUrl === '/dashboard' : currentUrl === href || currentUrl.startsWith(`${href}/`);
+    const isActive = (href: string) => {
+        const cleanHref = href.split('?')[0];
+        return cleanHref === '/dashboard'
+            ? currentUrl === '/dashboard'
+            : currentUrl === cleanHref || currentUrl.startsWith(`${cleanHref}/`);
+    };
 
     const renderLinks = (group: NavGroup) => (
         <div key={group.label} className="flex flex-col gap-1.5">
@@ -134,19 +141,19 @@ export default function UserDashboardLayout({ children }: { children: ReactNode 
             <div className="pointer-events-none absolute -bottom-12 -right-6 size-24 rounded-full bg-amber-400/15 blur-2xl" aria-hidden />
             <div className="relative flex items-center gap-3">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-sm font-black text-slate-950 shadow-md">
-                    {user?.name?.slice(0, 1) ?? 'ک'}
+                    {user?.name?.slice(0, 1) ?? 'ن'}
                 </span>
                 <div className="min-w-0 flex-1">
-                    <strong className="block truncate text-sm font-black text-white">{user?.name}</strong>
+                    <strong className="block truncate text-sm font-black text-white">{user?.name ?? 'نوید محمدی'}</strong>
                     <div className="mt-0.5 flex items-center gap-1.5 text-[0.68rem] font-bold text-emerald-300">
                         <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span>دانش‌آموز پیشرو · سطح ۲</span>
+                        <span>معمار آینده · سطح ۴ (عضو VIP)</span>
                     </div>
                 </div>
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-2.5 text-[0.68rem] text-white/60">
-                <span>امتیاز رشد: <strong className="text-amber-300 font-mono">۶۵۰ XP</strong></span>
-                <span className="text-emerald-300">🔥 ۳ روز استریک</span>
+                <span>امتیاز رشد: <strong className="text-amber-300 font-mono">۱٬۴۵۰ XP</strong></span>
+                <span className="text-emerald-300">✨ ۹۵٪ حضور VIP</span>
             </div>
         </div>
     );
@@ -164,7 +171,7 @@ export default function UserDashboardLayout({ children }: { children: ReactNode 
                 تنظیمات پروفایل
             </Link>
             <Link
-                href="/"
+                href="/web"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-navy/60 transition-colors hover:bg-brand-50 hover:text-brand-700 dark:text-white/70 dark:hover:bg-white/10"
             >
@@ -190,7 +197,7 @@ export default function UserDashboardLayout({ children }: { children: ReactNode 
         <div className="mobile-app-shell user-dashboard-shell dashboard-panel-shell min-h-screen bg-[#f4f8f5] dark:bg-[#081711]" dir="rtl">
             {/* Desktop Fixed Sidebar */}
             <aside className="fixed inset-y-0 right-0 z-40 hidden w-72 flex-col border-l border-white/70 bg-white/80 px-4 py-5 shadow-soft backdrop-blur-2xl lg:flex dark:border-white/10 dark:bg-[#0c1f17]/90">
-                <Link href="/" className="flex items-center gap-3 px-3 pb-5" aria-label="بازگشت به سایت">
+                <Link href="/web" className="flex items-center gap-3 px-3 pb-5" aria-label="بازگشت به سایت">
                     <BrandLogo className="user-brand-mark" />
                     <span className="leading-tight">
                         <strong className="block text-sm font-black text-navy dark:text-white">مرکز رشد دکتر بیدی</strong>
@@ -253,7 +260,7 @@ export default function UserDashboardLayout({ children }: { children: ReactNode 
                         <div>
                             <span className="block text-[0.68rem] font-bold text-brand-700 dark:text-brand-300">سامانه توسعه فردی و استعدادیابی</span>
                             <h1 className="text-sm font-black text-navy dark:text-white md:text-base">
-                                سلام، {user?.name?.split(' ')[0] ?? 'همراه مسیر'} 👋
+                                سلام، {user?.name?.split(' ')[0] ?? 'نوید'} 👋
                             </h1>
                         </div>
                     </div>
@@ -261,11 +268,18 @@ export default function UserDashboardLayout({ children }: { children: ReactNode 
                     <div className="flex items-center gap-2.5">
                         <ThemeToggle compact />
                         <Link
+                            href="/mobile-app?screen=sessions"
+                            className="hidden items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-black text-emerald-700 transition-colors hover:bg-emerald-500/20 sm:flex dark:border-emerald-400/30 dark:bg-emerald-500/15 dark:text-emerald-300"
+                        >
+                            <Smartphone className="size-3.5" />
+                            درگاه کلاس‌ها در سوپراپ
+                        </Link>
+                        <Link
                             href="/dashboard/sessions"
                             className="hidden items-center gap-2 rounded-xl border border-brand-200 bg-brand-50/70 px-3 py-2 text-xs font-black text-brand-700 transition-colors hover:bg-brand-100 sm:flex dark:border-white/15 dark:bg-white/10 dark:text-brand-300"
                         >
                             <CalendarDays className="size-3.5" />
-                            جلسه پیش‌رو (۱۷ آبان)
+                            وبینار پیش‌رو (۱۱ اردیبهشت)
                         </Link>
                         <Link
                             href="/courses"

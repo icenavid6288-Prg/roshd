@@ -1,5 +1,5 @@
 export interface MockDataPayload {
-    courses: any[];
+    courses: any;
     services: any[];
     testimonials: any[];
     posts: any[];

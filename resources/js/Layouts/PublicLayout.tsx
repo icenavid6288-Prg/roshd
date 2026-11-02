@@ -42,11 +42,12 @@ import type { PageProps } from '@/types';
 const AuthModal = lazy(() => import('@/Components/AuthModal'));
 
 function menuIconFor(url: string): LucideIcon {
-    if (url === '/') return Home;
+    if (url === '/' || url === '/web' || url === '/home') return Home;
     if (url.startsWith('/courses')) return GraduationCap;
     if (url.startsWith('/coaching')) return HeartHandshake;
     if (url.startsWith('/services')) return Compass;
     if (url.startsWith('/shop')) return ShoppingBag;
+    if (url.startsWith('/events')) return Radio;
     if (url.startsWith('/blog')) return Newspaper;
     if (url.startsWith('/about')) return Users;
     if (url.startsWith('/team')) return UsersRound;
@@ -115,7 +116,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
             <div className="mobile-app-shell flex min-h-screen flex-col bg-[#fafbf7] text-navy dark:bg-[#061811] dark:text-white" dir="rtl">
             <header className="site-header">
                 <div className={`header-pill ${scrolled ? 'is-scrolled' : ''} ${atBottom ? 'is-at-end' : ''}`}>
-                    <Link href="/" prefetch="hover" className="reference-logo flex items-center gap-2.5">
+                    <Link href="/web" prefetch="hover" className="reference-logo flex items-center gap-2.5">
                         <BrandLogo className="reference-logo-mark" />
                         <span className="flex flex-col leading-tight">
                             <span className="text-sm font-black text-white md:text-base">مرکز رشد و کارآفرینی</span>
@@ -155,7 +156,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                                 key={item.url + item.title}
                                 href={item.url}
                                 prefetch="hover"
-                                className={`rounded-xl px-3.5 py-2 text-sm font-bold text-white/80 transition-colors hover:bg-white/10 hover:text-white ${item.url === '/' ? 'header-nav-home' : ''} ${['/about', '/team', '/contact'].includes(item.url) ? 'header-nav-secondary' : ''}`}
+                                className={`rounded-xl px-3.5 py-2 text-sm font-bold text-white/80 transition-colors hover:bg-white/10 hover:text-white ${item.url === '/' || item.url === '/web' ? 'header-nav-home' : ''} ${['/about', '/team', '/contact'].includes(item.url) ? 'header-nav-secondary' : ''}`}
                             >
                                 {item.title}
                             </Link>
@@ -178,7 +179,13 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                     </nav>
 
                     <div className="reference-actions hidden items-center gap-2.5 lg:flex">
-                        <a href="/download-app/" className="rounded-xl border border-brand-300/40 px-3 py-2 text-xs font-black text-white hover:bg-white/10">دانلود اپلیکیشن</a>
+                        <Link
+                            href="/mobile-app"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-[#D6F39A]/45 bg-[#D6F39A]/15 px-3.5 py-2 text-xs font-black text-[#D6F39A] transition-all hover:scale-[1.03] hover:bg-[#D6F39A]/25"
+                        >
+                            <span className="size-2 rounded-full bg-[#D6F39A]" />
+                            سوپراپلیکیشن موبایل
+                        </Link>
                         <ThemeToggle compact />
                         {auth.user ? (
                             <Link
@@ -245,7 +252,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                     </div>
 
                     <nav className="drawer-nav" aria-label="منوی اصلی">
-                        <a href="/download-app/" className="drawer-link" onClick={() => setMobileOpen(false)}>دانلود اپلیکیشن اندروید</a>
+                        <Link href="/mobile-app" className="drawer-link" onClick={() => setMobileOpen(false)}>پیش‌نمایش اپلیکیشن موبایل</Link>
                         {menus.header.map((item, i) => {
                             const Icon = menuIconFor(item.url);
                             return (
@@ -456,12 +463,13 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
             <MobileAppNav
                 ariaLabel="ناوبری اصلی موبایل"
                 items={[
-                    { label: 'خانه', href: '/', icon: Home },
+                    { label: 'خانه سایت', href: '/web', icon: Home },
                     { label: 'دوره‌ها', href: '/courses', icon: GraduationCap },
-                    { label: 'خدمات', href: '/services', icon: Compass },
+                    { label: 'وبینارها', href: '/events', icon: Video },
                     { label: 'فروشگاه', href: '/shop', icon: ShoppingBag },
+                    { label: 'سوپراپ', href: '/mobile-app', icon: Smartphone },
                     auth.user
-                        ? { label: 'حساب', href: '/dashboard', icon: UserRound }
+                        ? { label: 'پنل من', href: '/dashboard', icon: UserRound }
                         : { label: 'حساب', icon: UserRound, onClick: () => setAuthModal('login') },
                 ]}
             />

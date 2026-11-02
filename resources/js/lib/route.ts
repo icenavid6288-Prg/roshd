@@ -63,8 +63,20 @@ const routes: Record<string, string> = {
     'admin.crm.dashboard': '/admin/crm',
 };
 
-export function route(name?: string, params?: RouteParams): string {
-    if (!name) return typeof window !== 'undefined' ? window.location.pathname : '/';
+export function route(): { current: (name?: string, params?: RouteParams) => boolean; toString: () => string };
+export function route(name: string, params?: RouteParams): string;
+export function route(name?: string, params?: RouteParams): any {
+    if (!name) {
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+        return {
+            current: (checkName?: string) => {
+                if (!checkName) return true;
+                const target = routes[checkName] || '/' + checkName.replace(/\./g, '/');
+                return currentPath === target || (target !== '/' && currentPath.startsWith(target));
+            },
+            toString: () => currentPath,
+        };
+    }
     let url = routes[name] || '/' + name.replace(/\./g, '/');
     if (params !== undefined) {
         if (typeof params === 'object' && params !== null) {
@@ -81,9 +93,17 @@ export function route(name?: string, params?: RouteParams): string {
     return url;
 }
 
+route.current = (checkName?: string) => {
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+    if (!checkName) return true;
+    const target = routes[checkName] || '/' + checkName.replace(/\./g, '/');
+    return currentPath === target || (target !== '/' && currentPath.startsWith(target));
+};
+
 if (typeof window !== 'undefined') {
     (window as any).route = route;
     (window as any).Ziggy = { routes, url: window.location.origin, defaults: {} };
 }
 
 export default route;
+

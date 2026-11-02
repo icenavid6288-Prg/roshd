@@ -6,6 +6,7 @@ import {
     Text,
     View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Chip, Field, Loading, PrimaryButton, ProgressBar, Screen } from '../components';
 import { api, openSitePage } from '../api/client';
 import type { CertificatePayload, GoalPayload } from '../api/types';
@@ -59,7 +60,10 @@ export function GoalsScreen() {
     return (
         <Screen>
             <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>🎯 اهداف رشد فردی و سازمانی</Text>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name="flag-outline" size={22} color={colors.primary} />
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>اهداف رشد فردی و سازمانی</Text>
+                </View>
                 <View style={[styles.addCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     <Field
                         label="تعریف هدف ۹۰ روزه جدید"
@@ -81,18 +85,24 @@ export function GoalsScreen() {
                     >
                         <View style={styles.goalHeader}>
                             <View style={{ flex: 1 }}>
-                                <Text
-                                    style={[
-                                        styles.goalTitle,
-                                        {
-                                            color: colors.text,
-                                            textDecorationLine: g.completed ? 'line-through' : 'none',
-                                        },
-                                    ]}
-                                >
-                                    {g.completed ? '✅ ' : '⬜ '}
-                                    {g.title}
-                                </Text>
+                                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                                    <Ionicons
+                                        name={g.completed ? 'checkbox' : 'square-outline'}
+                                        size={20}
+                                        color={g.completed ? colors.primary : colors.muted}
+                                    />
+                                    <Text
+                                        style={[
+                                            styles.goalTitle,
+                                            {
+                                                color: colors.text,
+                                                textDecorationLine: g.completed ? 'line-through' : 'none',
+                                            },
+                                        ]}
+                                    >
+                                        {g.title}
+                                    </Text>
+                                </View>
                                 <Text style={[styles.goalMeta, { color: colors.muted }]}>
                                     {g.category} • سررسید: {g.target_date}
                                 </Text>
@@ -106,9 +116,12 @@ export function GoalsScreen() {
                     </Pressable>
                 ))}
 
-                <Text style={[styles.sectionTitle, { color: colors.text, marginTop: spacing.lg }]}>
-                    🏅 گواهینامه‌های صادر شده
-                </Text>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginTop: spacing.lg }}>
+                    <Ionicons name="ribbon-outline" size={22} color={colors.primary} />
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                        گواهینامه‌های صادر شده
+                    </Text>
+                </View>
                 {certificates.map((cert) => (
                     <View
                         key={cert.id}

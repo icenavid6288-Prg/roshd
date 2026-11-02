@@ -7,6 +7,7 @@ import {
     Text,
     View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Chip, EmptyState, Field, Loading, PrimaryButton, Screen } from '../components';
 import { api } from '../api/client';
 import type { CoachingSessionPayload } from '../api/types';
@@ -112,7 +113,7 @@ export function SessionsScreen() {
                 ) : null}
 
                 {sessions.length === 0 ? (
-                    <EmptyState icon="🎯" title="هنوز جلسه‌ای رزرو نشده است" />
+                    <EmptyState icon="calendar-outline" title="هنوز جلسه‌ای رزرو نشده است" />
                 ) : (
                     sessions.map((s) => {
                         const isUpcoming = s.status === 'upcoming';
@@ -134,15 +135,27 @@ export function SessionsScreen() {
                                     </Text>
                                 </View>
                                 <Text style={[styles.sessionTitle, { color: colors.text }]}>{s.title}</Text>
-                                <Text style={[styles.coachName, { color: colors.primary }]}>
-                                    👤 {s.coach_name} ({s.coach_title})
-                                </Text>
+                                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                                    <Ionicons name="person-outline" size={16} color={colors.primary} />
+                                    <Text style={[styles.coachName, { color: colors.primary }]}>
+                                        {s.coach_name} ({s.coach_title})
+                                    </Text>
+                                </View>
                                 <View style={[styles.dateBox, { backgroundColor: colors.surfaceAlt }]}>
-                                    <Text style={[styles.dateText, { color: colors.text }]}>📅 {s.date_label}</Text>
-                                    <Text style={[styles.dateText, { color: colors.text }]}>⏰ {s.time_label}</Text>
+                                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                                        <Ionicons name="calendar-outline" size={15} color={colors.text} />
+                                        <Text style={[styles.dateText, { color: colors.text }]}>{s.date_label}</Text>
+                                    </View>
+                                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                                        <Ionicons name="time-outline" size={15} color={colors.text} />
+                                        <Text style={[styles.dateText, { color: colors.text }]}>{s.time_label}</Text>
+                                    </View>
                                 </View>
                                 {s.notes ? (
-                                    <Text style={[styles.notes, { color: colors.muted }]}>📝 {s.notes}</Text>
+                                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                                        <Ionicons name="document-text-outline" size={15} color={colors.muted} />
+                                        <Text style={[styles.notes, { color: colors.muted }]}>{s.notes}</Text>
+                                    </View>
                                 ) : null}
                                 {isUpcoming && s.meeting_url ? (
                                     <PrimaryButton

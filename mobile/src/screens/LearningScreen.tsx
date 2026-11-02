@@ -8,6 +8,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Chip, Loading, PrimaryButton, ProgressBar, Screen } from '../components';
 import { api, ApiError } from '../api/client';
@@ -112,7 +113,7 @@ export function LearningScreen({ route }: Props) {
             <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
                 <View style={[styles.headerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     <View style={styles.headerTopRow}>
-                        <Chip label={`⏱ زمان مطالعه این جلسه: ${formattedTimer}`} tone="gold" />
+                        <Chip label={`زمان مطالعه این جلسه: ${formattedTimer}`} tone="gold" />
                         <Text style={[styles.progressMeta, { color: colors.primary }]}>
                             {faNum(progress)}٪ تکمیل شده
                         </Text>
@@ -124,7 +125,9 @@ export function LearningScreen({ route }: Props) {
                 {currentLesson ? (
                     <View style={[styles.lessonBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                         <View style={styles.videoPlaceholder}>
-                            <Text style={styles.videoIcon}>🎬</Text>
+                            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#D6F39A', alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+                                <Ionicons name="play" size={26} color="#123E30" />
+                            </View>
                             <Text style={styles.videoTitle}>{currentLesson.title}</Text>
                             {currentLesson.duration ? (
                                 <Text style={styles.videoDuration}>مدت زمان: {faNum(currentLesson.duration)}</Text>
@@ -144,7 +147,7 @@ export function LearningScreen({ route }: Props) {
                             <PrimaryButton
                                 title={
                                     isCurrentCompleted
-                                        ? '✓ این درس تکمیل شده (لغو تکمیل)'
+                                        ? 'این درس تکمیل شده (لغو تکمیل)'
                                         : 'ثبت تکمیل این درس (+XP)'
                                 }
                                 onPress={toggleComplete}
@@ -160,9 +163,12 @@ export function LearningScreen({ route }: Props) {
 
                         {/* Notes Section */}
                         <View style={[styles.notesBox, { borderTopColor: colors.border }]}>
-                            <Text style={[styles.notesLabel, { color: colors.text }]}>
-                                📝 یادداشت‌های من برای این درس
-                            </Text>
+                            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                                <Ionicons name="create-outline" size={18} color={colors.primary} />
+                                <Text style={[styles.notesLabel, { color: colors.text }]}>
+                                    یادداشت‌های من برای این درس
+                                </Text>
+                            </View>
                             <TextInput
                                 value={noteText}
                                 onChangeText={setNoteText}
@@ -232,16 +238,22 @@ export function LearningScreen({ route }: Props) {
                                             active && { backgroundColor: colors.primarySoft },
                                         ]}
                                     >
-                                        <Text
-                                            style={[
-                                                styles.lessonItemText,
-                                                { color: active ? colors.primary : colors.text },
-                                                active && styles.lessonItemTextActive,
-                                            ]}
-                                        >
-                                            {done ? '✅ ' : `${faNum(lIdx + 1)}. `}
-                                            {lesson.title}
-                                        </Text>
+                                        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, flex: 1 }}>
+                                            <Ionicons
+                                                name={done ? 'checkmark-circle' : active ? 'play-circle' : 'ellipse-outline'}
+                                                size={18}
+                                                color={done || active ? colors.primary : colors.muted}
+                                            />
+                                            <Text
+                                                style={[
+                                                    styles.lessonItemText,
+                                                    { color: active ? colors.primary : colors.text },
+                                                    active && styles.lessonItemTextActive,
+                                                ]}
+                                            >
+                                                {faNum(lIdx + 1)}. {lesson.title}
+                                            </Text>
+                                        </View>
                                         {lesson.duration ? (
                                             <Text style={[styles.lessonDuration, { color: colors.muted }]}>
                                                 {faNum(lesson.duration)}

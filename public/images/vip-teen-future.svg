@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" fill="none">
+  <defs>
+    <linearGradient id="vipBg" x1="0" y1="0" x2="800" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0D2E22" />
+      <stop offset="55%" stop-color="#153F31" />
+      <stop offset="100%" stop-color="#1E523F" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FDE68A" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+    <linearGradient id="limeGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E9F9C2" />
+      <stop offset="100%" stop-color="#D6F39A" />
+    </linearGradient>
+    <radialGradient id="glow" cx="25%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#D6F39A" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#0D2E22" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="440" rx="32" fill="url(#vipBg)" />
+  <rect width="800" height="440" rx="32" fill="url(#glow)" />
+
+  <!-- Subtle Geometric Compass Grid -->
+  <g opacity="0.16" stroke="#D6F39A" stroke-width="1.2">
+    <circle cx="190" cy="220" r="150" stroke-dasharray="6 6" />
+    <circle cx="190" cy="220" r="108" />
+    <circle cx="190" cy="220" r="64" stroke-dasharray="3 5" />
+    <line x1="40" y1="220" x2="340" y2="220" />
+    <line x1="190" y1="70" x2="190" y2="370" />
+  </g>
+
+  <!-- 3D Compass & Rising Path Emblem (Left Visual Area) -->
+  <g transform="translate(85, 95)">
+    <!-- Outer Gold Shield Ring -->
+    <polygon points="105,10 190,55 190,155 105,215 20,155 20,55" fill="#103528" stroke="url(#goldGrad)" stroke-width="3" />
+    <polygon points="105,24 176,63 176,147 105,198 34,147 34,63" fill="#174636" stroke="#D6F39A" stroke-opacity="0.35" stroke-width="1.5" />
+
+    <!-- Rising Pathway Steps -->
+    <path d="M58 148 L92 120 L118 132 L152 82" stroke="url(#limeGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+    <polygon points="152,72 164,90 142,88" fill="#D6F39A" />
+
+    <!-- North Star / Future Node -->
+    <circle cx="105" cy="64" r="14" fill="url(#goldGrad)" />
+    <path d="M105 42 L109 58 L125 64 L109 70 L105 86 L101 70 L85 64 L101 58 Z" fill="#FEF3C7" />
+
+    <!-- VIP Stamp Seal -->
+    <g transform="translate(135, 145)">
+      <circle cx="38" cy="38" r="36" fill="url(#goldGrad)" />
+      <circle cx="38" cy="38" r="30" fill="#0D2E22" stroke="#FDE68A" stroke-width="1.5" stroke-dasharray="4 3" />
+      <text x="38" y="36" text-anchor="middle" fill="#FDE68A" font-family="sans-serif" font-weight="900" font-size="16" letter-spacing="1">VIP</text>
+      <text x="38" y="51" text-anchor="middle" fill="#D6F39A" font-family="sans-serif" font-weight="700" font-size="9">MEMBER</text>
+    </g>
+  </g>
+
+  <!-- Right Feature Preview Cards (Hybrid Attendance + Reminder + VIP Badge) -->
+  <g transform="translate(330, 52)">
+    <!-- Card 1: VIP Flagship Badge Header -->
+    <rect x="0" y="0" width="420" height="86" rx="20" fill="#174937" stroke="#F59E0B" stroke-opacity="0.55" stroke-width="1.5" />
+    <rect x="330" y="18" width="72" height="26" rx="13" fill="url(#goldGrad)" />
+    <text x="366" y="35" text-anchor="middle" fill="#0D2E22" font-family="sans-serif" font-weight="900" font-size="11">VIP PASS</text>
+    <circle cx="308" cy="31" r="5" fill="#D6F39A" />
+    <text x="295" y="35" text-anchor="end" fill="#D6F39A" font-family="sans-serif" font-weight="700" font-size="12">دوره پریمیوم و پرچمدار</text>
+    <text x="400" y="66" text-anchor="end" fill="#FFFFFF" font-family="sans-serif" font-weight="900" font-size="20">طراحی آینده نوجوان (حضوری + آنلاین)</text>
+
+    <!-- Card 2: Smart Class Reminder (In-Person + Online) -->
+    <rect x="0" y="104" width="202" height="112" rx="18" fill="#12382B" stroke="#2D5E4B" stroke-width="1.2" />
+    <circle cx="174" cy="130" r="14" fill="#21523F" />
+    <path d="M174 122 V130 L179 133" stroke="#D6F39A" stroke-width="2" stroke-linecap="round" />
+    <text x="150" y="134" text-anchor="end" fill="#D6F39A" font-family="sans-serif" font-weight="700" font-size="12">یادآور هوشمند کلاس</text>
+    <text x="184" y="162" text-anchor="end" fill="#FFFFFF" font-family="sans-serif" font-weight="700" font-size="13">کارگاه حضوری • سه‌شنبه ۱۷:۰۰</text>
+    <rect x="18" y="178" width="166" height="24" rx="8" fill="#21523F" />
+    <text x="101" y="194" text-anchor="middle" fill="#E9F9C2" font-family="sans-serif" font-weight="700" font-size="11">ارسال خودکار پیامک و نوتیفیکیشن</text>
+
+    <!-- Card 3: Instructor Live Roll-Call / Attendance -->
+    <rect x="218" y="104" width="202" height="112" rx="18" fill="#12382B" stroke="#2D5E4B" stroke-width="1.2" />
+    <circle cx="390" cy="130" r="14" fill="#21523F" />
+    <path d="M384 130 L388 134 L396 126" stroke="#FDE68A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+    <text x="366" y="134" text-anchor="end" fill="#FDE68A" font-family="sans-serif" font-weight="700" font-size="12">حضور و غیاب مدرس</text>
+    <text x="400" y="162" text-anchor="end" fill="#FFFFFF" font-family="sans-serif" font-weight="700" font-size="13">ثبت حضوری / مجازی دانش‌پذیر</text>
+    <rect x="236" y="178" width="78" height="24" rx="8" fill="#D6F39A" />
+    <text x="275" y="194" text-anchor="middle" fill="#0D2E22" font-family="sans-serif" font-weight="800" font-size="11">حاضر (حضوری)</text>
+    <rect x="322" y="178" width="80" height="24" rx="8" fill="#275342" />
+    <text x="362" y="194" text-anchor="middle" fill="#D6F39A" font-family="sans-serif" font-weight="700" font-size="11">حاضر (آنلاین)</text>
+
+    <!-- Card 4: Course Settings & VIP Package Items Bar -->
+    <rect x="0" y="232" width="420" height="96" rx="18" fill="#103327" stroke="#2D5E4B" stroke-width="1.2" />
+    <text x="400" y="260" text-anchor="end" fill="#FDE68A" font-family="sans-serif" font-weight="800" font-size="12">پنل مدیریت و تنظیمات دوره پریمیوم</text>
+    <g transform="translate(18, 276)">
+      <rect x="0" y="0" width="118" height="32" rx="10" fill="#1C4B3A" />
+      <text x="59" y="20" text-anchor="middle" fill="#FFFFFF" font-family="sans-serif" font-weight="700" font-size="11">مدیریت آیتم‌های دوره</text>
+      <rect x="130" y="0" width="124" height="32" rx="10" fill="#1C4B3A" />
+      <text x="192" y="20" text-anchor="middle" fill="#FFFFFF" font-family="sans-serif" font-weight="700" font-size="11">زمان‌بندی حضوری/آنلاین</text>
+      <rect x="266" y="0" width="118" height="32" rx="10" fill="#1C4B3A" />
+      <text x="325" y="20" text-anchor="middle" fill="#FFFFFF" font-family="sans-serif" font-weight="700" font-size="11">اعطای مهر VIP</text>
+    </g>
+  </g>
+</svg>

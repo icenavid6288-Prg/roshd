@@ -3,8 +3,10 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build --mode laravel",
-        "build:preview": "vite build",
+        "build": "vite build",
+        "start": "tsx server.ts",
+        "lint": "tsc --noEmit",
+        "build:laravel": "vite build --mode laravel",
         "visual:test": "playwright test",
         "visual:update": "playwright test --update-snapshots",
         "desktop:install": "npm --prefix desktop install",
