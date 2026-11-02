@@ -282,7 +282,7 @@ export default function Home() {
                                 className="inline-flex min-h-[3.35rem] items-center gap-2.5 rounded-2xl border border-[#D6F39A]/40 bg-[#D6F39A]/15 px-7 py-3.5 text-base font-bold text-[#D6F39A] backdrop-blur-md transition-all hover:border-[#D6F39A] hover:bg-[#D6F39A]/25 active:scale-[0.98]"
                             >
                                 <Smartphone className="size-5" />
-                                <span>ورود به سوپراپلیکیشن رشد</span>
+                                <span>ورود به اپلیکیشن رشد</span>
                                 <ArrowLeft className="size-5" />
                             </Link>
                         </div>
@@ -346,7 +346,7 @@ export default function Home() {
                         <div>
                             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-black text-emerald-700 dark:text-emerald-300">
                                 <Zap className="size-3.5 text-amber-500 dark:text-amber-400" />
-                                اکوسیستم یکپارچه وب‌سایت و سوپراپلیکیشن رشد
+                                اکوسیستم یکپارچه وب‌سایت و اپلیکیشن رشد
                             </span>
                             <h2 className="mt-3 text-2xl font-black text-navy dark:text-white md:text-4xl">
                                 میز خدمات سریع رشد و درگاه کلاس‌های آنلاین
@@ -368,7 +368,7 @@ export default function Home() {
                                 className="inline-flex items-center gap-2 rounded-xl bg-[#123E30] px-4 py-2.5 text-xs font-black text-[#D6F39A] shadow-md transition hover:brightness-110 dark:bg-[#D6F39A] dark:text-[#123E30]"
                             >
                                 <Smartphone className="size-4" />
-                                باز کردن در سوپراپلیکیشن
+                                باز کردن در اپلیکیشن
                             </Link>
                         </div>
                     </div>
@@ -427,7 +427,7 @@ export default function Home() {
                                         وبینارها و کلاس‌های آنلاین در حال برگزاری (اسکای‌روم و گوگل‌میت)
                                     </h3>
                                     <p className="text-xs font-bold text-navy/55 dark:text-white/55">
-                                        با یک کلیک مستقیم وارد اتاق کلاس شوید یا در سوپراپلیکیشن دنبال کنید
+                                        با یک کلیک مستقیم وارد اتاق کلاس شوید یا در اپلیکیشن دنبال کنید
                                     </p>
                                 </div>
                             </div>

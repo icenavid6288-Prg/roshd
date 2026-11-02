@@ -48,7 +48,7 @@ export default function EventsIndex() {
                             وبینارها، کلاس‌های آنلاین و سمینارها
                         </h1>
                         <p className="mt-4 max-w-2xl text-sm leading-8 text-emerald-100/75">
-                            ورود مستقیم به اتاق‌های اسکای‌روم (Skyroom)، گوگل میت (Google Meet) و ادوبی کانکت (Adobe Connect) بدون نیاز به نصب برنامه اضافه، هم از طریق سایت و هم از داخل سوپراپلیکیشن رشد.
+                            ورود مستقیم به اتاق‌های اسکای‌روم (Skyroom)، گوگل میت (Google Meet) و ادوبی کانکت (Adobe Connect) بدون نیاز به نصب برنامه اضافه، هم از طریق سایت و هم از داخل اپلیکیشن رشد.
                         </p>
                     </div>
                     <Link
@@ -56,7 +56,7 @@ export default function EventsIndex() {
                         className="inline-flex items-center gap-2 rounded-2xl bg-[#D6F39A] px-5 py-3 text-xs font-black text-[#123E30] shadow-lg transition hover:brightness-105"
                     >
                         <Smartphone className="size-4" />
-                        <span>ورود به اتاق وبینار در سوپراپلیکیشن</span>
+                        <span>ورود به اتاق وبینار در اپلیکیشن</span>
                     </Link>
                 </div>
             </section>

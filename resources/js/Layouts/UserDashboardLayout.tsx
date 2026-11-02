@@ -58,7 +58,7 @@ const groups: NavGroup[] = [
             { label: 'نقشه سفر رشد', href: '/dashboard/goals', icon: Route },
             { label: 'جلسات با دکتر بیدی', href: '/dashboard/sessions', icon: CalendarDays, badge: '۲ پیش‌رو' },
             { label: 'یادآوری‌های خودکار', href: '/dashboard/reminders', icon: Bell, badge: 'پیامک فعال' },
-            { label: 'سوپراپلیکیشن موبایل', href: '/mobile-app', icon: Smartphone, badge: 'Roshd 1.3' },
+            { label: 'اپلیکیشن موبایل', href: '/mobile-app', icon: Smartphone, badge: 'Roshd 1.3' },
         ],
     },
     {

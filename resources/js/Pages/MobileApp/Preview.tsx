@@ -680,7 +680,7 @@ export default function MobileAppPreview() {
 
     return (
         <>
-            <Head title="Roshd 1.3.0 — سوپراپلیکیشن آموزش، استعدادیابی و کوچینگ رشد" />
+            <Head title="Roshd 1.3.0 — اپلیکیشن آموزش، استعدادیابی و کوچینگ رشد" />
 
             <div
                 dir="rtl"
@@ -692,7 +692,7 @@ export default function MobileAppPreview() {
                     <div className="flex items-center justify-between px-1">
                         <div className="flex items-center gap-2">
                             <span className="inline-block w-2 h-2 rounded-full bg-[#D6F39A]"></span>
-                            <span className="font-bold">سوپراپلیکیشن مرکز رشد دکتر بیدی</span>
+                            <span className="font-bold">اپلیکیشن مرکز رشد دکتر بیدی</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Link

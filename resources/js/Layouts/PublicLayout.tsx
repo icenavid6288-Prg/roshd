@@ -186,7 +186,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                             className="inline-flex items-center gap-1.5 rounded-xl border border-[#D6F39A]/45 bg-[#D6F39A]/15 px-3.5 py-2 text-xs font-black text-[#D6F39A] transition-all hover:scale-[1.03] hover:bg-[#D6F39A]/25"
                         >
                             <span className="size-2 rounded-full bg-[#D6F39A]" />
-                            سوپراپلیکیشن موبایل
+                            اپلیکیشن موبایل
                         </Link>
                         <ThemeToggle compact />
                         {auth.user ? (

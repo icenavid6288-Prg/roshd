@@ -50,7 +50,7 @@ export default function EventShow() {
                         className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-black text-emerald-800 transition hover:bg-emerald-500/20 dark:border-emerald-400/30 dark:text-emerald-300"
                     >
                         <Smartphone className="size-4" />
-                        مشاهده و ورود از طریق سوپراپلیکیشن موبایل
+                        مشاهده و ورود از طریق اپلیکیشن موبایل
                     </Link>
                 </div>
 
