@@ -23,6 +23,7 @@ import {
     Users,
     UsersRound,
     UserRound,
+    Video,
     X,
     type LucideIcon,
 } from 'lucide-react';
