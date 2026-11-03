@@ -19,7 +19,7 @@ class HomeController extends Controller
 {
     public function index(Request $request): Response
     {
-        $content = Cache::remember('public.home.content.v1', now()->addSeconds(60), function (): array {
+        $content = Cache::remember('public.home.content.v2', now()->addSeconds(60), function (): array {
             $courses = Course::published()
                 ->with(['instructor.user', 'category'])
                 ->featured()
@@ -34,6 +34,34 @@ class HomeController extends Controller
                 ->with('episodes')
                 ->first();
 
+            $liveWebinars = Event::published()
+                ->where('type', 'webinar')
+                ->whereNotNull('live_url')
+                ->where(function ($query): void {
+                    $query->whereNull('event_date')
+                        ->orWhere('event_date', '>=', now()->subHours(3));
+                })
+                ->orderByRaw('event_date is null, event_date asc')
+                ->limit(3)
+                ->get()
+                ->map(function (Event $event): array {
+                    $startsAt = $event->event_date;
+                    $endsAt = $startsAt?->copy()->addMinutes($event->duration_minutes ?: 120);
+
+                    return [
+                        'id' => $event->id,
+                        'title' => $event->title,
+                        'slug' => $event->slug,
+                        'instructor' => $event->speaker,
+                        'platform_label' => $event->location ?: 'کلاس آنلاین',
+                        'event_date' => $startsAt?->toIso8601String(),
+                        'status' => $startsAt && $startsAt->isPast() && (! $endsAt || $endsAt->isFuture()) ? 'live' : 'upcoming',
+                        'live_url' => $event->live_url,
+                    ];
+                })
+                ->values()
+                ->all();
+
             return [
                 'courses' => $courses,
                 'services' => Service::active()->where('is_featured', true)->limit(6)->get()->toArray(),
@@ -41,6 +69,7 @@ class HomeController extends Controller
                 'posts' => BlogPost::published()->with('author')->latest('published_at')->limit(3)->get()->toArray(),
                 'books' => Product::active()->ofType('book')->latest()->limit(3)->get()->toArray(),
                 'podcast' => $podcast?->toArray(),
+                'liveWebinars' => $liveWebinars,
             ];
         });
 
