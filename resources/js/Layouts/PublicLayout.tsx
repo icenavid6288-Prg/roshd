@@ -20,7 +20,6 @@ import {
     Sparkles,
     Radio,
     Search as SearchIcon,
-    Smartphone,
     Users,
     UsersRound,
     UserRound,
@@ -469,7 +468,6 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                     { label: 'دوره‌ها', href: '/courses', icon: GraduationCap },
                     { label: 'وبینارها', href: '/events', icon: Video },
                     { label: 'فروشگاه', href: '/shop', icon: ShoppingBag },
-                    { label: 'اپلیکیشن', href: '/mobile-app', icon: Smartphone },
                     auth.user
                         ? { label: 'پنل من', href: '/dashboard', icon: UserRound }
                         : { label: 'حساب', icon: UserRound, onClick: () => setAuthModal('login') },
