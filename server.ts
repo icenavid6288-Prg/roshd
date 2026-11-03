@@ -57,14 +57,31 @@ app.post('/logout', (req: Request, res: Response) => {
     res.redirect('/');
 });
 
-async function startServer() {
-    const isProd = process.env.NODE_ENV === 'production';
-    let vite: any;
+let vite: any = null;
+let viteReadyPromise: Promise<void> | null = null;
+const isProd = process.env.NODE_ENV === 'production';
 
-    if (!isProd) {
+if (!isProd) {
+    viteReadyPromise = (async () => {
         const { createServer } = await import('vite');
         vite = await createServer({
-            server: { middlewareMode: true, hmr: false },
+            server: {
+                middlewareMode: true,
+                hmr: false,
+                watch: {
+                    ignored: [
+                        '**/vendor/**',
+                        '**/storage/**',
+                        '**/desktop/**',
+                        '**/public/build/**',
+                        '**/bootstrap/**',
+                        '**/tests/**',
+                    ],
+                },
+            },
+            optimizeDeps: {
+                entries: ['resources/js/app.tsx'],
+            },
             appType: 'custom',
             resolve: {
                 alias: {
@@ -73,66 +90,78 @@ async function startServer() {
                 },
             },
         });
-        app.use(vite.middlewares);
-    } else {
-        app.use(express.static(path.resolve(__dirname, 'dist')));
-    }
+    })();
 
-    // Public static assets fallback
-    app.use(express.static(path.resolve(__dirname, 'public')));
-
-    // Universal Inertia & Page Handler
-    app.use(async (req: Request, res: Response, next) => {
-        const url = req.originalUrl;
-
-        // Skip internal/vite assets
-        if (url.startsWith('/@') || url.startsWith('/resources/') || url.startsWith('/node_modules/')) {
-            return next();
+    app.use(async (req, res, next) => {
+        if (viteReadyPromise) {
+            await viteReadyPromise;
         }
-
-        const resolved = getResolvedPage(url);
-        const pageData = {
-            component: resolved.component,
-            props: resolved.props,
-            url,
-            version: '1.0',
-        };
-
-        // Inertia AJAX request
-        if (req.headers['x-inertia']) {
-            res.setHeader('X-Inertia', 'true');
-            res.setHeader('Vary', 'Accept');
-            return res.json(pageData);
+        if (vite) {
+            return vite.middlewares(req, res, next);
         }
-
-        // Full HTML request
-        try {
-            let template: string;
-            if (!isProd && vite) {
-                template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
-                template = await vite.transformIndexHtml(url, template);
-            } else {
-                template = fs.readFileSync(path.resolve(__dirname, 'dist/index.html'), 'utf-8');
-            }
-
-            // Inject data-page into #app
-            const pageJson = JSON.stringify(pageData).replace(/"/g, '&quot;');
-            const html = template.replace(
-                /<div id="app".*?><\/div>/,
-                `<div id="app" data-page="${pageJson}"></div>`
-            );
-
-            res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
-        } catch (e: any) {
-            if (vite) vite.ssrFixStacktrace(e);
-            console.error(e);
-            res.status(500).end(e.stack || e.message);
-        }
+        next();
     });
-
-    app.listen(PORT, HOST, () => {
-        console.log(`Server listening at http://${HOST}:${PORT}`);
-    });
+} else {
+    app.use(express.static(path.resolve(__dirname, 'dist')));
 }
 
-startServer();
+// Public static assets fallback
+app.use(express.static(path.resolve(__dirname, 'public')));
+
+// Universal Inertia & Page Handler
+app.use(async (req: Request, res: Response, next) => {
+    if (viteReadyPromise) {
+        await viteReadyPromise;
+    }
+
+    const url = req.originalUrl;
+
+    // Skip internal/vite assets
+    if (url.startsWith('/@') || url.startsWith('/resources/') || url.startsWith('/node_modules/')) {
+        return next();
+    }
+
+    const resolved = getResolvedPage(url);
+    const pageData = {
+        component: resolved.component,
+        props: resolved.props,
+        url,
+        version: '1.0',
+    };
+
+    // Inertia AJAX request
+    if (req.headers['x-inertia']) {
+        res.setHeader('X-Inertia', 'true');
+        res.setHeader('Vary', 'Accept');
+        return res.json(pageData);
+    }
+
+    // Full HTML request
+    try {
+        let template: string;
+        if (!isProd && vite) {
+            template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
+            template = await vite.transformIndexHtml(url, template);
+        } else {
+            template = fs.readFileSync(path.resolve(__dirname, 'dist/index.html'), 'utf-8');
+        }
+
+        // Inject data-page into #app
+        const pageJson = JSON.stringify(pageData).replace(/"/g, '&quot;');
+        const html = template.replace(
+            /<div id="app".*?><\/div>/,
+            `<div id="app" data-page="${pageJson}"></div>`
+        );
+
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+    } catch (e: any) {
+        if (vite) vite.ssrFixStacktrace(e);
+        console.error(e);
+        res.status(500).end(e.stack || e.message);
+    }
+});
+
+app.listen(PORT, HOST, () => {
+    console.log(`Server listening at http://${HOST}:${PORT}`);
+});
+

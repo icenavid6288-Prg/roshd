@@ -30,10 +30,23 @@ export default defineConfig(({ mode }) => {
                 'ziggy-js': path.resolve(__dirname, 'resources/js/lib/route.ts'),
             },
         },
+        optimizeDeps: {
+            entries: ['resources/js/app.tsx'],
+        },
         server: {
             host: '0.0.0.0',
             port: 3000,
             hmr: false,
+            watch: {
+                ignored: [
+                    '**/vendor/**',
+                    '**/storage/**',
+                    '**/desktop/**',
+                    '**/public/build/**',
+                    '**/bootstrap/**',
+                    '**/tests/**',
+                ],
+            },
         },
     };
 });

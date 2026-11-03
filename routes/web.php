@@ -109,6 +109,9 @@ Route::get('/app-icon', AppIconController::class)->name('app.icon');
 Route::get('/app-manifest.webmanifest', AppManifestController::class)->name('app.manifest');
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/mobile-app', fn () => \Inertia\Inertia::render('MobileApp/Preview'))->name('mobile-app.preview');
+Route::get('/download-app', fn () => \Inertia\Inertia::render('MobileApp/Preview'))->name('mobile-app.download');
+Route::get('/dashboard/mobile-app', fn () => \Inertia\Inertia::render('MobileApp/Preview'))->name('dashboard.mobile-app');
 
 Route::get('/courses', [PublicCourseController::class, 'index'])->name('courses.index');
 Route::get('/courses/{course:slug}', [PublicCourseController::class, 'show'])->name('courses.show');
