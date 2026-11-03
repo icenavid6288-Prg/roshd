@@ -105,13 +105,13 @@ const keyPillars = [
     },
 ];
 
-const quickDeskServices = [
+const quickDeskServices = (webinarCount: number) => [
     {
         title: 'وبینارها و کلاس آنلاین',
         subtitle: 'ورود به اسکای‌روم و گوگل‌میت',
-        badge: '۱ کلاس زنده',
+        badge: webinarCount > 0 ? `${webinarCount} رویداد فعال` : 'بدون رویداد فعال',
         badgeColor: 'text-rose-600 dark:text-rose-300 bg-rose-500/15 border-rose-500/30',
-        dotColor: 'bg-rose-500 animate-pulse',
+        dotColor: webinarCount > 0 ? 'bg-rose-500 animate-pulse' : 'bg-slate-400',
         href: '/events?type=webinar',
         appHref: '/mobile-app?screen=sessions',
         icon: Video,
@@ -160,44 +160,31 @@ const quickDeskServices = [
     },
 ];
 
-const syncedLiveWebinars = [
-    {
-        id: 1,
-        title: 'وبینار زنده کشف استعداد و نقشه راه آینده نوجوان',
-        instructor: 'دکتر علیرضا بیدی · راهبر اصلی دوره',
-        platformLabel: 'اسکای‌روم (Skyroom)',
-        roomCode: 'ROSHD-VIP-104',
-        time: 'امروز · پنج‌شنبه ۱۱ اردیبهشت · ساعت ۱۷:۰۰',
-        status: 'live' as const,
-        link: 'https://www.skyroom.online/ch/roshd-academy/teen-future-vip',
-        slug: 'teen-talent-discovery-webinar',
-    },
-    {
-        id: 2,
-        title: 'کلاس آنلاین کارگاه تصمیم‌گیری و هدف‌گذاری ۹۰ روزه (آیتم ۲)',
-        instructor: 'استاد سارا کریمی · مدرس برنامه‌ریزی و هدف‌گذاری',
-        platformLabel: 'گوگل میت (Google Meet)',
-        roomCode: 'rsh-daca-vip',
-        time: 'یکشنبه ۱۴ اردیبهشت · ساعت ۱۸:۰۰',
-        status: 'upcoming' as const,
-        link: 'https://meet.google.com/rsh-daca-vip',
-        slug: 'systemic-decision-making-google-meet',
-    },
-    {
-        id: 3,
-        title: 'نشست آنلاین پرسش و پاسخ والدین با تیم کوچینگ رشد',
-        instructor: 'دکتر محمدرضا صادقی · منتور خودشناسی و استعدادیابی',
-        platformLabel: 'اسکای‌روم (Skyroom)',
-        roomCode: 'PARENTS-1404',
-        time: 'چهارشنبه ۱۷ اردیبهشت · ساعت ۲۰:۰۰',
-        status: 'upcoming' as const,
-        link: 'https://www.skyroom.online/ch/roshd-academy/parents-club',
-        slug: 'parents-coaching-qa-skyroom',
-    },
-];
+interface WebinarData {
+    id: number;
+    title: string;
+    slug: string;
+    instructor?: string | null;
+    platform_label?: string | null;
+    event_date?: string | null;
+    status: 'live' | 'upcoming';
+    live_url: string;
+}
+
+const formatWebinarDate = (value?: string | null) => {
+    if (!value) return 'زمان برگزاری به‌زودی اعلام می‌شود';
+
+    return new Intl.DateTimeFormat('fa-IR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(new Date(value));
+};
 
 export default function Home() {
-    const { courses, services, testimonials, posts, books, podcast, stats, site, pageContent } = usePage<
+    const { courses, services, testimonials, posts, books, podcast, stats, liveWebinars, site, pageContent } = usePage<
         PageProps & {
             courses: CourseCardData[];
             services: ServiceData[];
@@ -206,9 +193,11 @@ export default function Home() {
             books: ProductData[];
             podcast: ProductData | null;
             stats: Array<{ value: number; suffix: string; label: string }>;
+            liveWebinars: WebinarData[];
         }
     >().props;
 
+    const quickServices = quickDeskServices(liveWebinars.length);
     const pageFields = pageContent?.fields ?? {};
     const editable = (key: string, fallback: string) => pageFields[key]?.value?.trim() || fallback;
     const media = (key: string) => pageFields[key]?.value?.trim() || '';
@@ -375,7 +364,7 @@ export default function Home() {
 
                     {/* 2x2 / 4-col Glassmorphic Quick Services Grid with Scale & Lift Hover Micro-interaction */}
                     <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        {quickDeskServices.map((service) => {
+                        {quickServices.map((service) => {
                             const Icon = service.icon;
                             return (
                                 <Link
@@ -415,19 +404,21 @@ export default function Home() {
                         })}
                     </div>
 
-                    {/* Live Online Classes & Webinars Strip (Skyroom / Google Meet) */}
+                    {/* Real-time webinars published from the events panel */}
                     <div className="mt-8 rounded-3xl border border-emerald-900/10 bg-white/90 p-6 shadow-soft backdrop-blur-xl dark:border-white/10 dark:bg-[#0b2018]/90">
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-emerald-900/10 pb-4 dark:border-white/10">
                             <div className="flex items-center gap-2.5">
-                                <span className="flex size-9 items-center justify-center rounded-xl bg-red-500/15 text-red-600 dark:bg-red-500/25 dark:text-red-300">
-                                    <Radio className="size-5 animate-pulse" />
+                                <span className={`flex size-9 items-center justify-center rounded-xl ${liveWebinars.length > 0 ? 'bg-red-500/15 text-red-600 dark:bg-red-500/25 dark:text-red-300' : 'bg-slate-500/10 text-slate-500 dark:bg-white/10 dark:text-white/55'}`}>
+                                    <Radio className={`size-5 ${liveWebinars.some((webinar) => webinar.status === 'live') ? 'animate-pulse' : ''}`} />
                                 </span>
                                 <div>
                                     <h3 className="text-sm font-black text-navy dark:text-white md:text-base">
-                                        وبینارها و کلاس‌های آنلاین در حال برگزاری (اسکای‌روم و گوگل‌میت)
+                                        وبینارها و کلاس‌های آنلاین
                                     </h3>
                                     <p className="text-xs font-bold text-navy/55 dark:text-white/55">
-                                        با یک کلیک مستقیم وارد اتاق کلاس شوید یا در اپلیکیشن دنبال کنید
+                                        {liveWebinars.length > 0
+                                            ? 'رویدادهای منتشرشده از پنل مدیریت'
+                                            : 'هنوز رویداد آنلاینی برای نمایش منتشر نشده است'}
                                     </p>
                                 </div>
                             </div>
@@ -435,64 +426,62 @@ export default function Home() {
                                 href="/events?type=webinar"
                                 className="text-xs font-black text-emerald-700 hover:underline dark:text-emerald-300"
                             >
-                                مشاهده همه ۴ وبینار و سمینار ←
+                                {liveWebinars.length > 0 ? 'مشاهده همه رویدادها ←' : 'آرشیو رویدادها ←'}
                             </Link>
                         </div>
 
-                        <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                            {syncedLiveWebinars.map((wb) => (
-                                <div
-                                    key={wb.id}
-                                    className="flex flex-col justify-between rounded-2xl border border-emerald-900/10 bg-[#f4f8f5]/80 p-4 transition-all duration-300 hover:scale-[1.01] hover:border-emerald-500/40 dark:border-white/10 dark:bg-white/[0.03]"
-                                >
-                                    <div>
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="rounded-lg bg-sky-500/15 px-2.5 py-0.5 text-[0.68rem] font-black text-sky-700 dark:text-sky-300">
-                                                {wb.platformLabel}
-                                            </span>
-                                            <span
-                                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.65rem] font-black ${
-                                                    wb.status === 'live'
-                                                        ? 'bg-red-600 text-white'
-                                                        : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                                                }`}
-                                            >
-                                                {wb.status === 'live' ? '● در حال برگزاری' : 'پیش‌رو'}
-                                            </span>
+                        {liveWebinars.length > 0 ? (
+                            <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                                {liveWebinars.map((webinar) => (
+                                    <div
+                                        key={webinar.id}
+                                        className="flex flex-col justify-between rounded-2xl border border-emerald-900/10 bg-[#f4f8f5]/80 p-4 transition-all duration-300 hover:scale-[1.01] hover:border-emerald-500/40 dark:border-white/10 dark:bg-white/[0.03]"
+                                    >
+                                        <div>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="rounded-lg bg-sky-500/15 px-2.5 py-0.5 text-[0.68rem] font-black text-sky-700 dark:text-sky-300">
+                                                    {webinar.platform_label || 'کلاس آنلاین'}
+                                                </span>
+                                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.65rem] font-black ${webinar.status === 'live' ? 'bg-red-600 text-white' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'}`}>
+                                                    {webinar.status === 'live' ? '● در حال برگزاری' : 'پیش‌رو'}
+                                                </span>
+                                            </div>
+                                            <Link href={`/events/${webinar.slug}`}>
+                                                <h4 className="mt-2.5 text-sm font-black text-navy hover:text-emerald-700 dark:text-white dark:hover:text-emerald-300">
+                                                    {webinar.title}
+                                                </h4>
+                                            </Link>
+                                            {webinar.instructor && <p className="mt-1 text-xs font-bold text-emerald-700 dark:text-emerald-300">{webinar.instructor}</p>}
+                                            <p className="mt-1 text-[0.7rem] font-bold text-navy/55 dark:text-white/55">{formatWebinarDate(webinar.event_date)}</p>
                                         </div>
-                                        <Link href={`/events/${wb.slug}`}>
-                                            <h4 className="mt-2.5 text-sm font-black text-navy hover:text-emerald-700 dark:text-white dark:hover:text-emerald-300">
-                                                {wb.title}
-                                            </h4>
-                                        </Link>
-                                        <p className="mt-1 text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                                            {wb.instructor}
-                                        </p>
-                                        <p className="mt-1 text-[0.7rem] font-bold text-navy/55 dark:text-white/55">
-                                            {wb.time} · کد اتاق: <span className="font-mono">{wb.roomCode}</span>
-                                        </p>
-                                    </div>
 
-                                    <div className="mt-4 flex items-center justify-between gap-2 pt-2">
-                                        <a
-                                            href={wb.link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:brightness-110"
-                                        >
-                                            <span>ورود به کلاس</span>
-                                            <ExternalLink className="size-3.5" />
-                                        </a>
-                                        <Link
-                                            href={`/events/${wb.slug}`}
-                                            className="rounded-xl border border-emerald-900/15 px-3 py-2 text-xs font-bold text-navy/75 hover:bg-emerald-50 dark:border-white/15 dark:text-white/75 dark:hover:bg-white/10"
-                                        >
-                                            جزئیات
-                                        </Link>
+                                        <div className="mt-4 flex items-center justify-between gap-2 pt-2">
+                                            <a
+                                                href={webinar.live_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:brightness-110"
+                                            >
+                                                <span>ورود به کلاس</span>
+                                                <ExternalLink className="size-3.5" />
+                                            </a>
+                                            <Link
+                                                href={`/events/${webinar.slug}`}
+                                                className="rounded-xl border border-emerald-900/15 px-3 py-2 text-xs font-bold text-navy/75 hover:bg-emerald-50 dark:border-white/15 dark:text-white/75 dark:hover:bg-white/10"
+                                            >
+                                                جزئیات
+                                            </Link>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="mt-4 rounded-2xl border border-dashed border-emerald-900/15 bg-[#f4f8f5]/60 px-5 py-8 text-center dark:border-white/15 dark:bg-white/[0.03]">
+                                <Video className="mx-auto size-6 text-emerald-600 dark:text-emerald-300" />
+                                <p className="mt-3 text-sm font-black text-navy dark:text-white">فعلاً وبینار یا کلاس آنلاین فعالی نداریم.</p>
+                                <p className="mt-1 text-xs font-bold text-navy/55 dark:text-white/55">با انتشار رویداد جدید از پنل مدیریت، این بخش خودکار به‌روزرسانی می‌شود.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>
