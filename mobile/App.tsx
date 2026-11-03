@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
 
-const PREVIEW_URL = 'https://test.saradars.ir/';
+const PREVIEW_URL = 'https://ais-dev-bkfw3jjk6lau2qlw6ksdfy-709054533386.europe-west1.run.app/';
 
 export default function App() {
   return (
