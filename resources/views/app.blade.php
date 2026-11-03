@@ -22,7 +22,6 @@
         @endif
 
         <!-- Scripts -->
-        @routes(nonce: request()->attributes->get('csp_nonce'))
         @viteReactRefresh
         @vite('resources/js/app.tsx')
         @inertiaHead
