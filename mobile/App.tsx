@@ -3,7 +3,8 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
 
-const PREVIEW_URL = 'https://ais-dev-bkfw3jjk6lau2qlw6ksdfy-709054533386.europe-west1.run.app/';
+// This is the Roshd production domain, never the temporary AI Studio host.
+const PREVIEW_URL = 'https://saradars.ir/mobile-app';
 
 export default function App() {
   return (
@@ -11,7 +12,7 @@ export default function App() {
       <StatusBar style="dark" />
       <WebView
         source={{ uri: PREVIEW_URL }}
-        originWhitelist={['*']}
+        originWhitelist={['https://saradars.ir/*']}
         javaScriptEnabled
         domStorageEnabled
         sharedCookiesEnabled
