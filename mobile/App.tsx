@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
 
-const PREVIEW_URL = 'https://saradars.ir/mobile-app';
+const PREVIEW_URL = 'https://test.saradars.ir/';
 
 export default function App() {
   return (
