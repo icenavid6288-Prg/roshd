@@ -78,20 +78,25 @@ class RolePermissionController extends Controller
         $roleModel = ctype_digit($role) ? Role::findOrFail((int) $role) : Role::findByName($role);
 
         $validated = $request->validate([
-            'label' => ['required', 'string', 'max:120'],
+            'label' => ['sometimes', 'nullable', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:1000'],
             'permissions' => ['array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
         ], [
-            'label.required' => 'عنوان نقش الزامی است.',
             'label.max' => 'عنوان نقش نباید بیشتر از ۱۲۰ کاراکتر باشد.',
             'description.max' => 'توضیحات نقش نباید بیشتر از ۱۰۰۰ کاراکتر باشد.',
         ]);
 
-        $roleModel->forceFill([
-            'label' => trim($validated['label']),
-            'description' => filled($validated['description'] ?? null) ? trim($validated['description']) : null,
-        ])->save();
+        $updates = [];
+        if (array_key_exists('label', $validated)) {
+            $updates['label'] = filled($validated['label']) ? trim($validated['label']) : null;
+        }
+        if (array_key_exists('description', $validated)) {
+            $updates['description'] = filled($validated['description'] ?? null) ? trim($validated['description']) : null;
+        }
+        if ($updates !== []) {
+            $roleModel->forceFill($updates)->save();
+        }
 
         if ($roleModel->name !== 'super-admin') {
             $roleModel->syncPermissions($validated['permissions'] ?? []);
