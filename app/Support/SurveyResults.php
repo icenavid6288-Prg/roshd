@@ -126,12 +126,14 @@ class SurveyResults
             ] : null,
             'created_at' => $response->created_at?->format('Y/m/d H:i'),
             'completed_at' => $response->completed_at?->format('Y/m/d H:i'),
-            'answers' => $questions->map(fn (SurveyQuestion $question) => [
-                'question_id' => $question->id,
-                'title' => $question->title,
-                'type' => $question->type,
-                'value' => $this->formatAnswer($answers[(string) $question->id] ?? $answers[$question->id] ?? null),
-            ])->values()->all(),
+            'answers' => $questions->values()->map(function (SurveyQuestion $question, int $index) use ($answers): array {
+                return [
+                    'question_id' => $question->id,
+                    'title' => $question->title,
+                    'type' => $question->type,
+                    'value' => $this->formatAnswer($this->answerForQuestion($answers, $question, $index)),
+                ];
+            })->values()->all(),
         ];
     }
 
@@ -197,6 +199,20 @@ class SurveyResults
             'in_progress' => $survey->responses()->where('status', 'in_progress')->count(),
             'questions' => $breakdown,
         ];
+    }
+
+    private function answerForQuestion(array $answers, SurveyQuestion $question, int $index): mixed
+    {
+        $key = (string) $question->id;
+        if (array_key_exists($key, $answers)) {
+            return $answers[$key];
+        }
+        if (array_key_exists($question->id, $answers)) {
+            return $answers[$question->id];
+        }
+
+        // Older Persline responses stored answers under deleted question IDs.
+        return array_values($answers)[$index] ?? null;
     }
 
     private function formatAnswer(mixed $value): string
