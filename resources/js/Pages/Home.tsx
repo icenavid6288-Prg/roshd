@@ -113,7 +113,7 @@ const quickDeskServices = (webinarCount: number) => [
         badgeColor: 'text-rose-600 dark:text-rose-300 bg-rose-500/15 border-rose-500/30',
         dotColor: webinarCount > 0 ? 'bg-rose-500 animate-pulse' : 'bg-slate-400',
         href: '/events?type=webinar',
-        appHref: '/mobile-app?screen=sessions',
+        appHref: '/downloads/markaz.apk',
         icon: Video,
         gradient:
             'from-rose-500/15 via-amber-500/5 to-transparent dark:from-rose-500/25 dark:via-rose-900/10 dark:to-white/[0.02]',
@@ -125,8 +125,8 @@ const quickDeskServices = (webinarCount: number) => [
         badge: 'پاسخگویی آنلاین',
         badgeColor: 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 border-emerald-500/30',
         dotColor: 'bg-emerald-400',
-        href: '/mobile-app?screen=chat',
-        appHref: '/mobile-app?screen=chat',
+        href: '/downloads/markaz.apk',
+        appHref: '/downloads/markaz.apk',
         icon: MessageCircle,
         gradient:
             'from-emerald-500/15 via-teal-500/5 to-transparent dark:from-emerald-500/25 dark:via-emerald-900/10 dark:to-white/[0.02]',
@@ -139,7 +139,7 @@ const quickDeskServices = (webinarCount: number) => [
         badgeColor: 'text-amber-700 dark:text-amber-300 bg-amber-500/15 border-amber-500/30',
         dotColor: 'bg-amber-400',
         href: '/shop',
-        appHref: '/mobile-app?screen=inAppReader',
+        appHref: '/downloads/markaz.apk',
         icon: BookOpen,
         gradient:
             'from-amber-500/15 via-orange-500/5 to-transparent dark:from-amber-500/25 dark:via-amber-900/10 dark:to-white/[0.02]',
@@ -152,7 +152,7 @@ const quickDeskServices = (webinarCount: number) => [
         badgeColor: 'text-sky-700 dark:text-sky-300 bg-sky-500/15 border-sky-500/30',
         dotColor: 'bg-sky-400',
         href: '/dashboard/goals',
-        appHref: '/mobile-app?screen=goals',
+        appHref: '/downloads/markaz.apk',
         icon: Compass,
         gradient:
             'from-sky-500/15 via-indigo-500/5 to-transparent dark:from-sky-500/25 dark:via-sky-900/10 dark:to-white/[0.02]',
@@ -266,7 +266,7 @@ export default function Home() {
                             </a>
 
                             <Link
-                                href="/mobile-app"
+                                href="/downloads/markaz.apk"
                                 onClick={() => vibrate()}
                                 className="inline-flex min-h-[3.35rem] items-center gap-2.5 rounded-2xl border border-[#D6F39A]/40 bg-[#D6F39A]/15 px-7 py-3.5 text-base font-bold text-[#D6F39A] backdrop-blur-md transition-all hover:border-[#D6F39A] hover:bg-[#D6F39A]/25 active:scale-[0.98]"
                             >
@@ -353,7 +353,7 @@ export default function Home() {
                                 آرشیو وبینارها
                             </Link>
                             <Link
-                                href="/mobile-app"
+                                href="/downloads/markaz.apk"
                                 className="inline-flex items-center gap-2 rounded-xl bg-[#123E30] px-4 py-2.5 text-xs font-black text-[#D6F39A] shadow-md transition hover:brightness-110 dark:bg-[#D6F39A] dark:text-[#123E30]"
                             >
                                 <Smartphone className="size-4" />

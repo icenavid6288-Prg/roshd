@@ -8,7 +8,7 @@ export default function PwaInstallPrompt() {
     useEffect(() => {
         let until = 0;
         try { until = Number(localStorage.getItem(KEY) || 0); } catch {}
-        const timer = setTimeout(() => setVisible(until < Date.now() && !location.pathname.startsWith('/download-app')), 2500);
+        const timer = setTimeout(() => setVisible(until < Date.now()), 2500);
         return () => clearTimeout(timer);
     }, []);
     const dismiss = () => {
@@ -22,7 +22,7 @@ export default function PwaInstallPrompt() {
             <strong className="block text-sm font-black text-navy">اپلیکیشن مرکز رشد را دانلود کنید</strong>
             <p className="mt-1 text-xs leading-5 text-navy/60">اپلیکیشن اندروید را روی گوشی نصب کنید و به دوره‌ها و پنل خود دسترسی داشته باشید.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-                <a href="/download-app/" className="pwa-prompt-primary"><Download className="size-4" /> دریافت اپلیکیشن</a>
+                <a href="/downloads/markaz.apk" className="pwa-prompt-primary"><Download className="size-4" /> دریافت اپلیکیشن</a>
                 <button type="button" onClick={dismiss} className="pwa-prompt-dismiss">بعداً</button>
             </div>
         </div>

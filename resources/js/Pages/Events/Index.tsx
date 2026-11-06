@@ -52,7 +52,7 @@ export default function EventsIndex() {
                         </p>
                     </div>
                     <Link
-                        href="/mobile-app?screen=sessions"
+                        href="/downloads/markaz.apk"
                         className="inline-flex items-center gap-2 rounded-2xl bg-[#D6F39A] px-5 py-3 text-xs font-black text-[#123E30] shadow-lg transition hover:brightness-105"
                     >
                         <Smartphone className="size-4" />

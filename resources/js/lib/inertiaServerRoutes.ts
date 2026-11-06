@@ -1,10 +1,10 @@
 import { getMockPageData } from './mockData.js';
 
 export function resolveInertiaRoute(cleanPath: string): { component: string; props: Record<string, any> } {
-    let component = 'MobileApp/Preview';
+    let component = 'Home';
 
     if (cleanPath === '/' || cleanPath === '') {
-        component = 'MobileApp/Preview';
+        component = 'Home';
     } else if (cleanPath === '/web' || cleanPath === '/home') {
         component = 'Home';
     } else if (cleanPath === '/about') {
@@ -71,8 +71,6 @@ export function resolveInertiaRoute(cleanPath: string): { component: string; pro
         component = 'Dashboard/Referrals';
     } else if (cleanPath === '/dashboard/reminders') {
         component = 'Dashboard/Reminders';
-    } else if (cleanPath === '/mobile-app' || cleanPath === '/dashboard/mobile-app' || cleanPath === '/download-app') {
-        component = 'MobileApp/Preview';
     } else if (cleanPath === '/support' || cleanPath === '/dashboard/support') {
         component = 'Support/Index';
     } else if (cleanPath.startsWith('/support/')) {

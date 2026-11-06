@@ -253,7 +253,6 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                     </div>
 
                     <nav className="drawer-nav" aria-label="منوی اصلی">
-                        <Link href="/mobile-app" className="drawer-link" onClick={() => setMobileOpen(false)}>پیش‌نمایش اپلیکیشن موبایل</Link>
                         {menus.header.map((item, i) => {
                             const Icon = menuIconFor(item.url);
                             return (
@@ -418,7 +417,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                         <div className="footer-link-column">
                             <h3 className="footer-column-title">دسترسی سریع</h3>
                             <ul className="footer-link-list">
-                                <li><a href="/download-app/" className="footer-nav-link"><span>دانلود اپلیکیشن اندروید</span><ChevronLeft className="footer-nav-arrow size-3.5" aria-hidden /></a></li>
+                                <li><a href="/downloads/markaz.apk" className="footer-nav-link"><span>دانلود اپلیکیشن اندروید</span><ChevronLeft className="footer-nav-arrow size-3.5" aria-hidden /></a></li>
                                 {menus.footer.map((item, index) => (
                                     <li key={item.url + item.title}>
                                         <Link href={item.url} prefetch="hover" className="footer-nav-link">

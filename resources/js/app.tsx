@@ -55,9 +55,9 @@ function getInitialPage() {
         }
     }
 
-    let component = pageData?.component || 'MobileApp/Preview';
+    let component = pageData?.component || 'Home';
     if (path === '/' || path === '') {
-        component = 'MobileApp/Preview';
+        component = 'Home';
     } else if (path === '/web' || path === '/home') {
         component = 'Home';
     } else if (!pageData) {
@@ -77,7 +77,6 @@ function getInitialPage() {
         else if (path === '/login') component = 'Auth/Login';
         else if (path === '/register') component = 'Auth/Register';
         else if (path === '/cart') component = 'Cart/Index';
-        else if (path === '/mobile-app' || path === '/dashboard/mobile-app' || path === '/download-app') component = 'MobileApp/Preview';
         else if (path === '/dashboard/reminders') component = 'Dashboard/Reminders';
         else if (path.startsWith('/dashboard')) component = 'Dashboard';
         else if (path === '/admin' || path === '/admin/dashboard') component = 'Admin/Dashboard';
