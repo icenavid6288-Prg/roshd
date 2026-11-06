@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { resolveInertiaRoute } from './resources/js/lib/inertiaServerRoutes';
+import { createInitialDynamicAppState, DynamicAppState } from './resources/js/lib/dynamicAppStore';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,17 +23,43 @@ const memoryStore = {
     cart: [] as any[],
     currentUser: {
         id: 1,
-        name: 'کاربر آزمایشی',
+        name: 'نوید محمدی',
         phone: '09123456789',
-        email: 'user@markazbidi.ir',
+        email: 'navid@roshd.ir',
         role: 'student',
     },
+    appState: createInitialDynamicAppState() as DynamicAppState,
 };
 
 function getResolvedPage(urlPath: string) {
     const cleanPath = urlPath.split('?')[0].replace(/\/$/, '') || '/';
-    return resolveInertiaRoute(cleanPath);
+    const resolved = resolveInertiaRoute(cleanPath);
+    resolved.props.dynamicAppState = memoryStore.appState;
+    return resolved;
 }
+
+// Unified App & Website Dynamic State API
+app.get('/api/app-state', (_req: Request, res: Response) => {
+    res.json(memoryStore.appState);
+});
+
+app.post('/api/app-state', (req: Request, res: Response) => {
+    if (req.body && typeof req.body === 'object') {
+        memoryStore.appState = {
+            ...memoryStore.appState,
+            ...req.body,
+            userProfile: {
+                ...memoryStore.appState.userProfile,
+                ...(req.body.userProfile || {}),
+            },
+            notifSettings: {
+                ...memoryStore.appState.notifSettings,
+                ...(req.body.notifSettings || {}),
+            },
+        };
+    }
+    res.json({ success: true, appState: memoryStore.appState });
+});
 
 // API Routes
 app.post('/api/contact', (req: Request, res: Response) => {
@@ -107,6 +134,23 @@ if (!isProd) {
 
 // Public static assets fallback
 app.use(express.static(path.resolve(__dirname, 'public')));
+
+// Dedicated routes for dynamic Laravel icon/manifest URLs
+app.get('/app-icon', (_req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    res.sendFile(path.resolve(__dirname, 'public/pwa-512x512.png'));
+});
+
+app.get('/site-logo', (_req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    res.sendFile(path.resolve(__dirname, 'public/images/brand-logo.png'));
+});
+
+app.get('/app-manifest.webmanifest', (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/manifest+json');
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    res.sendFile(path.resolve(__dirname, 'public/manifest.webmanifest'));
+});
 
 // Universal Inertia & Page Handler
 app.use(async (req: Request, res: Response, next) => {

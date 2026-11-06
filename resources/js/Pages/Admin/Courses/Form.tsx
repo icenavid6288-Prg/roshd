@@ -1,362 +1,961 @@
-import { Link, useForm, usePage } from '@inertiajs/react';
-import { ArrowRight, Save } from 'lucide-react';
-import type { FormEvent, ReactNode } from 'react';
+import { Link, usePage } from '@inertiajs/react';
+import {
+    ArrowRight,
+    Building2,
+    Calendar,
+    CheckCircle2,
+    Crown,
+    ExternalLink,
+    Lock,
+    Plus,
+    Save,
+    Sparkles,
+    Trash2,
+    UserCheck,
+    Users,
+    Video,
+} from 'lucide-react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Button } from '@/Components/ui/Button';
-import ImageCropField from '@/Components/ImageCropField';
-import { SeoGuide } from '@/Components/SeoGuide';
-import type { PageProps } from '@/types';
-
-interface CourseFormData {
-    id: number;
-    title: string;
-    subtitle: string | null;
-    slug: string;
-    description: string | null;
-    level: string;
-    price: number;
-    discount_price: number | null;
-    duration_minutes: number;
-    thumbnail: string | null;
-    trailer_url: string | null;
-    instructor_id: number | null;
-    category_id: number | null;
-    certificate_enabled: boolean;
-    is_published: boolean;
-    is_featured: boolean;
-    seo: { title: string | null; description: string | null; keywords: string | null } | null;
-    is_in_person?: boolean;
-    location?: string | null;
-    schedule?: Array<{ day: string; time: string; label: string }> | null;
-    max_students?: number | null;
-    in_person_description?: string | null;
-}
-
-interface CourseFormState {
-    title: string;
-    subtitle: string;
-    slug: string;
-    description: string;
-    level: string;
-    price: number;
-    discount_price: number | string;
-    duration_minutes: number;
-    thumbnail: string;
-    thumbnail_file: File | null;
-    trailer_url: string;
-    instructor_id: number | string;
-    category_id: number | string;
-    certificate_enabled: boolean;
-    is_published: boolean;
-    is_featured: boolean;
-    is_in_person: boolean;
-    location: string;
-    schedule: Array<{ day: string; time: string; label: string }>;
-    max_students: number | string;
-    in_person_description: string;
-    seo_title: string;
-    seo_description: string;
-    seo_keywords: string;
-}
-
-interface Option {
-    id: number;
-    name: string;
-    user?: { name?: string };
-}
+import { toFa } from '@/lib/format';
+import {
+    saveCourseInState,
+    useDynamicAppStore,
+    type DynamicVipFeature,
+    type DynamicVipSession,
+} from '@/lib/dynamicAppStore';
+import type { CourseItemInstructor } from '@/lib/mobileAppLogic';
 
 export default function CourseForm() {
-    const { course, categories, instructors } = usePage<
-        PageProps & {
-            course: CourseFormData | null;
-            categories: Option[];
-            instructors: Option[];
+    const pageUrl = usePage().url || (typeof window !== 'undefined' ? window.location.pathname : '');
+    const match = pageUrl.match(/\/admin\/courses\/([^/?#]+)\/edit/);
+    const editId = match ? Number(match[1]) : null;
+
+    const { appState, updateAppState } = useDynamicAppStore();
+    const {
+        courses,
+        vipConfig,
+        courseItems,
+        vipFeatures,
+        vipSessions,
+        groupChatEnabled,
+    } = appState;
+
+    const existingCourse =
+        editId !== null
+            ? courses.find((c) => c.id === editId) || courses[0]
+            : null;
+
+    const isEdit = existingCourse !== null;
+
+    const [title, setTitle] = useState(existingCourse?.title ?? '');
+    const [subtitle, setSubtitle] = useState(
+        existingCourse?.subtitle ?? existingCourse?.summary ?? ''
+    );
+    const [slug, setSlug] = useState(existingCourse?.slug ?? '');
+    const [description, setDescription] = useState(existingCourse?.description ?? '');
+    const [category, setCategory] = useState(
+        existingCourse?.category ?? 'نوجوانان و والدین'
+    );
+    const [level, setLevel] = useState(existingCourse?.level ?? 'پریمیوم VIP');
+    const [deliveryMode, setDeliveryMode] = useState(
+        existingCourse?.delivery_mode ?? 'حضوری + مجازی (ترکیبی)'
+    );
+    const [instructorName, setInstructorName] = useState(
+        existingCourse?.instructor?.name ?? '۴ مدرس تخصصی (دکتر بیدی و اساتید آیتم‌ها)'
+    );
+    const [instructorTitle, setInstructorTitle] = useState(
+        existingCourse?.instructor?.title ??
+            'تیم اساتید خودشناسی، هدف‌گذاری، ارتباطات و کارآفرینی'
+    );
+    const [price, setPrice] = useState<number>(existingCourse?.price ?? 6800000);
+    const [discountPrice, setDiscountPrice] = useState<string>(
+        existingCourse?.discount_price !== null &&
+            existingCourse?.discount_price !== undefined
+            ? String(existingCourse.discount_price)
+            : ''
+    );
+    const [durationMinutes, setDurationMinutes] = useState<number>(
+        existingCourse?.duration_minutes ?? 2400
+    );
+    const [thumbnail, setThumbnail] = useState(
+        existingCourse?.thumbnail ?? '/images/vip-teen-future.svg'
+    );
+    const [posterTag, setPosterTag] = useState(
+        existingCourse?.posterTag ?? vipConfig.posterBadge ?? 'پوستر رسمی دوره VIP'
+    );
+    const [isPublished, setIsPublished] = useState<boolean>(
+        existingCourse?.is_published ?? true
+    );
+    const [isFeatured, setIsFeatured] = useState<boolean>(
+        existingCourse?.is_featured ?? true
+    );
+    const [certificateEnabled, setCertificateEnabled] = useState<boolean>(
+        existingCourse?.certificate_enabled ?? true
+    );
+    const [isInPerson, setIsInPerson] = useState<boolean>(
+        existingCourse?.is_in_person ?? true
+    );
+    const [isVip, setIsVip] = useState<boolean>(existingCourse?.is_vip ?? false);
+    const [location, setLocation] = useState(
+        existingCourse?.location ?? vipConfig.inPersonLocation
+    );
+    const [onlinePlatform, setOnlinePlatform] = useState(
+        existingCourse?.online_platform ?? vipConfig.onlinePlatform
+    );
+    const [scheduleSummary, setScheduleSummary] = useState(
+        existingCourse?.schedule_summary ?? vipConfig.scheduleSummary
+    );
+    const [maxStudents, setMaxStudents] = useState<number>(
+        existingCourse?.max_students ?? vipConfig.capacity ?? 30
+    );
+
+    // Local draft of 4 specialized items, VIP features, and VIP sessions
+    const [itemsDraft, setItemsDraft] = useState<CourseItemInstructor[]>(courseItems);
+    const [featuresDraft, setFeaturesDraft] = useState<DynamicVipFeature[]>(vipFeatures);
+    const [newFeatureTitle, setNewFeatureTitle] = useState('');
+    const [sessionsDraft, setSessionsDraft] = useState<DynamicVipSession[]>(vipSessions);
+    const [newSessionTitle, setNewSessionTitle] = useState('');
+    const [newSessionMode, setNewSessionMode] = useState<'in_person' | 'online'>('in_person');
+    const [newSessionDate, setNewSessionDate] = useState('سه‌شنبه ۱۶ اردیبهشت ۱۴۰۴');
+    const [newSessionTime, setNewSessionTime] = useState('۱۷:۰۰ تا ۱۹:۰۰');
+    const [groupChatActive, setGroupChatActive] = useState<boolean>(groupChatEnabled);
+
+    const [savedMessage, setSavedMessage] = useState<string | null>(null);
+
+    // Keep form synced if store hydrates after mount
+    useEffect(() => {
+        if (existingCourse) {
+            setTitle(existingCourse.title);
+            setSubtitle(existingCourse.subtitle ?? existingCourse.summary ?? '');
+            setSlug(existingCourse.slug);
+            setDescription(existingCourse.description);
+            setCategory(existingCourse.category);
+            setLevel(existingCourse.level);
+            setDeliveryMode(existingCourse.delivery_mode);
+            setInstructorName(existingCourse.instructor?.name ?? '');
+            setInstructorTitle(existingCourse.instructor?.title ?? '');
+            setPrice(existingCourse.price);
+            setDiscountPrice(
+                existingCourse.discount_price !== null &&
+                    existingCourse.discount_price !== undefined
+                    ? String(existingCourse.discount_price)
+                    : ''
+            );
+            setDurationMinutes(existingCourse.duration_minutes ?? 2400);
+            setThumbnail(existingCourse.thumbnail);
+            setPosterTag(existingCourse.posterTag || vipConfig.posterBadge);
+            setIsPublished(existingCourse.is_published);
+            setIsFeatured(existingCourse.is_featured);
+            setCertificateEnabled(existingCourse.certificate_enabled);
+            setIsInPerson(existingCourse.is_in_person);
+            setIsVip(existingCourse.is_vip);
+            setLocation(existingCourse.location || vipConfig.inPersonLocation);
+            setOnlinePlatform(existingCourse.online_platform || vipConfig.onlinePlatform);
+            setScheduleSummary(
+                existingCourse.schedule_summary || vipConfig.scheduleSummary
+            );
+            setMaxStudents(existingCourse.max_students ?? vipConfig.capacity ?? 30);
         }
-    >().props;
+    }, [existingCourse?.id]);
 
-    const isEdit = course !== null;
+    const handleItemChange = (
+        itemId: number,
+        field: keyof CourseItemInstructor,
+        value: string
+    ) => {
+        setItemsDraft((prev) =>
+            prev.map((it) => (it.itemId === itemId ? { ...it, [field]: value } : it))
+        );
+    };
 
-    const form = useForm<CourseFormState>({
-        title: course?.title ?? '',
-        subtitle: course?.subtitle ?? '',
-        slug: course?.slug ?? '',
-        description: course?.description ?? '',
-        level: course?.level ?? 'beginner',
-        price: course?.price ?? 0,
-        discount_price: course?.discount_price ?? '',
-        duration_minutes: course?.duration_minutes ?? 0,
-        thumbnail: course?.thumbnail ?? '',
-        thumbnail_file: null,
-        trailer_url: course?.trailer_url ?? '',
-        instructor_id: course?.instructor_id ?? '',
-        category_id: course?.category_id ?? '',
-        certificate_enabled: course?.certificate_enabled ?? true,
-        is_published: course?.is_published ?? false,
-        is_featured: course?.is_featured ?? false,
-        is_in_person: course?.is_in_person ?? false,
-        location: course?.location ?? '',
-        schedule: (course?.schedule as Array<{ day: string; time: string; label: string }> | undefined) ?? [],
-        max_students: course?.max_students ?? '',
-        in_person_description: course?.in_person_description ?? '',
-        seo_title: course?.seo?.title ?? '',
-        seo_description: course?.seo?.description ?? '',
-        seo_keywords: course?.seo?.keywords ?? '',
-    });
+    const handleAddFeature = () => {
+        if (!newFeatureTitle.trim()) return;
+        setFeaturesDraft((prev) => [
+            ...prev,
+            { id: Date.now(), title: newFeatureTitle.trim(), active: true },
+        ]);
+        setNewFeatureTitle('');
+    };
 
-    const generateSeo = () => {
-        const title = form.data.subtitle
-            ? `${form.data.title} | ${form.data.subtitle}`
-            : form.data.title;
-        const description = (form.data.description || '').replace(/\s+/g, ' ').trim();
-        form.setData((data) => ({
-            ...data,
-            seo_title: title.slice(0, 70),
-            seo_description: description.slice(0, 170) || title.slice(0, 160),
-            seo_keywords: ['دوره آموزشی', form.data.level === 'beginner' ? 'دوره مقدماتی' : form.data.level === 'intermediate' ? 'دوره متوسط' : 'دوره پیشرفته', form.data.title].filter(Boolean).join('، ').slice(0, 200),
-        }));
+    const handleToggleFeature = (id: number) => {
+        setFeaturesDraft((prev) =>
+            prev.map((f) => (f.id === id ? { ...f, active: !f.active } : f))
+        );
+    };
+
+    const handleDeleteFeature = (id: number) => {
+        setFeaturesDraft((prev) => prev.filter((f) => f.id !== id));
+    };
+
+    const handleAddSession = () => {
+        if (!newSessionTitle.trim()) return;
+        const nextNum = sessionsDraft.length + 1;
+        const created: DynamicVipSession = {
+            id: Date.now(),
+            number: nextNum,
+            title: newSessionTitle.trim(),
+            mode: newSessionMode,
+            date: newSessionDate.trim() || 'هفته آینده',
+            time: newSessionTime.trim() || '۱۷:۰۰ تا ۱۹:۰۰',
+            locationOrLink:
+                newSessionMode === 'in_person' ? location : onlinePlatform,
+            status: 'upcoming',
+            reminderSent: false,
+        };
+        setSessionsDraft((prev) => [...prev, created]);
+        setNewSessionTitle('');
+    };
+
+    const handleDeleteSession = (id: number) => {
+        setSessionsDraft((prev) =>
+            prev
+                .filter((s) => s.id !== id)
+                .map((s, idx) => ({ ...s, number: idx + 1 }))
+        );
     };
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
-        if (isEdit) {
-            // POST + _method keeps image uploads compatible with PHP's multipart parser.
-            form.transform((data) => ({ ...data, _method: 'put' }));
-            form.post(`/admin/courses/${course.id}`, { forceFormData: true });
-        } else {
-            form.post('/admin/courses', { forceFormData: true });
-        }
+        if (!title.trim()) return;
+
+        // Build updated modules from the 4 specialized items if VIP
+        const syncedModules = isVip
+            ? itemsDraft.map((it, idx) => ({
+                  id: it.itemId,
+                  title: it.itemTitle,
+                  instructorName: it.instructorName,
+                  instructorRole: it.instructorRole,
+                  lessons: existingCourse?.modules?.[idx]?.lessons ?? [
+                      {
+                          id: 100 + it.itemId,
+                          title: `کارگاه تخصصی ${it.itemTitle}`,
+                          duration: '۱۲۰ دقیقه',
+                          is_free: false,
+                      },
+                  ],
+              }))
+            : existingCourse?.modules ?? [];
+
+        updateAppState((prev) => {
+            const withSavedCourse = saveCourseInState(prev, {
+                id: existingCourse?.id,
+                title: title.trim(),
+                subtitle: subtitle.trim(),
+                summary: subtitle.trim() || title.trim(),
+                slug: slug.trim() || existingCourse?.slug || `course-${Date.now()}`,
+                description: description.trim(),
+                category,
+                level,
+                delivery_mode: deliveryMode,
+                price: Number(price) || 0,
+                discount_price:
+                    discountPrice === '' ? null : Number(discountPrice),
+                duration_minutes: Number(durationMinutes) || 1200,
+                duration: `${Math.max(1, Math.round((Number(durationMinutes) || 1200) / 60))} ساعت`,
+                thumbnail: thumbnail.trim() || '/images/vip-teen-future.svg',
+                poster: thumbnail.trim() || '/images/vip-teen-future.svg',
+                posterTag: posterTag.trim() || 'پوستر رسمی دوره VIP',
+                is_published: isPublished,
+                is_featured: isFeatured,
+                certificate_enabled: certificateEnabled,
+                is_in_person: isInPerson,
+                is_vip: isVip,
+                location: location.trim(),
+                online_platform: onlinePlatform.trim(),
+                schedule_summary: scheduleSummary.trim(),
+                max_students: Number(maxStudents) || 30,
+                instructors_count: isVip ? itemsDraft.length : 1,
+                instructor: {
+                    id: existingCourse?.instructor?.id ?? 1,
+                    name: instructorName.trim() || 'دکتر علیرضا بیدی',
+                    title: instructorTitle.trim() || 'مدرس و راهبر مرکز رشد',
+                    avatar: existingCourse?.instructor?.avatar || '/images/brand-logo.png',
+                },
+                modules: syncedModules,
+            });
+
+            if (isVip || existingCourse?.id === 100) {
+                return {
+                    ...withSavedCourse,
+                    courseItems: itemsDraft,
+                    vipFeatures: featuresDraft,
+                    vipSessions: sessionsDraft,
+                    groupChatEnabled: groupChatActive,
+                };
+            }
+            return withSavedCourse;
+        });
+
+        setSavedMessage(
+            `تغییرات دوره «${title.trim()}» با موفقیت ذخیره شد و هم‌اکنون در سایت و اپلیکیشن فعال است.`
+        );
+        setTimeout(() => {
+            setSavedMessage(null);
+        }, 4500);
     };
 
     const inputCls =
         'w-full rounded-xl border border-navy/10 bg-white px-4 py-3 text-sm text-navy outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-200';
 
+    const targetSlug = slug.trim() || existingCourse?.slug || 'designing-teen-future-vip';
+
     return (
-        <form onSubmit={submit} className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-                <Link href="/admin/courses" className="inline-flex items-center gap-2 text-sm font-bold text-navy/50 hover:text-brand-700">
-                    <ArrowRight className="size-4" /> بازگشت به لیست
-                </Link>
-                <Button type="submit" loading={form.processing}>
-                    <Save className="size-4" aria-hidden />
-                    {isEdit ? 'ذخیره تغییرات' : 'ایجاد دوره'}
-                </Button>
+        <form onSubmit={submit} className="flex flex-col gap-6" dir="rtl">
+            {/* Top Action Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-soft ring-1 ring-navy/5">
+                <div className="flex items-center gap-3">
+                    <Link
+                        href="/admin/courses"
+                        className="inline-flex items-center gap-2 text-sm font-bold text-navy/60 hover:text-brand-700"
+                    >
+                        <ArrowRight className="size-4" /> بازگشت به لیست دوره‌ها
+                    </Link>
+                    {isVip && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800">
+                            <Crown className="size-3.5" />
+                            <span>دوره پرچمدار پریمیوم VIP</span>
+                        </span>
+                    )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <Link
+                        href={`/courses/${targetSlug}`}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-navy/10 bg-soft-gray px-3.5 py-2.5 text-xs font-bold text-navy transition hover:bg-brand-50 hover:text-brand-700"
+                    >
+                        <span>مشاهده در سایت</span>
+                        <ExternalLink className="size-3.5" />
+                    </Link>
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-navy/10 bg-soft-gray px-3.5 py-2.5 text-xs font-bold text-navy transition hover:bg-brand-50 hover:text-brand-700"
+                    >
+                        <span>مشاهده در اپلیکیشن</span>
+                        <ExternalLink className="size-3.5" />
+                    </Link>
+                    <Button type="submit">
+                        <Save className="size-4" aria-hidden />
+                        {isEdit ? 'ذخیره تغییرات در سایت و اپ' : 'ایجاد و انتشار دوره'}
+                    </Button>
+                </div>
             </div>
 
-            {form.errors && Object.keys(form.errors).length > 0 && (
-                <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-700 ring-1 ring-red-200">
-                    لطفاً خطاهای فرم را بررسی کنید.
+            {savedMessage && (
+                <div className="flex items-center justify-between gap-3 rounded-2xl bg-emerald-900 px-5 py-3.5 text-xs font-bold text-white shadow-lg">
+                    <div className="flex items-center gap-2">
+                        <CheckCircle2 className="size-4 text-[#D6F39A] shrink-0" />
+                        <span>{savedMessage}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Link
+                            href={`/courses/${targetSlug}`}
+                            className="rounded-lg bg-white/15 px-3 py-1.5 text-[11px] font-black text-white hover:bg-white/25"
+                        >
+                            مشاهده صفحه دوره ←
+                        </Link>
+                    </div>
                 </div>
             )}
 
+            {/* Section 1: Main Course Info */}
             <section className="rounded-2xl bg-white p-6 shadow-soft ring-1 ring-navy/5">
-                <h2 className="mb-5 text-sm font-black text-navy">اطلاعات اصلی</h2>
+                <h2 className="mb-5 flex items-center gap-2 text-sm font-black text-navy">
+                    <Sparkles className="size-4 text-brand-600" />
+                    <span>اطلاعات اصلی دوره</span>
+                </h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div className="sm:col-span-2">
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">عنوان دوره *</label>
-                        <input value={form.data.title} onChange={(e) => form.setData('title', e.target.value)} className={inputCls} />
-                        {form.errors.title && <p className="mt-1 text-xs text-red-600">{form.errors.title}</p>}
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            عنوان دوره *
+                        </label>
+                        <input
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className={inputCls}
+                            required
+                        />
                     </div>
                     <div className="sm:col-span-2">
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">زیرعنوان</label>
-                        <input value={form.data.subtitle} onChange={(e) => form.setData('subtitle', e.target.value)} className={inputCls} />
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            زیرعنوان و خلاصه معرفی دوره
+                        </label>
+                        <input
+                            value={subtitle}
+                            onChange={(e) => setSubtitle(e.target.value)}
+                            className={inputCls}
+                        />
                     </div>
                     <div>
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">اسلاگ (خالی = خودکار)</label>
-                        <input value={form.data.slug} dir="ltr" onChange={(e) => form.setData('slug', e.target.value)} className={inputCls} />
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            اسلاگ مسیر سایت (Slug)
+                        </label>
+                        <input
+                            value={slug}
+                            dir="ltr"
+                            onChange={(e) => setSlug(e.target.value)}
+                            className={inputCls}
+                        />
                     </div>
                     <div>
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">سطح دوره</label>
-                        <select value={form.data.level} onChange={(e) => form.setData('level', e.target.value)} className={inputCls}>
-                            <option value="beginner">مقدماتی</option>
-                            <option value="intermediate">متوسط</option>
-                            <option value="advanced">پیشرفته</option>
-                        </select>
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            دسته‌بندی دوره
+                        </label>
+                        <input
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            className={inputCls}
+                        />
+                    </div>
+                    <div>
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            سطح دوره
+                        </label>
+                        <input
+                            value={level}
+                            onChange={(e) => setLevel(e.target.value)}
+                            className={inputCls}
+                            placeholder="مثلاً: پریمیوم VIP یا پیشرفته"
+                        />
+                    </div>
+                    <div>
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            نحوه برگزاری
+                        </label>
+                        <input
+                            value={deliveryMode}
+                            onChange={(e) => setDeliveryMode(e.target.value)}
+                            className={inputCls}
+                            placeholder="مثلاً: حضوری + مجازی (ترکیبی)"
+                        />
+                    </div>
+                    <div>
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            عنوان مدرس / تیم اساتید
+                        </label>
+                        <input
+                            value={instructorName}
+                            onChange={(e) => setInstructorName(e.target.value)}
+                            className={inputCls}
+                        />
+                    </div>
+                    <div>
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            تخصص مدرس / تیم علمی
+                        </label>
+                        <input
+                            value={instructorTitle}
+                            onChange={(e) => setInstructorTitle(e.target.value)}
+                            className={inputCls}
+                        />
                     </div>
                     <div className="sm:col-span-2">
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">توضیحات</label>
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            توضیحات کامل دوره
+                        </label>
                         <textarea
-                            rows={5}
-                            value={form.data.description}
-                            onChange={(e) => form.setData('description', e.target.value)}
+                            rows={4}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
                             className={inputCls}
                         />
-                    </div>
-                    <div>
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">دسته‌بندی</label>
-                        <select value={String(form.data.category_id)} onChange={(e) => form.setData('category_id', e.target.value)} className={inputCls}>
-                            <option value="">بدون دسته</option>
-                            {categories.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">مدرس</label>
-                        <select value={String(form.data.instructor_id)} onChange={(e) => form.setData('instructor_id', e.target.value)} className={inputCls}>
-                            <option value="">بدون مدرس</option>
-                            {instructors.map((i) => (
-                                <option key={i.id} value={i.id}>{i.user?.name}</option>
-                            ))}
-                        </select>
                     </div>
                 </div>
             </section>
 
+            {/* Section 2: Pricing & Poster */}
             <section className="rounded-2xl bg-white p-6 shadow-soft ring-1 ring-navy/5">
-                <h2 className="mb-5 text-sm font-black text-navy">قیمت و رسانه</h2>
+                <h2 className="mb-5 text-sm font-black text-navy">شهریه، تخفیف و پوستر دوره</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">قیمت (تومان) *</label>
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            شهریه اصلی (تومان) *
+                        </label>
                         <input
                             type="number"
-                            value={form.data.price}
-                            onChange={(e) => form.setData('price', Number(e.target.value))}
-                            className={inputCls}
-                        />
-                        {form.errors.price && <p className="mt-1 text-xs text-red-600">{form.errors.price}</p>}
-                    </div>
-                    <div>
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">قیمت با تخفیف</label>
-                        <input
-                            type="number"
-                            value={form.data.discount_price}
-                            onChange={(e) => form.setData('discount_price', e.target.value === '' ? '' : Number(e.target.value))}
+                            value={price}
+                            onChange={(e) => setPrice(Number(e.target.value))}
                             className={inputCls}
                         />
                     </div>
                     <div>
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">مدت (دقیقه)</label>
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            شهریه با تخفیف (تومان)
+                        </label>
                         <input
                             type="number"
-                            value={form.data.duration_minutes}
-                            onChange={(e) => form.setData('duration_minutes', Number(e.target.value))}
+                            value={discountPrice}
+                            onChange={(e) => setDiscountPrice(e.target.value)}
+                            className={inputCls}
+                            placeholder="در صورت عدم تخفیف خالی بگذارید"
+                        />
+                    </div>
+                    <div>
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            مدت دوره (دقیقه)
+                        </label>
+                        <input
+                            type="number"
+                            value={durationMinutes}
+                            onChange={(e) => setDurationMinutes(Number(e.target.value))}
                             className={inputCls}
                         />
                     </div>
                     <div>
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">آدرس تصویر (URL)</label>
-                        <input value={form.data.thumbnail} dir="ltr" onChange={(e) => form.setData('thumbnail', e.target.value)} className={inputCls} placeholder="https://..." />
-                        <p className="mt-1.5 text-[0.68rem] leading-5 text-navy/40">اگر تصویر را آپلود کنید، تصویر آپلودشده جایگزین این آدرس می‌شود.</p>
-                    </div>
-                    <div className="sm:col-span-2">
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">بارگذاری تصویر دوره</label>
-                        {course?.thumbnail && !form.data.thumbnail_file && (
-                            <div className="mb-3 flex items-center gap-3 rounded-xl border border-brand-100 bg-brand-50/50 p-3"><img src={course.thumbnail} alt="تصویر فعلی دوره" className="size-16 rounded-lg object-cover" /><span className="text-xs font-bold text-navy/55">تصویر فعلی دوره؛ با انتخاب تصویر جدید جایگزین می‌شود.</span></div>
-                        )}
-                        <ImageCropField
-                            label="تصویر دوره"
-                            value={form.data.thumbnail_file}
-                            error={form.errors.thumbnail_file}
-                            help="تصویر را انتخاب و برش دهید؛ PNG، JPG یا WEBP تا ۸ مگابایت."
-                            onChange={(file) => form.setData('thumbnail_file', file)}
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            برچسب روی پوستر دوره (Poster Badge)
+                        </label>
+                        <input
+                            value={posterTag}
+                            onChange={(e) => setPosterTag(e.target.value)}
+                            className={inputCls}
                         />
                     </div>
                     <div className="sm:col-span-2">
-                        <label className="mb-1.5 block text-xs font-bold text-navy/70">لینک تریلر (URL)</label>
-                        <input value={form.data.trailer_url} dir="ltr" onChange={(e) => form.setData('trailer_url', e.target.value)} className={inputCls} />
+                        <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                            آدرس تصویر / پوستر دوره (URL)
+                        </label>
+                        <div className="flex items-center gap-3">
+                            {thumbnail && (
+                                <img
+                                    src={thumbnail}
+                                    alt="پوستر دوره"
+                                    className="size-14 rounded-xl object-cover border border-navy/10 shrink-0"
+                                />
+                            )}
+                            <input
+                                value={thumbnail}
+                                dir="ltr"
+                                onChange={(e) => setThumbnail(e.target.value)}
+                                className={inputCls}
+                                placeholder="/images/vip-teen-future.svg"
+                            />
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <SeoGuide
-                titleValue={form.data.seo_title}
-                descriptionValue={form.data.seo_description}
-                onGenerate={generateSeo}
-            />
-
+            {/* Section 3: Status Flags */}
             <section className="rounded-2xl bg-white p-6 shadow-soft ring-1 ring-navy/5">
-                <h2 className="mb-5 text-sm font-black text-navy">تنظیمات</h2>
+                <h2 className="mb-5 text-sm font-black text-navy">وضعیت و نوع دوره</h2>
                 <div className="flex flex-wrap gap-6">
-                    <label className="flex cursor-pointer items-center gap-2.5 text-sm font-bold text-navy/70">
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm font-bold text-navy/80">
                         <input
                             type="checkbox"
-                            checked={form.data.is_published}
-                            onChange={(e) => form.setData('is_published', e.target.checked)}
+                            checked={isPublished}
+                            onChange={(e) => setIsPublished(e.target.checked)}
                             className="size-4 rounded border-navy/20 text-brand-600 focus:ring-brand-500"
                         />
-                        منتشرشده
+                        منتشرشده در سایت و اپ
                     </label>
-                    <label className="flex cursor-pointer items-center gap-2.5 text-sm font-bold text-navy/70">
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm font-bold text-navy/80">
                         <input
                             type="checkbox"
-                            checked={form.data.is_featured}
-                            onChange={(e) => form.setData('is_featured', e.target.checked)}
+                            checked={isFeatured}
+                            onChange={(e) => setIsFeatured(e.target.checked)}
                             className="size-4 rounded border-navy/20 text-brand-600 focus:ring-brand-500"
                         />
-                        دوره ویژه
+                        دوره ویژه (نمایش در ویترین)
                     </label>
-                    <label className="flex cursor-pointer items-center gap-2.5 text-sm font-bold text-navy/70">
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm font-bold text-navy/80">
                         <input
                             type="checkbox"
-                            checked={form.data.certificate_enabled}
-                            onChange={(e) => form.setData('certificate_enabled', e.target.checked)}
+                            checked={certificateEnabled}
+                            onChange={(e) => setCertificateEnabled(e.target.checked)}
                             className="size-4 rounded border-navy/20 text-brand-600 focus:ring-brand-500"
                         />
-                        صدور گواهینامه
+                        صدور گواهینامه پایان دوره
                     </label>
-                    <label className="flex cursor-pointer items-center gap-2.5 text-sm font-bold text-navy/70">
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm font-bold text-navy/80">
                         <input
                             type="checkbox"
-                            checked={form.data.is_in_person}
-                            onChange={(e) => form.setData('is_in_person', e.target.checked)}
+                            checked={isInPerson}
+                            onChange={(e) => setIsInPerson(e.target.checked)}
                             className="size-4 rounded border-navy/20 text-brand-600 focus:ring-brand-500"
                         />
-                        دوره حضوری
+                        دارای جلسات حضوری
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2.5 text-sm font-black text-amber-800 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
+                        <input
+                            type="checkbox"
+                            checked={isVip}
+                            onChange={(e) => setIsVip(e.target.checked)}
+                            className="size-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+                        />
+                        <Crown className="size-4 text-amber-600" />
+                        <span>دوره پریمیوم VIP (دارای ۴ آیتم تخصصی، چت اساتید و باشگاه VIP)</span>
                     </label>
                 </div>
             </section>
 
-            {form.data.is_in_person && (
+            {/* Section 4: In-Person & Schedule Config */}
+            {(isInPerson || isVip) && (
                 <section className="rounded-2xl bg-white p-6 shadow-soft ring-1 ring-navy/5">
-                    <h2 className="mb-5 text-sm font-black text-navy">تنظیمات دوره حضوری</h2>
+                    <h2 className="mb-5 text-sm font-black text-navy">
+                        تنظیمات محل برگزاری، پلتفرم آنلاین و زمان‌بندی کلاس‌ها
+                    </h2>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="sm:col-span-2">
-                            <label className="mb-1.5 block text-xs font-bold text-navy/70">آدرس محل برگزاری</label>
-                            <input value={form.data.location} onChange={(e) => form.setData('location', e.target.value)} className={inputCls} placeholder="مثلاً: سالن ۳۰۱، ساختمان مرکز رشد" />
+                            <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                                آدرس محل برگزاری جلسات حضوری
+                            </label>
+                            <input
+                                value={location}
+                                onChange={(e) => setLocation(e.target.value)}
+                                className={inputCls}
+                            />
                         </div>
                         <div>
-                            <label className="mb-1.5 block text-xs font-bold text-navy/70">حداکثر ظرفیت</label>
-                            <input type="number" value={form.data.max_students} onChange={(e) => form.setData('max_students', e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} placeholder="اختیاری" />
+                            <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                                پلتفرم برگزاری جلسات آنلاین
+                            </label>
+                            <input
+                                value={onlinePlatform}
+                                onChange={(e) => setOnlinePlatform(e.target.value)}
+                                className={inputCls}
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                                حداکثر ظرفیت دوره (نفر)
+                            </label>
+                            <input
+                                type="number"
+                                value={maxStudents}
+                                onChange={(e) => setMaxStudents(Number(e.target.value))}
+                                className={inputCls}
+                            />
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="mb-1.5 block text-xs font-bold text-navy/70">توضیحات حضوری</label>
-                            <textarea rows={3} value={form.data.in_person_description} onChange={(e) => form.setData('in_person_description', e.target.value)} className={inputCls} placeholder="اطلاعات تکمیلی درباره نحوه برگزاری کلاس حضوری..." />
-                        </div>
-                        <div className="sm:col-span-2">
-                            <label className="mb-1.5 block text-xs font-bold text-navy/70">زمان‌بندی کلاس‌ها</label>
-                            <div className="flex flex-col gap-3">
-                                {form.data.schedule.map((item, index) => (
-                                    <div key={index} className="flex items-center gap-3">
-                                        <input value={item.day} onChange={(e) => {
-                                            const newSchedule = [...form.data.schedule];
-                                            newSchedule[index] = { ...newSchedule[index], day: e.target.value };
-                                            form.setData('schedule', newSchedule);
-                                        }} className={inputCls} placeholder="مثلاً: شنبه" style={{ width: '120px' }} />
-                                        <input value={item.time} onChange={(e) => {
-                                            const newSchedule = [...form.data.schedule];
-                                            newSchedule[index] = { ...newSchedule[index], time: e.target.value };
-                                            form.setData('schedule', newSchedule);
-                                        }} className={inputCls} placeholder="مثلاً: ۱۴:۰۰ - ۱۶:۰۰" style={{ width: '180px' }} />
-                                        <input value={item.label} onChange={(e) => {
-                                            const newSchedule = [...form.data.schedule];
-                                            newSchedule[index] = { ...newSchedule[index], label: e.target.value };
-                                            form.setData('schedule', newSchedule);
-                                        }} className={inputCls} placeholder="عنوان (اختیاری)" style={{ width: '150px' }} />
-                                        <button type="button" onClick={() => {
-                                            form.setData('schedule', form.data.schedule.filter((_, i) => i !== index));
-                                        }} className="text-xs font-bold text-red-600 hover:underline">حذف</button>
-                                    </div>
-                                ))}
-                                <button type="button" onClick={() => {
-                                    form.setData('schedule', [...form.data.schedule, { day: '', time: '', label: '' }]);
-                                }} className="self-start rounded-xl border border-dashed border-brand-300 bg-brand-50/60 px-4 py-2 text-xs font-black text-brand-700 hover:bg-brand-50">+ اضافه کردن جلسه</button>
-                            </div>
+                            <label className="mb-1.5 block text-xs font-bold text-navy/70">
+                                خلاصه برنامه زمانی کلاس‌ها (نمایش در کارت دوره و باشگاه VIP)
+                            </label>
+                            <input
+                                value={scheduleSummary}
+                                onChange={(e) => setScheduleSummary(e.target.value)}
+                                className={inputCls}
+                            />
                         </div>
                     </div>
                 </section>
             )}
+
+            {/* Section 5: VIP Course Specialized 4 Items & Instructors, Group Chat, Features & Sessions */}
+            {isVip && (
+                <>
+                    {/* 4 Specialized Course Items & Instructors */}
+                    <section className="rounded-2xl bg-white p-6 shadow-soft ring-1 ring-navy/5 space-y-5">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h2 className="flex items-center gap-2 text-sm font-black text-navy">
+                                    <UserCheck className="size-4 text-brand-600" />
+                                    <span>مدیریت ۴ آیتم تخصصی دوره و اساتید هر آیتم</span>
+                                </h2>
+                                <p className="mt-1 text-xs text-navy/55">
+                                    هر تغییری در عنوان آیتم‌ها یا نام اساتید، بلافاصله در سرفصل‌های سایت، چت اختصاصی با اساتید و اپلیکیشن اعمال می‌شود.
+                                </p>
+                            </div>
+
+                            {/* Group Chat Lock Toggle */}
+                            <button
+                                type="button"
+                                onClick={() => setGroupChatActive((prev) => !prev)}
+                                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-black transition ${
+                                    groupChatActive
+                                        ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+                                        : 'bg-amber-50 text-amber-800 ring-1 ring-amber-200'
+                                }`}
+                            >
+                                {groupChatActive ? (
+                                    <>
+                                        <Users className="size-4" />
+                                        <span>گروه گفتگوی دوره: فعال برای دانش‌پذیران</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Lock className="size-4" />
+                                        <span>گروه گفتگوی دوره: قفل توسط ادمین</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {itemsDraft.map((item, idx) => (
+                                <div
+                                    key={item.itemId}
+                                    className="rounded-2xl border border-navy/10 bg-soft-gray/40 p-4 space-y-3"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-100 px-2.5 py-1 text-xs font-black text-brand-800">
+                                            آیتم {toFa(idx + 1)} دوره VIP
+                                        </span>
+                                        <span className="text-[11px] font-bold text-navy/45">
+                                            چت مستقیم استاد فعال
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-[11px] font-bold text-navy/65">
+                                            عنوان آیتم تخصصی
+                                        </label>
+                                        <input
+                                            value={item.itemTitle}
+                                            onChange={(e) =>
+                                                handleItemChange(
+                                                    item.itemId,
+                                                    'itemTitle',
+                                                    e.target.value
+                                                )
+                                            }
+                                            className={inputCls}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2.5">
+                                        <div>
+                                            <label className="mb-1 block text-[11px] font-bold text-navy/65">
+                                                نام استاد آیتم
+                                            </label>
+                                            <input
+                                                value={item.instructorName}
+                                                onChange={(e) =>
+                                                    handleItemChange(
+                                                        item.itemId,
+                                                        'instructorName',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className={inputCls}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-[11px] font-bold text-navy/65">
+                                                تخصص / سمت استاد
+                                            </label>
+                                            <input
+                                                value={item.instructorRole}
+                                                onChange={(e) =>
+                                                    handleItemChange(
+                                                        item.itemId,
+                                                        'instructorRole',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className={inputCls}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-[11px] font-bold text-navy/65">
+                                            زیرعنوان و جزئیات این آیتم
+                                        </label>
+                                        <input
+                                            value={item.itemSubtitle}
+                                            onChange={(e) =>
+                                                handleItemChange(
+                                                    item.itemId,
+                                                    'itemSubtitle',
+                                                    e.target.value
+                                                )
+                                            }
+                                            className={inputCls}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* VIP Features Management */}
+                    <section className="rounded-2xl bg-white p-6 shadow-soft ring-1 ring-navy/5 space-y-4">
+                        <h2 className="text-sm font-black text-navy">
+                            امکانات و ویژگی‌های اختصاصی دوره VIP ({toFa(featuresDraft.length)} مورد)
+                        </h2>
+                        <div className="flex gap-2">
+                            <input
+                                value={newFeatureTitle}
+                                onChange={(e) => setNewFeatureTitle(e.target.value)}
+                                placeholder="افزودن ویژگی یا خدمت جدید به دوره VIP..."
+                                className={inputCls}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleAddFeature}
+                                className="shrink-0 rounded-xl bg-brand-600 px-4 py-2.5 text-xs font-black text-white hover:bg-brand-700"
+                            >
+                                + افزودن ویژگی
+                            </button>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            {featuresDraft.map((feat) => (
+                                <div
+                                    key={feat.id}
+                                    className="flex items-center justify-between gap-2 rounded-xl border border-navy/10 bg-soft-gray/40 px-3.5 py-2.5 text-xs"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => handleToggleFeature(feat.id)}
+                                        className={`text-right font-bold flex-1 ${
+                                            feat.active
+                                                ? 'text-navy'
+                                                : 'line-through text-navy/40'
+                                        }`}
+                                    >
+                                        {feat.title}
+                                    </button>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleToggleFeature(feat.id)}
+                                            className={`rounded-md px-2 py-0.5 text-[10px] font-black ${
+                                                feat.active
+                                                    ? 'bg-emerald-100 text-emerald-800'
+                                                    : 'bg-gray-200 text-gray-600'
+                                            }`}
+                                        >
+                                            {feat.active ? 'فعال' : 'غیرفعال'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteFeature(feat.id)}
+                                            className="p-1 text-red-500 hover:bg-red-50 rounded-md"
+                                            title="حذف"
+                                        >
+                                            <Trash2 className="size-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* VIP Sessions Calendar Management */}
+                    <section className="rounded-2xl bg-white p-6 shadow-soft ring-1 ring-navy/5 space-y-4">
+                        <h2 className="flex items-center gap-2 text-sm font-black text-navy">
+                            <Calendar className="size-4 text-brand-600" />
+                            <span>تقویم جلسات حضوری و آنلاین دوره VIP ({toFa(sessionsDraft.length)} جلسه)</span>
+                        </h2>
+
+                        <div className="grid gap-3 rounded-2xl border border-navy/10 bg-soft-gray/40 p-4 sm:grid-cols-4">
+                            <div className="sm:col-span-2">
+                                <input
+                                    value={newSessionTitle}
+                                    onChange={(e) => setNewSessionTitle(e.target.value)}
+                                    placeholder="عنوان جلسه جدید (مثلاً: کارگاه تصمیم‌گیری و حل مسئله)"
+                                    className={inputCls}
+                                />
+                            </div>
+                            <div>
+                                <input
+                                    value={newSessionDate}
+                                    onChange={(e) => setNewSessionDate(e.target.value)}
+                                    placeholder="تاریخ برگزاری"
+                                    className={inputCls}
+                                />
+                            </div>
+                            <div>
+                                <input
+                                    value={newSessionTime}
+                                    onChange={(e) => setNewSessionTime(e.target.value)}
+                                    placeholder="ساعت برگزاری"
+                                    className={inputCls}
+                                />
+                            </div>
+                            <div className="sm:col-span-4 flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewSessionMode('in_person')}
+                                        className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold ${
+                                            newSessionMode === 'in_person'
+                                                ? 'bg-brand-600 text-white'
+                                                : 'bg-white text-navy border border-navy/10'
+                                        }`}
+                                    >
+                                        <Building2 className="size-3.5" />
+                                        <span>کلاس حضوری</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewSessionMode('online')}
+                                        className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold ${
+                                            newSessionMode === 'online'
+                                                ? 'bg-brand-600 text-white'
+                                                : 'bg-white text-navy border border-navy/10'
+                                        }`}
+                                    >
+                                        <Video className="size-3.5" />
+                                        <span>کلاس آنلاین</span>
+                                    </button>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleAddSession}
+                                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#10382B] px-4 py-2 text-xs font-black text-[#D6F39A]"
+                                >
+                                    <Plus className="size-4" />
+                                    <span>افزودن جلسه به تقویم دوره</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            {sessionsDraft.map((sess) => (
+                                <div
+                                    key={sess.id}
+                                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-navy/10 bg-white px-4 py-3 text-xs"
+                                >
+                                    <div className="space-y-0.5">
+                                        <div className="font-black text-navy">
+                                            جلسه {toFa(sess.number)}: {sess.title}
+                                        </div>
+                                        <div className="text-navy/55">
+                                            {sess.mode === 'in_person' ? 'حضوری' : 'مجازی'} · {sess.date} · ساعت {sess.time}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span
+                                            className={`rounded-lg px-2.5 py-1 text-[11px] font-bold ${
+                                                sess.mode === 'in_person'
+                                                    ? 'bg-emerald-50 text-emerald-700'
+                                                    : 'bg-blue-50 text-blue-700'
+                                            }`}
+                                        >
+                                            {sess.mode === 'in_person' ? 'حضوری' : 'آنلاین'}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteSession(sess.id)}
+                                            className="rounded-lg p-1.5 text-red-500 hover:bg-red-50"
+                                            title="حذف جلسه"
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                </>
+            )}
+
+            {/* Bottom Submit Bar */}
+            <div className="flex items-center justify-end gap-3">
+                <Link
+                    href="/admin/courses"
+                    className="rounded-xl border border-navy/10 bg-white px-5 py-3 text-xs font-bold text-navy hover:bg-soft-gray"
+                >
+                    انصراف
+                </Link>
+                <Button type="submit">
+                    <Save className="size-4" aria-hidden />
+                    {isEdit ? 'ذخیره نهایی تغییرات در سایت و اپ' : 'ایجاد و انتشار دوره'}
+                </Button>
+            </div>
         </form>
     );
 }
 
-CourseForm.layout = (page: ReactNode) => <AdminLayout title="فرم دوره">{page}</AdminLayout>;
+CourseForm.layout = (page: ReactNode) => (
+    <AdminLayout title="ویرایش داینامیک دوره و تنظیمات VIP">{page}</AdminLayout>
+);

@@ -15,7 +15,6 @@ export function ProfileScreen() {
     const { user, logout, updateProfile } = useAuth();
     const { colors, isDark, toggleTheme } = useTheme();
     const [editing, setEditing] = useState(false);
-    const [showQrModal, setShowQrModal] = useState(false);
     const [confirmExit, setConfirmExit] = useState(false);
     const [name, setName] = useState(user?.name || '');
     const [phone, setPhone] = useState(user?.phone || '');
@@ -111,14 +110,6 @@ export function ProfileScreen() {
                         <View style={s.headerActions}>
                             <Pressable
                                 accessibilityRole="button"
-                                accessibilityLabel="کارت تردد QR"
-                                onPress={() => setShowQrModal((v) => !v)}
-                                style={s.qrBtn}
-                            >
-                                <Ionicons name="qr-code-outline" size={18} color="#0D2E22" />
-                            </Pressable>
-                            <Pressable
-                                accessibilityRole="button"
                                 accessibilityLabel="ویرایش مشخصات"
                                 onPress={() => {
                                     setName(user.name);
@@ -168,29 +159,6 @@ export function ProfileScreen() {
                 {!!statusMessage && (
                     <View style={[s.statusBanner, { backgroundColor: colors.primarySoft }]}>
                         <Text style={[s.caption, { color: colors.primary }]}>{statusMessage}</Text>
-                    </View>
-                )}
-
-                {showQrModal && (
-                    <View
-                        style={[
-                            s.panel,
-                            { backgroundColor: colors.surface, borderColor: '#F59E0B' },
-                        ]}
-                    >
-                        <Text style={[s.sectionTitle, { color: colors.text }]}>
-                            کارت تردد دیجیتال کارگاه حضوری
-                        </Text>
-                        <Text style={[s.caption, { color: colors.muted }]}>
-                            کد دانش‌پذیری: VIP-403-892 · جهت اسکن حضور در ورودی کلاس
-                        </Text>
-                        <PrimaryButton
-                            title="مشاهده برنامه کلاس‌ها و حضور و غیاب"
-                            onPress={() => {
-                                setShowQrModal(false);
-                                navigation.navigate('Dashboard');
-                            }}
-                        />
                     </View>
                 )}
 

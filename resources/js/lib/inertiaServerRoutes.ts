@@ -1,10 +1,10 @@
 import { getMockPageData } from './mockData.js';
 
 export function resolveInertiaRoute(cleanPath: string): { component: string; props: Record<string, any> } {
-    let component = 'Home';
+    let component = 'MobileApp/Preview';
 
     if (cleanPath === '/' || cleanPath === '') {
-        component = 'Home';
+        component = 'MobileApp/Preview';
     } else if (cleanPath === '/web' || cleanPath === '/home') {
         component = 'Home';
     } else if (cleanPath === '/about') {
@@ -71,6 +71,8 @@ export function resolveInertiaRoute(cleanPath: string): { component: string; pro
         component = 'Dashboard/Referrals';
     } else if (cleanPath === '/dashboard/reminders') {
         component = 'Dashboard/Reminders';
+    } else if (cleanPath === '/mobile-app' || cleanPath === '/dashboard/mobile-app' || cleanPath === '/download-app') {
+        component = 'MobileApp/Preview';
     } else if (cleanPath === '/support' || cleanPath === '/dashboard/support') {
         component = 'Support/Index';
     } else if (cleanPath.startsWith('/support/')) {
@@ -83,6 +85,8 @@ export function resolveInertiaRoute(cleanPath: string): { component: string; pro
         component = 'Admin/Dashboard';
     } else if (cleanPath === '/admin/login') {
         component = 'Auth/AdminLogin';
+    } else if (cleanPath === '/admin/courses/create' || /^\/admin\/courses\/[^/]+\/edit$/.test(cleanPath)) {
+        component = 'Admin/Courses/Form';
     } else if (cleanPath === '/admin/courses') {
         component = 'Admin/Courses/Index';
     } else if (cleanPath === '/admin/users') {

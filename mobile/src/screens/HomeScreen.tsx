@@ -230,11 +230,11 @@ export function HomeScreen() {
                     </Pressable>
                     <Pressable
                         accessibilityRole="button"
-                        onPress={() => navigation.navigate('Dashboard')}
+                        onPress={() => navigation.navigate('Chat')}
                         style={({ pressed }) => [styles.qrBtn, pressed && styles.pressed]}
                     >
-                        <Ionicons name="qr-code-outline" size={14} color="#0D2E22" />
-                        <Text style={styles.qrBtnText}>کارت QR</Text>
+                        <Ionicons name="chatbubbles-outline" size={14} color="#0D2E22" />
+                        <Text style={styles.qrBtnText}>گروه دوره</Text>
                     </Pressable>
                 </View>
 

@@ -1,7 +1,11 @@
-const CACHE_NAME = 'markaz-static-v4';
+const CACHE_NAME = 'markaz-static-v5';
 const STATIC_ASSETS = [
     '/manifest.webmanifest',
-    '/images/pwa-icon.svg',
+    '/pwa-192x192.png',
+    '/pwa-512x512.png',
+    '/pwa-maskable-512x512.png',
+    '/apple-touch-icon.png',
+    '/images/roshd-logo.png',
     '/images/brand-logo.png',
     '/offline.html',
 ];
@@ -30,8 +34,8 @@ self.addEventListener('push', (event) => {
     const title = payload.title || 'مرکز رشد و کارآفرینی دکتر بیدی';
     const options = {
         body: payload.body || payload.message || 'یک اعلان جدید برای شما دارید.',
-        icon: '/app-icon',
-        badge: '/app-icon',
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
         dir: 'rtl',
         lang: 'fa-IR',
         tag: payload.tag || 'markaz-notification',

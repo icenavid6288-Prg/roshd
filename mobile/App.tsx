@@ -17,6 +17,7 @@ import type { RootStackParamList } from './src/navigation/types';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { CoursesScreen } from './src/screens/CoursesScreen';
+import { ChatScreen } from './src/screens/ChatScreen';
 import { ShopScreen } from './src/screens/ShopScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
@@ -73,9 +74,19 @@ function MainTabs() {
                 name="Courses"
                 component={CoursesScreen}
                 options={{
-                    title: 'آکادمی',
+                    title: 'دوره‌ها',
                     tabBarIcon: ({ color, size, focused }) => (
                         <Ionicons name={focused ? 'school' : 'school-outline'} size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="Chat"
+                component={ChatScreen}
+                options={{
+                    title: 'گفتگو',
+                    tabBarIcon: ({ color, size, focused }) => (
+                        <Ionicons name={focused ? 'chatbubbles' : 'chatbubbles-outline'} size={size} color={color} />
                     ),
                 }}
             />

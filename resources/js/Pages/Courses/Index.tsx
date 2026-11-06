@@ -33,8 +33,10 @@ const sortOptions = [
     { value: 'title', label: 'الفبایی' },
 ];
 
+import { useDynamicAppStore } from '@/lib/dynamicAppStore';
+
 export default function CoursesIndex() {
-    const { courses, categories, filters } = usePage<
+    const { courses: fallbackCourses, categories, filters } = usePage<
         PageProps & {
             courses: PaginatedCourses;
             categories: CategoryData[];
@@ -42,18 +44,51 @@ export default function CoursesIndex() {
         }
     >().props;
 
+    const { appState } = useDynamicAppStore();
     const [q, setQ] = useState(filters.q ?? '');
+    const [selectedCategory, setSelectedCategory] = useState(filters.category ?? '');
+    const [selectedLevel, setSelectedLevel] = useState(filters.level ?? '');
+    const [selectedSort, setSelectedSort] = useState(filters.sort || 'latest');
+    const [onlyInPerson, setOnlyInPerson] = useState<boolean>(Boolean(filters.in_person));
 
     useEffect(() => {
         setQ(filters.q ?? '');
     }, [filters.q]);
 
+    const publishedCourses = (appState.courses.length > 0 ? appState.courses : fallbackCourses.data).filter(
+        (c: any) => c.is_published !== false
+    );
+
+    const filteredCourses = publishedCourses
+        .filter((c: any) => {
+            const query = q.trim().toLowerCase();
+            if (
+                query &&
+                !c.title.toLowerCase().includes(query) &&
+                !(c.summary || '').toLowerCase().includes(query) &&
+                !(c.instructor?.name || '').toLowerCase().includes(query)
+            ) {
+                return false;
+            }
+            if (onlyInPerson && !c.is_in_person && !c.is_vip) {
+                return false;
+            }
+            return true;
+        })
+        .sort((a: any, b: any) => {
+            if (selectedSort === 'price_asc') return (a.discount_price ?? a.price) - (b.discount_price ?? b.price);
+            if (selectedSort === 'price_desc') return (b.discount_price ?? b.price) - (a.discount_price ?? a.price);
+            if (selectedSort === 'popular') return (b.students_count ?? 0) - (a.students_count ?? 0);
+            if (selectedSort === 'title') return a.title.localeCompare(b.title, 'fa');
+            return 0;
+        });
+
     const applyFilters = (next: Partial<typeof filters> = {}) => {
-        const values = { ...filters, q, ...next };
-        const params = Object.fromEntries(
-            Object.entries(values).filter(([, value]) => value && value !== 'latest'),
-        );
-        router.get('/courses', params, { preserveState: true, preserveScroll: true, replace: true });
+        if (next.q !== undefined) setQ(next.q);
+        if (next.category !== undefined) setSelectedCategory(next.category);
+        if (next.level !== undefined) setSelectedLevel(next.level);
+        if (next.sort !== undefined) setSelectedSort(next.sort);
+        if (next.in_person !== undefined) setOnlyInPerson(Boolean(next.in_person));
     };
 
     const submitSearch = (event: FormEvent) => {
@@ -61,7 +96,7 @@ export default function CoursesIndex() {
         applyFilters({ q });
     };
 
-    const hasFilters = Boolean(filters.q || filters.level || filters.category || filters.sort !== 'latest' || filters.in_person);
+    const hasFilters = Boolean(q || selectedLevel || selectedCategory || selectedSort !== 'latest' || onlyInPerson);
 
     return (
         <div>
@@ -90,7 +125,7 @@ export default function CoursesIndex() {
                             </div>
                         </div>
                         <div className="flex items-center gap-5 text-xs font-bold text-navy/50">
-                            <span className="flex items-center gap-1.5"><BookOpen className="size-4 text-brand-600" /> {formatNumber(courses.total)} دوره</span>
+                            <span className="flex items-center gap-1.5"><BookOpen className="size-4 text-brand-600" /> {formatNumber(filteredCourses.length)} دوره</span>
                             <span className="hidden sm:inline">آموزش مرحله‌به‌مرحله و کاربردی</span>
                         </div>
                     </div>
@@ -112,7 +147,7 @@ export default function CoursesIndex() {
                                 <label className="flex min-w-56 items-center gap-2 rounded-xl border border-navy/10 bg-white/75 px-3 text-sm text-navy/60">
                                     <SlidersHorizontal className="size-4 shrink-0 text-brand-600" aria-hidden />
                                     <span className="sr-only">مرتب‌سازی دوره‌ها</span>
-                                    <select value={filters.sort || 'latest'} onChange={(event) => applyFilters({ sort: event.target.value })} className="w-full bg-transparent py-3 text-sm font-bold text-navy outline-none" aria-label="مرتب‌سازی دوره‌ها">
+                                    <select value={selectedSort} onChange={(event) => applyFilters({ sort: event.target.value })} className="w-full bg-transparent py-3 text-sm font-bold text-navy outline-none" aria-label="مرتب‌سازی دوره‌ها">
                                         {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                                     </select>
                                 </label>
@@ -121,39 +156,39 @@ export default function CoursesIndex() {
                             <div className="flex flex-col gap-3 border-t border-navy/5 pt-3 lg:flex-row lg:items-center">
                                 <div className="flex items-center gap-2 text-xs font-black text-navy/45"><Filter className="size-4 text-brand-600" aria-hidden /> دسته‌بندی:</div>
                                 <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
-                                    <button type="button" onClick={() => applyFilters({ category: '' })} className={`shrink-0 rounded-xl px-3.5 py-2 text-xs font-black transition-all ${!filters.category ? 'bg-deep-green text-white shadow-soft' : 'border border-navy/10 bg-white/70 text-navy/60 hover:border-brand-300 hover:text-brand-700'}`}>همه دسته‌ها</button>
-                                    {categories.map((category) => <button key={category.id} type="button" onClick={() => applyFilters({ category: category.slug })} className={`shrink-0 rounded-xl px-3.5 py-2 text-xs font-black transition-all ${filters.category === category.slug ? 'bg-deep-green text-white shadow-soft' : 'border border-navy/10 bg-white/70 text-navy/60 hover:border-brand-300 hover:text-brand-700'}`}>{category.name}</button>)}
+                                    <button type="button" onClick={() => applyFilters({ category: '' })} className={`shrink-0 rounded-xl px-3.5 py-2 text-xs font-black transition-all ${!selectedCategory ? 'bg-deep-green text-white shadow-soft' : 'border border-navy/10 bg-white/70 text-navy/60 hover:border-brand-300 hover:text-brand-700'}`}>همه دسته‌ها</button>
+                                    {categories.map((category) => <button key={category.id} type="button" onClick={() => applyFilters({ category: category.slug })} className={`shrink-0 rounded-xl px-3.5 py-2 text-xs font-black transition-all ${selectedCategory === category.slug ? 'bg-deep-green text-white shadow-soft' : 'border border-navy/10 bg-white/70 text-navy/60 hover:border-brand-300 hover:text-brand-700'}`}>{category.name}</button>)}
                                 </div>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2 border-t border-navy/5 pt-3">
                                 <span className="ml-1 text-xs font-black text-navy/45">سطح:</span>
-                                {levels.map((level) => <button key={level.key} type="button" onClick={() => applyFilters({ level: level.key })} className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${filters.level === level.key || (!filters.level && !level.key) ? 'bg-brand-100 text-brand-800' : 'text-navy/50 hover:bg-brand-50 hover:text-brand-700'}`}>{level.label}</button>)}
+                                {levels.map((level) => <button key={level.key} type="button" onClick={() => applyFilters({ level: level.key })} className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${selectedLevel === level.key ? 'bg-brand-100 text-brand-800' : 'text-navy/50 hover:bg-brand-50 hover:text-brand-700'}`}>{level.label}</button>)}
                                 <span className="mr-3 ml-1 text-xs font-black text-navy/45">نوع برگزاری:</span>
-                                <button type="button" onClick={() => applyFilters({ in_person: false })} className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${!filters.in_person ? 'bg-brand-100 text-brand-800' : 'text-navy/50 hover:bg-brand-50 hover:text-brand-700'}`}>آنلاین</button>
-                                <button type="button" onClick={() => applyFilters({ in_person: true })} className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${filters.in_person ? 'bg-emerald-100 text-emerald-800' : 'text-navy/50 hover:bg-emerald-50 hover:text-emerald-700'}`}><MapPin className="size-3" /> حضوری</button>
+                                <button type="button" onClick={() => applyFilters({ in_person: false })} className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${!onlyInPerson ? 'bg-brand-100 text-brand-800' : 'text-navy/50 hover:bg-brand-50 hover:text-brand-700'}`}>همه / آنلاین</button>
+                                <button type="button" onClick={() => applyFilters({ in_person: true })} className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${onlyInPerson ? 'bg-emerald-100 text-emerald-800' : 'text-navy/50 hover:bg-emerald-50 hover:text-emerald-700'}`}><MapPin className="size-3" /> حضوری و VIP</button>
                             </div>
                         </div>
                     </div>
 
                     <div className="mt-6 flex items-center justify-between gap-4 text-xs font-bold text-navy/45">
-                        <span>{formatNumber(courses.total)} دوره یافت شد</span>
-                        {hasFilters && <Link href="/courses" className="inline-flex items-center gap-1 text-brand-700 hover:text-brand-800">حذف فیلترها <ArrowLeft className="size-3.5" /></Link>}
+                        <span>{formatNumber(filteredCourses.length)} دوره یافت شد</span>
+                        {hasFilters && <button type="button" onClick={() => { setQ(''); setSelectedCategory(''); setSelectedLevel(''); setSelectedSort('latest'); setOnlyInPerson(false); }} className="inline-flex items-center gap-1 text-brand-700 hover:text-brand-800">حذف فیلترها <ArrowLeft className="size-3.5" /></button>}
                     </div>
 
-                    {courses.data.length > 0 ? (
+                    {filteredCourses.length > 0 ? (
                         <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            {courses.data.map((course) => <CourseCard key={course.id} course={course} />)}
+                            {filteredCourses.map((course: any) => <CourseCard key={course.id} course={course} />)}
                         </div>
                     ) : (
                         <div className="liquid-card mt-5 flex flex-col items-center gap-3 p-12 text-center">
                             <span className="glass-tile glass-tile-lg"><Search className="size-6" aria-hidden /></span>
                             <p className="text-sm font-bold text-navy/60">دوره‌ای با این مشخصات پیدا نشد.</p>
-                            <Link href="/courses" className="text-sm font-bold text-brand-700 hover:text-brand-800">نمایش همه دوره‌ها ←</Link>
+                            <button type="button" onClick={() => { setQ(''); setSelectedCategory(''); setSelectedLevel(''); setSelectedSort('latest'); setOnlyInPerson(false); }} className="text-sm font-bold text-brand-700 hover:text-brand-800">نمایش همه دوره‌ها ←</button>
                         </div>
                     )}
 
-                    <Pagination meta={courses} path="/courses" filters={{ q: filters.q, level: filters.level, category: filters.category, sort: filters.sort === 'latest' ? undefined : filters.sort, in_person: filters.in_person ? '1' : undefined }} />
+                    <Pagination meta={fallbackCourses} path="/courses" filters={{ q: filters.q, level: filters.level, category: filters.category, sort: filters.sort === 'latest' ? undefined : filters.sort, in_person: filters.in_person ? '1' : undefined }} />
                 </div>
             </section>
         </div>

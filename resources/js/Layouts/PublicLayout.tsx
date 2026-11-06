@@ -20,6 +20,7 @@ import {
     Sparkles,
     Radio,
     Search as SearchIcon,
+    Smartphone,
     Users,
     UsersRound,
     UserRound,
@@ -253,6 +254,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                     </div>
 
                     <nav className="drawer-nav" aria-label="منوی اصلی">
+                        <Link href="/mobile-app" className="drawer-link" onClick={() => setMobileOpen(false)}>پیش‌نمایش اپلیکیشن موبایل</Link>
                         {menus.header.map((item, i) => {
                             const Icon = menuIconFor(item.url);
                             return (
@@ -349,7 +351,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                         </div>
                         <div className="footer-callout-actions">
                             <Link href="/contact" className="footer-primary-action">
-                                {site.hero.cta_primary || 'دریافت مشاوره رایگان'}
+                                {site?.hero?.cta_primary || 'دریافت مشاوره رایگان'}
                                 <ArrowLeft className="size-4" aria-hidden />
                             </Link>
                             <Link href="/courses" className="footer-secondary-action">مشاهده دوره‌ها</Link>
@@ -381,22 +383,22 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                                     <div className="text-xs font-bold text-brand-300">دکتر بیدی</div>
                                 </div>
                             </div>
-                            <p className="footer-brand-description">{site.slogan || 'همراه خانواده‌ها برای ساختن مسیر رشد، یادگیری و آینده‌ای روشن‌تر.'}</p>
+                            <p className="footer-brand-description">{site?.slogan || 'همراه خانواده‌ها برای ساختن مسیر رشد، یادگیری و آینده‌ای روشن‌تر.'}</p>
                             <div className="footer-socials">
-                                {site.social.instagram && (
+                                {site?.social?.instagram && (
                                     <a href={site.social.instagram} target="_blank" rel="noopener noreferrer" className="footer-social-link" aria-label="اینستاگرام">
                                         <Share2 className="size-4" aria-hidden />
                                         <span>اینستاگرام</span>
                                     </a>
                                 )}
-                                {site.social.eitaa && (
+                                {site?.social?.eitaa && (
                                     <a href={site.social.eitaa} target="_blank" rel="noopener noreferrer" className="footer-social-link" aria-label="ایتا">
                                         <Send className="size-4" aria-hidden />
                                         <span>ایتا</span>
                                     </a>
                                 )}
                             </div>
-                            {site.enamad?.enabled && (
+                            {site?.enamad?.enabled && (
                                 <div className="footer-enamad">
                                     <span className="footer-enamad-title">{site.enamad.title}</span>
                                     {site.enamad.image_url ? (
@@ -417,7 +419,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                         <div className="footer-link-column">
                             <h3 className="footer-column-title">دسترسی سریع</h3>
                             <ul className="footer-link-list">
-                                <li><a href="/downloads/markaz.apk" className="footer-nav-link"><span>دانلود اپلیکیشن اندروید</span><ChevronLeft className="footer-nav-arrow size-3.5" aria-hidden /></a></li>
+                                <li><a href="/download-app/" className="footer-nav-link"><span>دانلود اپلیکیشن اندروید</span><ChevronLeft className="footer-nav-arrow size-3.5" aria-hidden /></a></li>
                                 {menus.footer.map((item, index) => (
                                     <li key={item.url + item.title}>
                                         <Link href={item.url} prefetch="hover" className="footer-nav-link">
@@ -443,12 +445,12 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                         <div className="footer-contact-column">
                             <h3 className="footer-column-title">با ما در تماس باشید</h3>
                             <ul className="footer-contact-list">
-                                {site.contact.phone && <li><a href={`tel:${site.contact.phone}`} dir="ltr"><Phone className="size-4" aria-hidden /><span>{site.contact.phone}</span></a></li>}
-                                {site.contact.email && <li><a href={`mailto:${site.contact.email}`} dir="ltr"><Mail className="size-4" aria-hidden /><span>{site.contact.email}</span></a></li>}
-                                {site.contact.eitaa && <li>{site.social.eitaa ? <a href={site.social.eitaa} target="_blank" rel="noopener noreferrer" dir="ltr"><Send className="size-4" aria-hidden /><span>{site.contact.eitaa}</span></a> : <span dir="ltr"><Send className="size-4" aria-hidden /><span>{site.contact.eitaa}</span></span>}</li>}
-                                {site.contact.address && <li><span><MapPin className="size-4" aria-hidden /><span>{site.contact.address}</span></span></li>}
+                                {site?.contact?.phone && <li><a href={`tel:${site.contact.phone}`} dir="ltr"><Phone className="size-4" aria-hidden /><span>{site.contact.phone}</span></a></li>}
+                                {site?.contact?.email && <li><a href={`mailto:${site.contact.email}`} dir="ltr"><Mail className="size-4" aria-hidden /><span>{site.contact.email}</span></a></li>}
+                                {site?.contact?.eitaa && <li>{site?.social?.eitaa ? <a href={site.social.eitaa} target="_blank" rel="noopener noreferrer" dir="ltr"><Send className="size-4" aria-hidden /><span>{site.contact.eitaa}</span></a> : <span dir="ltr"><Send className="size-4" aria-hidden /><span>{site.contact.eitaa}</span></span>}</li>}
+                                {site?.contact?.address && <li><span><MapPin className="size-4" aria-hidden /><span>{site.contact.address}</span></span></li>}
                             </ul>
-                            {site.contact.working_hours && <div className="footer-hours"><Clock3 className="size-4" aria-hidden /><span>{site.contact.working_hours}</span></div>}
+                            {site?.contact?.working_hours && <div className="footer-hours"><Clock3 className="size-4" aria-hidden /><span>{site.contact.working_hours}</span></div>}
                         </div>
                     </div>
 
@@ -467,6 +469,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                     { label: 'دوره‌ها', href: '/courses', icon: GraduationCap },
                     { label: 'وبینارها', href: '/events', icon: Video },
                     { label: 'فروشگاه', href: '/shop', icon: ShoppingBag },
+                    { label: 'اپلیکیشن', href: '/mobile-app', icon: Smartphone },
                     auth.user
                         ? { label: 'پنل من', href: '/dashboard', icon: UserRound }
                         : { label: 'حساب', icon: UserRound, onClick: () => setAuthModal('login') },

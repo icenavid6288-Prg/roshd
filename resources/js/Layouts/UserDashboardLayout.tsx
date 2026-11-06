@@ -58,7 +58,7 @@ const groups: NavGroup[] = [
             { label: 'نقشه سفر رشد', href: '/dashboard/goals', icon: Route },
             { label: 'جلسات با دکتر بیدی', href: '/dashboard/sessions', icon: CalendarDays, badge: '۲ پیش‌رو' },
             { label: 'یادآوری‌های خودکار', href: '/dashboard/reminders', icon: Bell, badge: 'پیامک فعال' },
-            { label: 'دانلود اپلیکیشن', href: '/downloads/markaz.apk', icon: Smartphone, badge: 'Android' },
+            { label: 'اپلیکیشن موبایل', href: '/mobile-app', icon: Smartphone, badge: 'Roshd 1.3' },
         ],
     },
     {
@@ -268,7 +268,7 @@ export default function UserDashboardLayout({ children, title }: { children: Rea
                     <div className="flex items-center gap-2.5">
                         <ThemeToggle compact />
                         <Link
-                            href="/downloads/markaz.apk"
+                            href="/mobile-app?screen=sessions"
                             className="hidden items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-black text-emerald-700 transition-colors hover:bg-emerald-500/20 sm:flex dark:border-emerald-400/30 dark:bg-emerald-500/15 dark:text-emerald-300"
                         >
                             <Smartphone className="size-3.5" />

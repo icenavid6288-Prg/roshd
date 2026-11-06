@@ -29,12 +29,14 @@ class AppManifestController extends Controller
             'categories' => ['education', 'lifestyle'],
             'prefer_related_applications' => false,
             'icons' => [
-                ['src' => url('/app-icon'), 'sizes' => 'any', 'purpose' => 'any maskable'],
+                ['src' => url('/pwa-192x192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => url('/pwa-512x512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => url('/pwa-maskable-512x512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
             ],
             'shortcuts' => [
-                ['name' => 'دوره‌ها', 'short_name' => 'دوره‌ها', 'url' => '/courses', 'icons' => [['src' => url('/app-icon'), 'sizes' => 'any']]],
-                ['name' => 'فروشگاه', 'short_name' => 'فروشگاه', 'url' => '/shop', 'icons' => [['src' => url('/app-icon'), 'sizes' => 'any']]],
-                ['name' => 'پنل کاربری', 'short_name' => 'پنل کاربری', 'url' => '/dashboard', 'icons' => [['src' => url('/app-icon'), 'sizes' => 'any']]],
+                ['name' => 'دوره‌ها', 'short_name' => 'دوره‌ها', 'url' => '/courses', 'icons' => [['src' => url('/pwa-192x192.png'), 'sizes' => '192x192', 'type' => 'image/png']]],
+                ['name' => 'فروشگاه', 'short_name' => 'فروشگاه', 'url' => '/shop', 'icons' => [['src' => url('/pwa-192x192.png'), 'sizes' => '192x192', 'type' => 'image/png']]],
+                ['name' => 'پنل کاربری', 'short_name' => 'پنل کاربری', 'url' => '/dashboard', 'icons' => [['src' => url('/pwa-192x192.png'), 'sizes' => '192x192', 'type' => 'image/png']]],
             ],
         ])->header('Cache-Control', 'no-cache, must-revalidate');
     }

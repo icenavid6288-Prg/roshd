@@ -72,12 +72,29 @@ import {
     canSendMessageInChannel,
     ChatChannelType,
     CourseItemInstructor,
-    defaultCourseItemsWithInstructors,
-    defaultCourseSupportMessages,
-    defaultGroupChatMessages,
     filterCoursesByQueryAndCategory,
     resolveProductConsumptionMode,
 } from '@/lib/mobileAppLogic';
+import {
+    addGoalToState,
+    addReminderToState,
+    advanceGoalTaskInState,
+    createSupportTicketInState,
+    DynamicGoalItem,
+    DynamicLessonItem,
+    DynamicReminderItem,
+    DynamicSupportTicket,
+    purchaseWithWalletInState,
+    replyToSupportTicketInState,
+    toggleLessonCompletionInState,
+    updateLessonNoteInState,
+    updateVipConfigInState,
+    useDynamicAppStore,
+    type DynamicVipConfig,
+    type DynamicVipFeature,
+    type DynamicVipSession,
+    type DynamicVipStudent,
+} from '@/lib/dynamicAppStore';
 
 type ScreenId =
     | 'home'
@@ -123,46 +140,206 @@ export default function MobileAppPreview() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCourseSlug, setSelectedCourseSlug] = useState(mockCourses[0].slug);
 
-    // Flagship VIP Course ("طراحی آینده نوجوان") State — Configurable by Instructor/Admin
-    const [vipConfig, setVipConfig] = useState({
-        title: mockVipFlagshipDefaults.title,
-        subtitle: mockVipFlagshipDefaults.subtitle,
-        description: mockVipFlagshipDefaults.description,
-        inPersonLocation: mockVipFlagshipDefaults.in_person_location,
-        onlinePlatform: mockVipFlagshipDefaults.online_platform,
-        scheduleSummary: mockVipFlagshipDefaults.schedule_summary,
-        autoSmsReminder: mockVipFlagshipDefaults.auto_sms_reminder,
-        reminderLeadMinutes: mockVipFlagshipDefaults.reminder_lead_minutes,
-        price: mockVipFlagshipDefaults.price,
-        discountPrice: mockVipFlagshipDefaults.discount_price,
-        posterUrl: '/images/vip-teen-future.svg',
-        posterBadge: 'پوستر رسمی دوره VIP',
-    });
+    // Unified Dynamic State Store (Synced with Website & Server API)
+    const { appState, updateAppState } = useDynamicAppStore();
+    const {
+        userProfile,
+        walletOrders,
+        talentDimensions,
+        earnedBadges,
+        notifSettings,
+        courseItems,
+        groupChatEnabled,
+        groupMessages,
+        supportMessages,
+        ownedProductSlugs,
+        goals,
+        reminders,
+        reminderLogs,
+        supportTickets,
+        lessons,
+        courses: dynamicCourses,
+        vipConfig,
+        vipFeatures,
+        vipSessions,
+        vipStudents,
+    } = appState;
 
-    const [vipFeatures, setVipFeatures] = useState(mockVipFlagshipDefaults.features);
+    const allCourses = dynamicCourses && dynamicCourses.length > 0 ? dynamicCourses : mockCourses;
+
     const [newFeatureText, setNewFeatureText] = useState('');
-
-    const [vipSessions, setVipSessions] = useState(mockVipFlagshipDefaults.sessions);
     const [selectedSessionId, setSelectedSessionId] = useState<number>(103);
     const [newSessionTitle, setNewSessionTitle] = useState('');
     const [newSessionMode, setNewSessionMode] = useState<'in_person' | 'online'>('in_person');
     const [newSessionDate, setNewSessionDate] = useState('سه‌شنبه ۱۶ اردیبهشت ۱۴۰۴');
     const [newSessionTime, setNewSessionTime] = useState('۱۷:۰۰ تا ۱۹:۰۰');
-
-    const [vipStudents, setVipStudents] = useState(mockVipFlagshipDefaults.students);
     const [vipManageTab, setVipManageTab] = useState<'attendance' | 'settings' | 'sessions'>('attendance');
     const [vipClubTab, setVipClubTab] = useState<'schedule' | 'items' | 'attendance'>('schedule');
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+    const setVipConfig = (
+        updater:
+            | DynamicVipConfig
+            | ((prev: DynamicVipConfig) => DynamicVipConfig)
+    ) => {
+        updateAppState((prev) => {
+            const nextCfg =
+                typeof updater === 'function' ? updater(prev.vipConfig) : updater;
+            return updateVipConfigInState(prev, nextCfg);
+        });
+    };
+
+    const setVipFeatures = (
+        updater:
+            | DynamicVipFeature[]
+            | ((prev: DynamicVipFeature[]) => DynamicVipFeature[])
+    ) => {
+        updateAppState((prev) => ({
+            ...prev,
+            vipFeatures:
+                typeof updater === 'function' ? updater(prev.vipFeatures) : updater,
+        }));
+    };
+
+    const setVipSessions = (
+        updater:
+            | DynamicVipSession[]
+            | ((prev: DynamicVipSession[]) => DynamicVipSession[])
+    ) => {
+        updateAppState((prev) => ({
+            ...prev,
+            vipSessions:
+                typeof updater === 'function' ? updater(prev.vipSessions) : updater,
+        }));
+    };
+
+    const setVipStudents = (
+        updater:
+            | DynamicVipStudent[]
+            | ((prev: DynamicVipStudent[]) => DynamicVipStudent[])
+    ) => {
+        updateAppState((prev) => ({
+            ...prev,
+            vipStudents:
+                typeof updater === 'function' ? updater(prev.vipStudents) : updater,
+        }));
+    };
+
+    const setCourseItems = (
+        updater:
+            | CourseItemInstructor[]
+            | ((prev: CourseItemInstructor[]) => CourseItemInstructor[])
+    ) => {
+        updateAppState((prev) => ({
+            ...prev,
+            courseItems:
+                typeof updater === 'function' ? updater(prev.courseItems) : updater,
+        }));
+    };
+
+    const setGroupChatEnabled = (
+        updater: boolean | ((prev: boolean) => boolean)
+    ) => {
+        updateAppState((prev) => ({
+            ...prev,
+            groupChatEnabled:
+                typeof updater === 'function'
+                    ? updater(prev.groupChatEnabled)
+                    : updater,
+        }));
+    };
+
+    const setGroupMessages = (
+        updater:
+            | typeof groupMessages
+            | ((prev: typeof groupMessages) => typeof groupMessages)
+    ) => {
+        updateAppState((prev) => ({
+            ...prev,
+            groupMessages:
+                typeof updater === 'function' ? updater(prev.groupMessages) : updater,
+        }));
+    };
+
+    const setSupportMessages = (
+        updater:
+            | typeof supportMessages
+            | ((prev: typeof supportMessages) => typeof supportMessages)
+    ) => {
+        updateAppState((prev) => ({
+            ...prev,
+            supportMessages:
+                typeof updater === 'function'
+                    ? updater(prev.supportMessages)
+                    : updater,
+        }));
+    };
+
+    const setOwnedProductSlugs = (
+        updater: string[] | ((prev: string[]) => string[])
+    ) => {
+        updateAppState((prev) => ({
+            ...prev,
+            ownedProductSlugs:
+                typeof updater === 'function'
+                    ? updater(prev.ownedProductSlugs)
+                    : updater,
+        }));
+    };
+
+    const setReminders = (
+        updater:
+            | DynamicReminderItem[]
+            | ((prev: DynamicReminderItem[]) => DynamicReminderItem[])
+    ) => {
+        updateAppState((prev) => ({
+            ...prev,
+            reminders:
+                typeof updater === 'function' ? updater(prev.reminders) : updater,
+        }));
+    };
+
+    const setUserProfile = (
+        updater:
+            | typeof userProfile
+            | ((prev: typeof userProfile) => typeof userProfile)
+    ) => {
+        updateAppState((prev) => ({
+            ...prev,
+            userProfile:
+                typeof updater === 'function' ? updater(prev.userProfile) : updater,
+        }));
+    };
+
+    const setWalletOrders = (
+        updater:
+            | typeof walletOrders
+            | ((prev: typeof walletOrders) => typeof walletOrders)
+    ) => {
+        updateAppState((prev) => ({
+            ...prev,
+            walletOrders:
+                typeof updater === 'function' ? updater(prev.walletOrders) : updater,
+        }));
+    };
+
+    const setNotifSettings = (
+        updater:
+            | typeof notifSettings
+            | ((prev: typeof notifSettings) => typeof notifSettings)
+    ) => {
+        updateAppState((prev) => ({
+            ...prev,
+            notifSettings:
+                typeof updater === 'function'
+                    ? updater(prev.notifSettings)
+                    : updater,
+        }));
+    };
+
     // Multi-Instructor Per-Item Chat, Course Group Chat (with Admin Toggle), and Course Support State
     const [chatChannel, setChatChannel] = useState<ChatChannelType>('instructor');
-    const [courseItems, setCourseItems] = useState<CourseItemInstructor[]>(
-        defaultCourseItemsWithInstructors
-    );
     const [selectedItemId, setSelectedItemId] = useState<number>(1);
-    const [groupChatEnabled, setGroupChatEnabled] = useState<boolean>(true);
-    const [groupMessages, setGroupMessages] = useState(defaultGroupChatMessages);
-    const [supportMessages, setSupportMessages] = useState(defaultCourseSupportMessages);
     const [chatDraft, setChatDraft] = useState('');
 
     // Store Product Preview + Non-Downloadable In-App Book Reader & Podcast Audio Player State
@@ -173,35 +350,44 @@ export default function MobileAppPreview() {
     const [audioPlaying, setAudioPlaying] = useState<boolean>(false);
     const [audioSpeed, setAudioSpeed] = useState<1 | 1.25 | 1.5 | 2>(1);
     const [audioProgress, setAudioProgress] = useState<number>(38);
-    const [ownedProductSlugs, setOwnedProductSlugs] = useState<string[]>([
-        'talent-compass-book',
-        'roshd-future-mindset-podcast',
-        '90-day-growth-planner',
-    ]);
 
-    const [reminders, setReminders] = useState([
-        { id: 1, title: 'کلاس حضوری طراحی آینده نوجوان (سه‌شنبه‌ها)', time: '۱۵:۳۰', days: '۹۰ دقیقه قبل از کلاس', enabled: true },
-        { id: 2, title: 'کلاس آنلاین طراحی آینده نوجوان (پنج‌شنبه‌ها)', time: '۱۷:۰۰', days: '۹۰ دقیقه قبل از کلاس', enabled: true },
-        { id: 3, title: 'ثبت ژورنال هدف‌گذاری ۹۰ روزه', time: '۲۲:۰۰', days: 'شنبه‌ها و چهارشنبه‌ها', enabled: true },
-    ]);
+    // Interactive Learning Room State
+    const [selectedLessonId, setSelectedLessonId] = useState<number>(3);
+    const [videoPlaying, setVideoPlaying] = useState<boolean>(false);
+    const [videoProgress, setVideoProgress] = useState<number>(42);
 
-    // Comprehensive My Account ("حساب من") State
-    const [userProfile, setUserProfile] = useState(defaultUserProfile);
+    // Interactive Goal Builder State
+    const [newGoalTitle, setNewGoalTitle] = useState('');
+    const [newGoalCategory, setNewGoalCategory] = useState('دوره VIP آینده نوجوان');
+    const [newGoalDueDate, setNewGoalDueDate] = useState('۳۰ خرداد ۱۴۰۴');
+    const [newGoalTasks, setNewGoalTasks] = useState<number>(5);
+
+    // Interactive Smart Reminder Builder State
+    const [newReminderTitle, setNewReminderTitle] = useState('');
+    const [newReminderTime, setNewReminderTime] = useState('۱۸:۳۰');
+    const [newReminderDays, setNewReminderDays] = useState('هر روز · ۶۰ دقیقه قبل');
+    const [newReminderChannel, setNewReminderChannel] = useState<'sms' | 'eitaa' | 'in_app'>('sms');
+
+    // Interactive Support Ticket State
+    const [selectedTicketId, setSelectedTicketId] = useState<number>(201);
+    const [newTicketSubject, setNewTicketSubject] = useState('');
+    const [newTicketDept, setNewTicketDept] = useState('آموزش و کارگاه‌های VIP');
+    const [newTicketPriority, setNewTicketPriority] = useState<'low' | 'medium' | 'high'>('medium');
+    const [newTicketBody, setNewTicketBody] = useState('');
+    const [ticketReplyDraft, setTicketReplyDraft] = useState('');
+
+    // Comprehensive My Account ("حساب من") Local Form State
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [profileDraft, setProfileDraft] = useState({
-        name: defaultUserProfile.name,
-        gradeAndField: defaultUserProfile.gradeAndField,
-        city: defaultUserProfile.city,
-        phone: defaultUserProfile.phone,
-        parentPhone: defaultUserProfile.parentPhone,
-        bio: defaultUserProfile.bio,
+        name: userProfile.name,
+        gradeAndField: userProfile.gradeAndField,
+        city: userProfile.city,
+        phone: userProfile.phone,
+        parentPhone: userProfile.parentPhone,
+        bio: userProfile.bio,
     });
     const [profileError, setProfileError] = useState<string | null>(null);
-    const [walletOrders, setWalletOrders] = useState(defaultWalletOrders);
     const [showAllOrders, setShowAllOrders] = useState(false);
-    const [talentDimensions] = useState(defaultTalentDimensions);
-    const [earnedBadges] = useState(defaultEarnedBadges);
-    const [notifSettings, setNotifSettings] = useState(defaultNotificationSettings);
     const [copiedReferral, setCopiedReferral] = useState(false);
     const [showCertPreviewModal, setShowCertPreviewModal] = useState(false);
 
@@ -368,17 +554,6 @@ export default function MobileAppPreview() {
         showToast(`کلاس آنلاین «${cleanTitle}» در ${platformLabels[newWebinarPlatform]} ثبت شد.`);
     };
 
-    const handleRoleSwitch = (role: PreviewRole) => {
-        setPreviewRole(role);
-        if (role === 'instructor') {
-            setActiveScreen('vipManage');
-        } else if (role === 'regular_user' && (activeScreen === 'vipClub' || activeScreen === 'vipManage')) {
-            setSelectedCourseSlug('designing-teen-future-vip');
-            setActiveScreen('courseDetail');
-        } else if (role === 'vip_student' && activeScreen === 'courseDetail' && selectedCourseSlug === 'designing-teen-future-vip') {
-            setActiveScreen('vipClub');
-        }
-    };
 
     const openCourse = (slug: string) => {
         setSelectedCourseSlug(slug);
@@ -513,7 +688,7 @@ export default function MobileAppPreview() {
           };
 
     const selectedCourse =
-        mockCourses.find((c) => c.slug === selectedCourseSlug) || mockCourses[0];
+        allCourses.find((c) => c.slug === selectedCourseSlug) || allCourses[0];
 
     const selectedProduct =
         mockProducts.find((p) => p.slug === selectedProductSlug) || mockProducts[0];
@@ -526,7 +701,7 @@ export default function MobileAppPreview() {
         courseItems.find((item) => item.itemId === selectedItemId) || courseItems[0];
 
     const filteredCourses = filterCoursesByQueryAndCategory(
-        mockCourses,
+        allCourses.filter((c) => (c as { is_published?: boolean }).is_published !== false),
         searchQuery,
         selectedCategory
     );
@@ -684,85 +859,21 @@ export default function MobileAppPreview() {
 
             <div
                 dir="rtl"
-                className="min-h-screen flex flex-col items-center justify-start py-4 px-2 sm:px-6 font-sans select-none"
-                style={{ backgroundColor: isDark ? '#070C0A' : '#E9ECE4' }}
+                className="min-h-screen w-full flex flex-col font-sans"
+                style={{ backgroundColor: colors.bg }}
             >
-                {/* Top Preview Bar (Outside Mobile Frame — Role Switcher for Testing) */}
-                <div className="w-full max-w-[420px] mb-3 bg-[#123E30] text-white p-2.5 rounded-2xl shadow-md space-y-2 text-xs">
-                    <div className="flex items-center justify-between px-1">
-                        <div className="flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 rounded-full bg-[#D6F39A]"></span>
-                            <span className="font-bold">اپلیکیشن مرکز رشد دکتر بیدی</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <Link
-                                href="/dashboard"
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition text-[10.5px] font-bold"
-                            >
-                                <span>پنل کاربری</span>
-                            </Link>
-                            <Link
-                                href="/events?type=webinar"
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[#D6F39A] transition text-[10.5px] font-bold"
-                            >
-                                <span>وبینارهای سایت</span>
-                            </Link>
-                            <Link
-                                href="/web"
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#D6F39A] text-[#123E30] hover:opacity-95 transition text-[11px] font-extrabold"
-                            >
-                                <span>نمای وب‌سایت</span>
-                                <ExternalLink className="w-3 h-3" />
-                            </Link>
-                        </div>
-                    </div>
-
-                    {/* 3-State Role Switcher */}
-                    <div className="grid grid-cols-3 gap-1 bg-[#0B281F] p-1 rounded-xl">
-                        {[
-                            { id: 'vip_student' as const, label: 'عضو VIP دوره' },
-                            { id: 'regular_user' as const, label: 'کاربر عادی' },
-                            { id: 'instructor' as const, label: 'مدرس / ادمین' },
-                        ].map((r) => {
-                            const active = previewRole === r.id;
-                            return (
-                                <button
-                                    key={r.id}
-                                    type="button"
-                                    onClick={() => handleRoleSwitch(r.id)}
-                                    className={`py-1.5 rounded-lg text-[11px] font-bold transition ${
-                                        active
-                                            ? 'bg-[#D6F39A] text-[#123E30] shadow-sm'
-                                            : 'text-[#C5D7CA] hover:text-white'
-                                    }`}
-                                >
-                                    {r.label}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Mobile App Viewport Container */}
-                <div
-                    className="roshd-phone-frame w-full max-w-[420px] rounded-[34px] shadow-2xl overflow-hidden border flex flex-col justify-between relative"
-                    style={{
-                        backgroundColor: colors.bg,
-                        borderColor: isDark ? '#26382F' : '#D5DDD2',
-                        minHeight: '812px',
-                        maxHeight: '860px',
-                    }}
-                >
-                    {/* Live Toast Banner inside Mobile Viewport */}
+                {/* Main Responsive App Container */}
+                <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-between relative">
+                    {/* Live Toast Banner */}
                     {toastMessage && (
-                        <div className="absolute top-3 inset-x-4 z-50 bg-[#123E30] text-white border border-[#D6F39A]/40 px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs">
+                        <div className="fixed top-4 inset-x-4 max-w-lg mx-auto z-50 bg-[#123E30] text-white border border-[#D6F39A]/40 px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs">
                             <CheckCircle2 className="w-4 h-4 text-[#D6F39A] shrink-0" />
                             <span className="font-bold">{toastMessage}</span>
                         </div>
                     )}
 
-                    {/* Scrollable Screen Content */}
-                    <div className="flex-1 overflow-y-auto px-5 pt-5 pb-6 space-y-5">
+                    {/* Main Screen Content */}
+                    <div className="flex-1 px-4 sm:px-6 pt-5 pb-24 space-y-5">
                         {/* ==================== SUPER-APP HOME SCREEN ==================== */}
                         {activeScreen === 'home' && (
                             <div className="space-y-3.5">
@@ -1677,7 +1788,7 @@ export default function MobileAppPreview() {
                                     </div>
 
                                     <div className="flex gap-2.5 overflow-x-auto pb-1.5">
-                                        {mockCourses.map((course) => {
+                                        {allCourses.filter((c: any) => c.is_published !== false).map((course) => {
                                             const isUserEnrolledInThisCourse =
                                                 course.is_vip && isVipEnrolled;
                                             return (
@@ -2573,7 +2684,7 @@ export default function MobileAppPreview() {
                                                         {item.itemTitle}
                                                     </span>
                                                     <span style={{ color: colors.muted }}>
-                                                        {faNum(item.sessionsCount)} جلسه
+                                                        {faNum(item.lessonsCount)} جلسه
                                                     </span>
                                                 </div>
                                                 <p
@@ -2679,93 +2790,243 @@ export default function MobileAppPreview() {
                             </div>
                         )}
 
-                        {/* ==================== LEARNING ROOM SCREEN ==================== */}
-                        {activeScreen === 'learning' && (
-                            <div className="space-y-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveScreen('home')}
-                                    className="inline-flex items-center gap-1.5 text-xs font-bold"
-                                    style={{ color: colors.primary }}
-                                >
-                                    <ArrowRight className="w-4 h-4" />
-                                    <span>بازگشت</span>
-                                </button>
-
-                                <div className="bg-[#123E30] rounded-[24px] p-5 text-white space-y-3">
-                                    <div className="text-xs text-[#D6F39A] font-bold flex items-center gap-1.5">
-                                        <Play className="w-3.5 h-3.5 fill-current" />
-                                        <span>در حال پخش جلسه ۴ از ۲۴</span>
-                                    </div>
-                                    <h2 className="font-bold text-base">
-                                        تحلیل ۵ استعداد غالب در محیط کار
-                                    </h2>
-                                    <div className="h-40 rounded-2xl bg-black/40 flex items-center justify-center border border-white/10 relative overflow-hidden">
-                                        <img
-                                            src="/images/growth-editorial.png"
-                                            alt=""
-                                            className="w-32 h-32 object-contain opacity-25 absolute"
-                                        />
-                                        <div className="w-14 h-14 rounded-full bg-[#D6F39A] text-[#123E30] flex items-center justify-center shadow-lg relative z-10">
-                                            <Play className="w-6 h-6 fill-current" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div
-                                    className="rounded-[22px] border p-4 space-y-2.5"
-                                    style={{
-                                        backgroundColor: colors.surface,
-                                        borderColor: colors.border,
-                                    }}
-                                >
-                                    <div
-                                        className="font-bold text-sm"
-                                        style={{ color: colors.text }}
-                                    >
-                                        سرفصل‌های این بخش
-                                    </div>
-                                    {[
-                                        '۱. آشنایی با مدل استعدادهای کلیفتون',
-                                        '۲. تفاوت استعداد، دانش و مهارت',
-                                        '۳. تحلیل ۵ استعداد غالب در محیط کار',
-                                        '۴. تدوین برنامه اقدام شخصی (Action Plan)',
-                                    ].map((item, idx) => (
-                                        <div
-                                            key={item}
-                                            className="p-3 rounded-xl text-xs flex items-center justify-between"
-                                            style={{
-                                                backgroundColor:
-                                                    idx === 2
-                                                        ? colors.primarySoft
-                                                        : colors.surfaceAlt,
-                                                color: colors.text,
-                                            }}
+                        {/* ==================== LEARNING ROOM SCREEN (اتاق یادگیری تعاملی دوره) ==================== */}
+                        {activeScreen === 'learning' && (() => {
+                            const activeLesson =
+                                lessons.find((l) => l.id === selectedLessonId) || lessons[0];
+                            const completedCount = lessons.filter((l) => l.completed).length;
+                            const completionPct = Math.round(
+                                (completedCount / Math.max(1, lessons.length)) * 100
+                            );
+                            return (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('courseDetail')}
+                                            className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                            style={{ color: colors.primary }}
                                         >
-                                            <span>{item}</span>
-                                            <span>
-                                                {idx < 2 ? (
-                                                    <Check
-                                                        className="w-4 h-4"
-                                                        style={{ color: colors.primary }}
-                                                    />
-                                                ) : idx === 2 ? (
-                                                    <Play
-                                                        className="w-4 h-4 fill-current"
-                                                        style={{ color: colors.primary }}
-                                                    />
-                                                ) : (
-                                                    <Lock
-                                                        className="w-4 h-4"
-                                                        style={{ color: colors.muted }}
-                                                    />
-                                                )}
+                                            <ArrowRight className="w-4 h-4" />
+                                            <span>بازگشت به دوره</span>
+                                        </button>
+                                        <span className="px-3 py-1 rounded-full text-xs font-black bg-[#123E30] text-[#D6F39A]">
+                                            پیشرفت جلسات: {faNum(completionPct)}٪ ({faNum(completedCount)} از {faNum(lessons.length)})
+                                        </span>
+                                    </div>
+
+                                    <div className="bg-[#123E30] rounded-[24px] p-5 text-white space-y-4 border border-emerald-400/20 shadow-lg">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-[#D6F39A] font-bold flex items-center gap-1.5">
+                                                <Play className="w-3.5 h-3.5 fill-current" />
+                                                <span>
+                                                    جلسه {faNum(activeLesson.number)} · {activeLesson.duration}
+                                                </span>
+                                            </span>
+                                            <span
+                                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                                                    activeLesson.completed
+                                                        ? 'bg-emerald-500/25 text-[#D6F39A]'
+                                                        : 'bg-white/10 text-white/80'
+                                                }`}
+                                            >
+                                                {activeLesson.completed ? 'تکمیل شده ✓' : 'در حال مشاهده'}
                                             </span>
                                         </div>
-                                    ))}
+
+                                        <h2 className="font-black text-base leading-7">
+                                            {activeLesson.title}
+                                        </h2>
+                                        <p className="text-xs text-emerald-100/85 leading-6">
+                                            {activeLesson.videoSummary}
+                                        </p>
+
+                                        <div className="h-48 rounded-2xl bg-black/45 flex flex-col items-center justify-center border border-white/10 relative overflow-hidden p-4">
+                                            <img
+                                                src="/images/growth-editorial.png"
+                                                alt=""
+                                                className="w-36 h-36 object-contain opacity-20 absolute"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setVideoPlaying((v) => !v)}
+                                                className="w-14 h-14 rounded-full bg-[#D6F39A] text-[#123E30] flex items-center justify-center shadow-lg relative z-10 transition hover:scale-105"
+                                            >
+                                                {videoPlaying ? (
+                                                    <Pause className="w-6 h-6 fill-current" />
+                                                ) : (
+                                                    <Play className="w-6 h-6 fill-current" />
+                                                )}
+                                            </button>
+                                            <span className="text-[11px] font-bold text-[#D6F39A] mt-2 relative z-10">
+                                                {videoPlaying
+                                                    ? 'در حال پخش ویدئوی آموزشی...'
+                                                    : 'کلیک جهت پخش ویدئوی جلسه'}
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <input
+                                                type="range"
+                                                aria-label="نوار زمان ویدئو"
+                                                min={0}
+                                                max={100}
+                                                value={videoProgress}
+                                                onChange={(e) =>
+                                                    setVideoProgress(Number(e.target.value))
+                                                }
+                                                className="w-full accent-[#D6F39A] cursor-pointer"
+                                            />
+                                            <div className="flex items-center justify-between text-[11px] text-emerald-100/80">
+                                                <span>{faNum(videoProgress)}٪ مشاهده‌شده</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const wasCompleted = activeLesson.completed;
+                                                        updateAppState((prev) => ({
+                                                            ...prev,
+                                                            lessons: toggleLessonCompletionInState(
+                                                                prev.lessons,
+                                                                activeLesson.id
+                                                            ),
+                                                            userProfile: {
+                                                                ...prev.userProfile,
+                                                                xp: wasCompleted
+                                                                    ? prev.userProfile.xp
+                                                                    : prev.userProfile.xp + 50,
+                                                            },
+                                                        }));
+                                                        showToast(
+                                                            wasCompleted
+                                                                ? 'وضعیت جلسه به «در حال مطالعه» تغییر یافت.'
+                                                                : 'جلسه با موفقیت تکمیل شد (+۵۰ امتیاز رشد)!'
+                                                        );
+                                                    }}
+                                                    className="px-3 py-1 rounded-xl bg-[#D6F39A] text-[#123E30] font-black text-xs inline-flex items-center gap-1"
+                                                >
+                                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                                    <span>
+                                                        {activeLesson.completed
+                                                            ? 'تکمیل شده (لغو تکمیل)'
+                                                            : 'ثبت تکمیل این جلسه (+۵۰ XP)'}
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Interactive Lesson Notes */}
+                                    <div
+                                        className="rounded-[22px] border p-4 space-y-2.5"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span
+                                                className="font-black text-xs"
+                                                style={{ color: colors.text }}
+                                            >
+                                                یادداشت و خلاصه‌نویسی من از این جلسه:
+                                            </span>
+                                            <span
+                                                className="text-[10px] font-bold"
+                                                style={{ color: colors.primary }}
+                                            >
+                                                ذخیره خودکار در پرونده رشد
+                                            </span>
+                                        </div>
+                                        <textarea
+                                            rows={3}
+                                            value={activeLesson.note}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                updateAppState((prev) => ({
+                                                    ...prev,
+                                                    lessons: updateLessonNoteInState(
+                                                        prev.lessons,
+                                                        activeLesson.id,
+                                                        val
+                                                    ),
+                                                }));
+                                            }}
+                                            placeholder="نکات کلیدی یا تمرین‌های خود از این جلسه را اینجا یادداشت کنید..."
+                                            className="w-full rounded-xl border p-3 text-xs leading-6 outline-none"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                                color: colors.text,
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Interactive Curriculum Selector */}
+                                    <div
+                                        className="rounded-[22px] border p-4 space-y-2.5"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <div
+                                            className="font-bold text-sm"
+                                            style={{ color: colors.text }}
+                                        >
+                                            سرفصل‌ها و جلسات دوره (کلیک برای پخش)
+                                        </div>
+                                        {lessons.map((item) => {
+                                            const isSelected = item.id === activeLesson.id;
+                                            return (
+                                                <div
+                                                    key={item.id}
+                                                    onClick={() => {
+                                                        setSelectedLessonId(item.id);
+                                                        setVideoPlaying(true);
+                                                    }}
+                                                    className="p-3 rounded-xl text-xs flex items-center justify-between cursor-pointer transition border"
+                                                    style={{
+                                                        backgroundColor: isSelected
+                                                            ? colors.primarySoft
+                                                            : colors.surfaceAlt,
+                                                        borderColor: isSelected
+                                                            ? colors.primary
+                                                            : 'transparent',
+                                                        color: colors.text,
+                                                    }}
+                                                >
+                                                    <div className="space-y-0.5">
+                                                        <div className="font-bold">
+                                                            {faNum(item.number)}. {item.title}
+                                                        </div>
+                                                        <div
+                                                            className="text-[10px]"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            مدت زمان: {item.duration}
+                                                            {item.note ? ' · دارای یادداشت شخصی' : ''}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {item.completed ? (
+                                                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 text-[10px] font-black inline-flex items-center gap-1">
+                                                                <Check className="w-3 h-3" />
+                                                                <span>تکمیل</span>
+                                                            </span>
+                                                        ) : (
+                                                            <Play
+                                                                className="w-4 h-4 fill-current"
+                                                                style={{ color: colors.primary }}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
 
                         {/* ==================== DEDICATED CHAT HUB SCREEN (گفتگو: چت خصوصی مدرس هر آیتم + گروه دوره + پشتیبانی کلی) ==================== */}
                         {activeScreen === 'chat' && (
@@ -2921,7 +3182,7 @@ export default function MobileAppPreview() {
                                                     {selectedCourseItem.instructorName}
                                                 </div>
                                                 <div className="text-[10px] text-emerald-100/80">
-                                                    {selectedCourseItem.instructorRole} · پاسخگویی: {selectedCourseItem.responseTime}
+                                                    {selectedCourseItem.instructorRole} · {selectedCourseItem.instructorStatus}
                                                 </div>
                                             </div>
                                             <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-[#D6F39A] text-[10px] font-bold shrink-0">
@@ -3061,10 +3322,10 @@ export default function MobileAppPreview() {
                                                         }}
                                                     >
                                                         {msg.senderName}
-                                                        {msg.roleBadge ? ` · ${msg.roleBadge}` : ''}
+                                                        {msg.senderRole ? ` · ${msg.senderRole}` : ''}
                                                     </span>
                                                     <span style={{ color: colors.muted }}>
-                                                        {msg.timestamp}
+                                                        {msg.time}
                                                     </span>
                                                 </div>
                                                 <p className="leading-5 text-xs">{msg.text}</p>
@@ -3182,18 +3443,18 @@ export default function MobileAppPreview() {
                                                     <span
                                                         className="text-[10px] font-bold"
                                                         style={{
-                                                            color: mode.isNonDownloadable
+                                                            color: mode.isDownloadDisabled
                                                                 ? '#B45309'
                                                                 : colors.muted,
                                                         }}
                                                     >
-                                                        {mode.badgeText}
+                                                        {mode.badgeLabel}
                                                     </span>
                                                 </div>
 
                                                 <div className="flex items-start gap-3 pt-0.5">
                                                     <img
-                                                        src={product.poster || product.image}
+                                                        src={product.image}
                                                         alt={product.title}
                                                         className="w-16 h-20 rounded-2xl object-cover shrink-0 border"
                                                         style={{ borderColor: colors.border }}
@@ -3276,10 +3537,7 @@ export default function MobileAppPreview() {
                                     <div className="flex items-start gap-3.5">
                                         <div className="w-24 h-32 rounded-2xl overflow-hidden border-2 border-[#D6F39A]/60 shrink-0 bg-[#0A261D] shadow-lg">
                                             <img
-                                                src={
-                                                    selectedProduct.poster ||
-                                                    selectedProduct.image
-                                                }
+                                                src={selectedProduct.image}
                                                 alt={selectedProduct.title}
                                                 className="w-full h-full object-cover"
                                             />
@@ -3289,7 +3547,7 @@ export default function MobileAppPreview() {
                                                 {
                                                     resolveProductConsumptionMode(
                                                         selectedProduct
-                                                    ).badgeText
+                                                    ).badgeLabel
                                                 }
                                             </span>
                                             <h1 className="font-black text-sm leading-6">
@@ -3299,7 +3557,7 @@ export default function MobileAppPreview() {
                                                 {selectedProduct.author}
                                             </div>
                                             <div className="text-[10px] text-emerald-100/85">
-                                                {selectedProduct.pagesOrDuration} · امتیاز{' '}
+                                                {selectedProduct.durationOrVolume} · امتیاز{' '}
                                                 {faNum(selectedProduct.rating || '4.9')}
                                             </div>
                                         </div>
@@ -3660,7 +3918,7 @@ export default function MobileAppPreview() {
                                                 : 'text-sm'
                                         }`}
                                     >
-                                        {activeChapterOrEpisode?.contentPreview ||
+                                        {activeChapterOrEpisode?.contentOrTranscript ||
                                             selectedProduct.description}
                                     </p>
 
@@ -3701,10 +3959,7 @@ export default function MobileAppPreview() {
                                 <div className="rounded-[28px] bg-gradient-to-br from-[#10382B] via-[#153F31] to-[#0B231B] text-white p-5 space-y-4 border border-amber-400/40 shadow-xl">
                                     <div className="flex items-center gap-3.5">
                                         <img
-                                            src={
-                                                selectedProduct.poster ||
-                                                selectedProduct.image
-                                            }
+                                            src={selectedProduct.image}
                                             alt={selectedProduct.title}
                                             className="w-20 h-20 rounded-2xl object-cover border-2 border-[#D6F39A]/60 shrink-0"
                                         />
@@ -3725,7 +3980,7 @@ export default function MobileAppPreview() {
                                     </div>
 
                                     <p className="text-xs text-emerald-100/90 leading-6 bg-black/20 p-3 rounded-2xl">
-                                        {activeChapterOrEpisode?.contentPreview ||
+                                        {activeChapterOrEpisode?.contentOrTranscript ||
                                             selectedProduct.summary}
                                     </p>
 
@@ -3921,7 +4176,7 @@ export default function MobileAppPreview() {
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => openCourseDetail(mockCourses[0])}
+                                                    onClick={() => openCourse(mockCourses[0].slug)}
                                                     className="px-2.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/20 text-white font-bold text-[11px]"
                                                 >
                                                     سرفصل‌ها
@@ -4251,7 +4506,7 @@ export default function MobileAppPreview() {
                                                                     color: colors.primary,
                                                                 }}
                                                             >
-                                                                {item.itemCategory}
+                                                                {item.deliveryMode}
                                                             </span>
                                                             <span
                                                                 className="font-black text-xs truncate"
@@ -4269,7 +4524,7 @@ export default function MobileAppPreview() {
                                                     </div>
                                                     <button
                                                         type="button"
-                                                        onClick={() => openInstructorItemChat(item.itemId)}
+                                                        onClick={() => openItemInstructorChat(item.itemId)}
                                                         className="px-2.5 py-1.5 rounded-xl bg-[#153F31] text-white text-[10px] font-bold inline-flex items-center gap-1 shrink-0"
                                                     >
                                                         <MessageSquare className="w-3 h-3 text-[#D4F095]" />
@@ -4328,11 +4583,11 @@ export default function MobileAppPreview() {
                                                         }}
                                                     >
                                                         <div
-                                                            onClick={() => openProductDetail(prod)}
+                                                            onClick={() => openProductDetail(prod.slug)}
                                                             className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
                                                         >
                                                             <img
-                                                                src={prod.cover}
+                                                                src={prod.image}
                                                                 alt={prod.title}
                                                                 className="w-11 h-14 rounded-xl object-cover shrink-0 border"
                                                                 style={{ borderColor: colors.border }}
@@ -4353,7 +4608,7 @@ export default function MobileAppPreview() {
                                                                     className="text-[10px] truncate"
                                                                     style={{ color: colors.muted }}
                                                                 >
-                                                                    {prod.author} · {prod.pagesOrDuration}
+                                                                    {prod.author} · {prod.durationOrVolume}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -4379,7 +4634,7 @@ export default function MobileAppPreview() {
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                onClick={() => openProductDetail(prod)}
+                                                                onClick={() => openProductDetail(prod.slug)}
                                                                 className="text-[10px] font-bold text-center"
                                                                 style={{ color: colors.primary }}
                                                             >
@@ -4998,21 +5253,41 @@ export default function MobileAppPreview() {
 
                         {activeScreen === 'goals' && (
                             <div className="space-y-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveScreen('dashboard')}
-                                    className="inline-flex items-center gap-1.5 text-xs font-bold"
-                                    style={{ color: colors.primary }}
-                                >
-                                    <ArrowRight className="w-4 h-4" />
-                                    <span>بازگشت به رشد من</span>
-                                </button>
-                                <h1
-                                    className="font-black text-xl"
-                                    style={{ color: colors.text }}
-                                >
-                                    هدف‌ها و گواهینامه‌ها
-                                </h1>
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('dashboard')}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                        style={{ color: colors.primary }}
+                                    >
+                                        <ArrowRight className="w-4 h-4" />
+                                        <span>بازگشت به رشد من</span>
+                                    </button>
+                                    <Link
+                                        href="/dashboard/goals"
+                                        className="text-xs font-bold underline"
+                                        style={{ color: colors.primary }}
+                                    >
+                                        مشاهده در پنل وب‌سایت
+                                    </Link>
+                                </div>
+
+                                <div>
+                                    <h1
+                                        className="font-black text-xl"
+                                        style={{ color: colors.text }}
+                                    >
+                                        بوم هدف‌گذاری ۹۰ روزه و گواهینامه‌ها
+                                    </h1>
+                                    <p
+                                        className="text-xs mt-1"
+                                        style={{ color: colors.muted }}
+                                    >
+                                        هدف‌های فصلی خود را ثبت کنید، گام‌های انجام‌شده را تیک بزنید و امتیاز رشد بگیرید
+                                    </p>
+                                </div>
+
+                                {/* Add New Goal Interactive Form */}
                                 <div
                                     className="rounded-[22px] border p-4 space-y-3"
                                     style={{
@@ -5020,66 +5295,372 @@ export default function MobileAppPreview() {
                                         borderColor: colors.border,
                                     }}
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <Award className="w-5 h-5" style={{ color: colors.primary }} />
-                                        <div
-                                            className="font-bold text-sm"
-                                            style={{ color: colors.text }}
-                                        >
-                                            تکمیل پروژه‌های کارگاه طراحی آینده نوجوان
-                                        </div>
+                                    <div className="flex items-center gap-2 font-black text-xs" style={{ color: colors.text }}>
+                                        <Plus className="w-4 h-4" style={{ color: colors.primary }} />
+                                        <span>تعریف هدف جدید در بوم ۹۰ روزه</span>
                                     </div>
-                                    <div
-                                        className="h-2 rounded-full overflow-hidden"
-                                        style={{ backgroundColor: colors.surfaceAlt }}
-                                    >
-                                        <div
-                                            className="h-full rounded-full"
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        <input
+                                            type="text"
+                                            value={newGoalTitle}
+                                            onChange={(e) => setNewGoalTitle(e.target.value)}
+                                            placeholder="عنوان هدف (مثلاً: مطالعه روزانه ۲۰ دقیقه کتاب)..."
+                                            className="sm:col-span-2 rounded-xl border px-3 py-2 text-xs outline-none"
                                             style={{
-                                                width: '75%',
-                                                backgroundColor: colors.primary,
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                                color: colors.text,
+                                            }}
+                                        />
+                                        <input
+                                            type="text"
+                                            value={newGoalDueDate}
+                                            onChange={(e) => setNewGoalDueDate(e.target.value)}
+                                            placeholder="مهلت (مثلاً: ۳۱ خرداد ۱۴۰۴)"
+                                            className="rounded-xl border px-3 py-2 text-xs outline-none"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                                color: colors.text,
                                             }}
                                         />
                                     </div>
-                                    <div
-                                        className="text-xs"
-                                        style={{ color: colors.muted }}
-                                    >
-                                        ۷۵٪ پیشرفت · گواهی VIP در پایان دوره
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <span style={{ color: colors.muted }}>تعداد گام‌های اجرایی:</span>
+                                            {[3, 5, 8, 10].map((num) => (
+                                                <button
+                                                    key={num}
+                                                    type="button"
+                                                    onClick={() => setNewGoalTasks(num)}
+                                                    className="px-2.5 py-1 rounded-lg font-bold text-xs border"
+                                                    style={{
+                                                        backgroundColor:
+                                                            newGoalTasks === num
+                                                                ? colors.primary
+                                                                : colors.surfaceAlt,
+                                                        color:
+                                                            newGoalTasks === num
+                                                                ? '#FFFFFF'
+                                                                : colors.text,
+                                                        borderColor: colors.border,
+                                                    }}
+                                                >
+                                                    {faNum(num)} گام
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!newGoalTitle.trim()) {
+                                                    showToast('لطفاً عنوان هدف را وارد کنید.');
+                                                    return;
+                                                }
+                                                updateAppState((prev) => ({
+                                                    ...prev,
+                                                    goals: addGoalToState(
+                                                        prev.goals,
+                                                        newGoalTitle,
+                                                        newGoalCategory,
+                                                        newGoalDueDate,
+                                                        newGoalTasks
+                                                    ),
+                                                }));
+                                                setNewGoalTitle('');
+                                                showToast('هدف جدید به بوم ۹۰ روزه اضافه شد و با پنل سایت همگام گردید.');
+                                            }}
+                                            className="px-4 py-2 rounded-xl bg-[#153F31] text-white text-xs font-black inline-flex items-center gap-1.5"
+                                        >
+                                            <Plus className="w-3.5 h-3.5 text-[#D6F39A]" />
+                                            <span>ثبت هدف جدید</span>
+                                        </button>
                                     </div>
+                                </div>
+
+                                {/* Dynamic Goals List */}
+                                <div className="space-y-3">
+                                    {goals.map((goal) => {
+                                        const pct = Math.round(
+                                            (goal.completedTasks / Math.max(1, goal.totalTasks)) * 100
+                                        );
+                                        return (
+                                            <div
+                                                key={goal.id}
+                                                className="rounded-[22px] border p-4 space-y-3"
+                                                style={{
+                                                    backgroundColor: colors.surface,
+                                                    borderColor: colors.border,
+                                                }}
+                                            >
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span
+                                                                className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                                                                style={{
+                                                                    backgroundColor: colors.primarySoft,
+                                                                    color: colors.primary,
+                                                                }}
+                                                            >
+                                                                {goal.category}
+                                                            </span>
+                                                            <span
+                                                                className="text-[11px]"
+                                                                style={{ color: colors.muted }}
+                                                            >
+                                                                مهلت: {goal.dueDate}
+                                                            </span>
+                                                        </div>
+                                                        <div
+                                                            className="font-black text-sm"
+                                                            style={{ color: colors.text }}
+                                                        >
+                                                            {goal.title}
+                                                        </div>
+                                                    </div>
+                                                    <span
+                                                        className={`px-2.5 py-1 rounded-full text-[10px] font-black shrink-0 ${
+                                                            goal.status === 'completed'
+                                                                ? 'bg-emerald-500/15 text-emerald-700'
+                                                                : 'bg-amber-500/15 text-amber-700'
+                                                        }`}
+                                                    >
+                                                        {goal.status === 'completed'
+                                                            ? 'تکمیل شده ✓'
+                                                            : `${faNum(pct)}٪ پیشرفت`}
+                                                    </span>
+                                                </div>
+
+                                                <div
+                                                    className="h-2 rounded-full overflow-hidden"
+                                                    style={{ backgroundColor: colors.surfaceAlt }}
+                                                >
+                                                    <div
+                                                        className="h-full rounded-full transition-all"
+                                                        style={{
+                                                            width: `${pct}%`,
+                                                            backgroundColor: colors.primary,
+                                                        }}
+                                                    />
+                                                </div>
+
+                                                <div className="flex items-center justify-between gap-2 pt-1">
+                                                    <span
+                                                        className="text-xs font-bold"
+                                                        style={{ color: colors.muted }}
+                                                    >
+                                                        {faNum(goal.completedTasks)} از {faNum(goal.totalTasks)} گام انجام شده
+                                                    </span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <button
+                                                            type="button"
+                                                            disabled={goal.completedTasks >= goal.totalTasks}
+                                                            onClick={() => {
+                                                                updateAppState((prev) => ({
+                                                                    ...prev,
+                                                                    goals: advanceGoalTaskInState(
+                                                                        prev.goals,
+                                                                        goal.id,
+                                                                        1
+                                                                    ),
+                                                                    userProfile: {
+                                                                        ...prev.userProfile,
+                                                                        xp: prev.userProfile.xp + 25,
+                                                                    },
+                                                                }));
+                                                                showToast('یک گام از هدف تکمیل شد (+۲۵ امتیاز رشد)!');
+                                                            }}
+                                                            className="px-3 py-1.5 rounded-xl bg-[#153F31] text-white text-[11px] font-black disabled:opacity-40 inline-flex items-center gap-1"
+                                                        >
+                                                            <Check className="w-3.5 h-3.5 text-[#D6F39A]" />
+                                                            <span>+۱ گام انجام شد</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                updateAppState((prev) => ({
+                                                                    ...prev,
+                                                                    goals: prev.goals.filter(
+                                                                        (g) => g.id !== goal.id
+                                                                    ),
+                                                                }));
+                                                                showToast('هدف از لیست حذف شد.');
+                                                            }}
+                                                            className="px-2.5 py-1.5 rounded-xl border text-[11px] font-bold"
+                                                            style={{
+                                                                borderColor: colors.border,
+                                                                color: colors.muted,
+                                                            }}
+                                                        >
+                                                            حذف
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
 
                         {activeScreen === 'reminders' && (
                             <div className="space-y-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveScreen('dashboard')}
-                                    className="inline-flex items-center gap-1.5 text-xs font-bold"
-                                    style={{ color: colors.primary }}
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveScreen('dashboard')}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                        style={{ color: colors.primary }}
+                                    >
+                                        <ArrowRight className="w-4 h-4" />
+                                        <span>بازگشت به رشد من</span>
+                                    </button>
+                                    <Link
+                                        href="/dashboard/reminders"
+                                        className="text-xs font-bold underline"
+                                        style={{ color: colors.primary }}
+                                    >
+                                        مشاهده در پنل وب‌سایت
+                                    </Link>
+                                </div>
+
+                                <div>
+                                    <h1
+                                        className="font-black text-xl"
+                                        style={{ color: colors.text }}
+                                    >
+                                        یادآوری‌های هوشمند کلاس‌ها و پیامک
+                                    </h1>
+                                    <p
+                                        className="text-xs mt-1"
+                                        style={{ color: colors.muted }}
+                                    >
+                                        تنظیم یادآورهای پیامکی و درون‌برنامه‌ای برای کلاس‌ها، وبینارها و تمرین‌های روزانه
+                                    </p>
+                                </div>
+
+                                {/* Add New Smart Reminder Form */}
+                                <div
+                                    className="rounded-[22px] border p-4 space-y-3"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
                                 >
-                                    <ArrowRight className="w-4 h-4" />
-                                    <span>بازگشت به رشد من</span>
-                                </button>
-                                <h1
-                                    className="font-black text-xl"
-                                    style={{ color: colors.text }}
-                                >
-                                    یادآوری‌های هوشمند کلاس‌ها
-                                </h1>
-                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <span
+                                            className="font-black text-xs flex items-center gap-1.5"
+                                            style={{ color: colors.text }}
+                                        >
+                                            <Bell className="w-4 h-4" style={{ color: colors.primary }} />
+                                            <span>افزودن یادآور هوشمند جدید</span>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const logItem = {
+                                                    id: Date.now(),
+                                                    title: 'پیامک تست یادآوری جلسه و برنامه هفتگی رشد',
+                                                    recipient: `${faNum(userProfile.phone)} و والدین (${faNum(userProfile.parentPhone)})`,
+                                                    sentAt: 'هم‌اکنون · تحویل فوری',
+                                                    channel: 'sms' as const,
+                                                    status: 'delivered' as const,
+                                                };
+                                                updateAppState((prev) => ({
+                                                    ...prev,
+                                                    reminderLogs: [logItem, ...prev.reminderLogs],
+                                                }));
+                                                showToast('پیامک تست یادآوری با موفقیت ارسال و در تاریخچه ثبت شد.');
+                                            }}
+                                            className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-800 text-[11px] font-black"
+                                        >
+                                            ارسال پیامک تست آنی
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        <input
+                                            type="text"
+                                            value={newReminderTitle}
+                                            onChange={(e) => setNewReminderTitle(e.target.value)}
+                                            placeholder="عنوان یادآوری (مثلاً: مرور بوم هدف‌گذاری)..."
+                                            className="sm:col-span-2 rounded-xl border px-3 py-2 text-xs outline-none"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                                color: colors.text,
+                                            }}
+                                        />
+                                        <input
+                                            type="text"
+                                            value={newReminderTime}
+                                            onChange={(e) => setNewReminderTime(e.target.value)}
+                                            placeholder="ساعت (مثلاً: ۱۹:۳۰)"
+                                            className="rounded-xl border px-3 py-2 text-xs outline-none"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                                color: colors.text,
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <input
+                                            type="text"
+                                            value={newReminderDays}
+                                            onChange={(e) => setNewReminderDays(e.target.value)}
+                                            placeholder="روزها (مثلاً: شنبه‌ها و سه‌شنبه‌ها)"
+                                            className="flex-1 min-w-[180px] rounded-xl border px-3 py-1.5 text-xs outline-none"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                                color: colors.text,
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!newReminderTitle.trim()) {
+                                                    showToast('لطفاً عنوان یادآوری را وارد کنید.');
+                                                    return;
+                                                }
+                                                updateAppState((prev) => ({
+                                                    ...prev,
+                                                    reminders: addReminderToState(
+                                                        prev.reminders,
+                                                        newReminderTitle,
+                                                        newReminderTime,
+                                                        newReminderDays,
+                                                        newReminderChannel
+                                                    ),
+                                                }));
+                                                setNewReminderTitle('');
+                                                showToast('یادآوری جدید ثبت و فعال شد.');
+                                            }}
+                                            className="px-4 py-2 rounded-xl bg-[#153F31] text-white text-xs font-black inline-flex items-center gap-1.5"
+                                        >
+                                            <Plus className="w-3.5 h-3.5 text-[#D6F39A]" />
+                                            <span>افزودن یادآور</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2.5">
                                     {reminders.map((r) => (
                                         <div
                                             key={r.id}
-                                            onClick={() => toggleReminder(r.id)}
-                                            className="rounded-[22px] border p-4 flex items-center justify-between cursor-pointer"
+                                            className="rounded-[22px] border p-4 flex items-center justify-between gap-3"
                                             style={{
                                                 backgroundColor: colors.surface,
                                                 borderColor: colors.border,
                                             }}
                                         >
-                                            <div className="flex items-center gap-3">
+                                            <div
+                                                onClick={() => toggleReminder(r.id)}
+                                                className="flex items-center gap-3 cursor-pointer flex-1"
+                                            >
                                                 <div
                                                     className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                                                     style={{ backgroundColor: colors.primarySoft }}
@@ -5104,84 +5685,366 @@ export default function MobileAppPreview() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div
-                                                className="px-3 py-1 rounded-full text-xs font-bold"
-                                                style={{
-                                                    backgroundColor: r.enabled
-                                                        ? colors.primarySoft
-                                                        : colors.surfaceAlt,
-                                                    color: r.enabled
-                                                        ? colors.primary
-                                                        : colors.muted,
-                                                }}
-                                            >
-                                                {r.enabled ? 'فعال' : 'غیرفعال'}
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleReminder(r.id)}
+                                                    className="px-3 py-1 rounded-full text-xs font-bold"
+                                                    style={{
+                                                        backgroundColor: r.enabled
+                                                            ? colors.primarySoft
+                                                            : colors.surfaceAlt,
+                                                        color: r.enabled
+                                                            ? colors.primary
+                                                            : colors.muted,
+                                                    }}
+                                                >
+                                                    {r.enabled ? 'فعال' : 'غیرفعال'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setReminders((prev) =>
+                                                            prev.filter((item) => item.id !== r.id)
+                                                        );
+                                                        showToast('یادآوری حذف شد.');
+                                                    }}
+                                                    className="p-1.5 rounded-lg text-xs"
+                                                    style={{ color: colors.muted }}
+                                                    title="حذف یادآور"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
                                             </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Sent SMS & Reminder Logs */}
+                                <div
+                                    className="rounded-[22px] border p-4 space-y-2.5"
+                                    style={{
+                                        backgroundColor: colors.surface,
+                                        borderColor: colors.border,
+                                    }}
+                                >
+                                    <div className="font-black text-xs" style={{ color: colors.text }}>
+                                        تاریخچه پیامک‌ها و اعلان‌های ارسال‌شده اخیر
+                                    </div>
+                                    {reminderLogs.map((log) => (
+                                        <div
+                                            key={log.id}
+                                            className="p-3 rounded-xl flex items-center justify-between gap-2 text-xs"
+                                            style={{ backgroundColor: colors.surfaceAlt }}
+                                        >
+                                            <div className="space-y-0.5">
+                                                <div className="font-bold" style={{ color: colors.text }}>
+                                                    {log.title}
+                                                </div>
+                                                <div className="text-[11px]" style={{ color: colors.muted }}>
+                                                    گیرنده: {log.recipient} · {log.sentAt}
+                                                </div>
+                                            </div>
+                                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 text-[10px] font-black shrink-0">
+                                                ارسال موفق ✓
+                                            </span>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         )}
 
-                        {activeScreen === 'support' && (
-                            <div className="space-y-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveScreen('dashboard')}
-                                    className="inline-flex items-center gap-1.5 text-xs font-bold"
-                                    style={{ color: colors.primary }}
-                                >
-                                    <ArrowRight className="w-4 h-4" />
-                                    <span>بازگشت به رشد من</span>
-                                </button>
-                                <h1
-                                    className="font-black text-xl"
-                                    style={{ color: colors.text }}
-                                >
-                                    تیکت و پشتیبانی
-                                </h1>
-                                <div
-                                    className="rounded-[22px] border p-4 flex items-center justify-between gap-3"
-                                    style={{
-                                        backgroundColor: colors.surface,
-                                        borderColor: colors.border,
-                                    }}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div
-                                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                                            style={{ backgroundColor: colors.primarySoft }}
+                        {activeScreen === 'support' && (() => {
+                            const activeTicket =
+                                supportTickets.find((t) => t.id === selectedTicketId) ||
+                                supportTickets[0];
+                            return (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('dashboard')}
+                                            className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                            style={{ color: colors.primary }}
                                         >
-                                            <MessageCircle
-                                                className="w-5 h-5"
+                                            <ArrowRight className="w-4 h-4" />
+                                            <span>بازگشت به رشد من</span>
+                                        </button>
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => openCourseSupportChat()}
+                                                className="text-xs font-bold"
                                                 style={{ color: colors.primary }}
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <div
-                                                className="font-bold text-sm"
-                                                style={{ color: colors.text }}
                                             >
-                                                هماهنگی حضور در کارگاه سه‌شنبه طراحی آینده نوجوان
-                                            </div>
-                                            <div
-                                                className="text-xs"
-                                                style={{ color: colors.muted }}
+                                                چت زنده پشتیبانی
+                                            </button>
+                                            <Link
+                                                href="/support"
+                                                className="text-xs font-bold underline"
+                                                style={{ color: colors.primary }}
                                             >
-                                                پاسخ داده شده توسط پشتیبانی رشد
-                                            </div>
+                                                مرکز تیکت وب‌سایت
+                                            </Link>
                                         </div>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => openCourseSupportChat()}
-                                        className="px-3 py-1.5 rounded-xl bg-[#153F31] text-white text-[11px] font-bold shrink-0"
+
+                                    <div>
+                                        <h1
+                                            className="font-black text-xl"
+                                            style={{ color: colors.text }}
+                                        >
+                                            تیکت‌ها و پشتیبانی هوشمند
+                                        </h1>
+                                        <p
+                                            className="text-xs mt-1"
+                                            style={{ color: colors.muted }}
+                                        >
+                                            ثبت تیکت جدید، پیگیری درخواست‌های آموزشی و گفتگو با واحد پشتیبانی
+                                        </p>
+                                    </div>
+
+                                    {/* Submit New Ticket Form */}
+                                    <div
+                                        className="rounded-[22px] border p-4 space-y-3"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
                                     >
-                                        ورود به چت پشتیبانی
-                                    </button>
+                                        <div
+                                            className="font-black text-xs flex items-center gap-1.5"
+                                            style={{ color: colors.text }}
+                                        >
+                                            <Plus className="w-4 h-4" style={{ color: colors.primary }} />
+                                            <span>ثبت تیکت پشتیبانی جدید</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                            <input
+                                                type="text"
+                                                value={newTicketSubject}
+                                                onChange={(e) => setNewTicketSubject(e.target.value)}
+                                                placeholder="موضوع تیکت (مثلاً: هماهنگی جلسه کوچینگ فردی)..."
+                                                className="sm:col-span-2 rounded-xl border px-3 py-2 text-xs outline-none"
+                                                style={{
+                                                    backgroundColor: colors.surfaceAlt,
+                                                    borderColor: colors.border,
+                                                    color: colors.text,
+                                                }}
+                                            />
+                                            <select
+                                                value={newTicketPriority}
+                                                onChange={(e) =>
+                                                    setNewTicketPriority(
+                                                        e.target.value as 'low' | 'medium' | 'high'
+                                                    )
+                                                }
+                                                className="rounded-xl border px-3 py-2 text-xs outline-none"
+                                                style={{
+                                                    backgroundColor: colors.surfaceAlt,
+                                                    borderColor: colors.border,
+                                                    color: colors.text,
+                                                }}
+                                            >
+                                                <option value="low">اولویت عادی</option>
+                                                <option value="medium">اولویت متوسط</option>
+                                                <option value="high">اولویت فوری</option>
+                                            </select>
+                                        </div>
+                                        <textarea
+                                            rows={2}
+                                            value={newTicketBody}
+                                            onChange={(e) => setNewTicketBody(e.target.value)}
+                                            placeholder="شرح درخواست یا سؤال خود را بنویسید..."
+                                            className="w-full rounded-xl border p-3 text-xs outline-none"
+                                            style={{
+                                                backgroundColor: colors.surfaceAlt,
+                                                borderColor: colors.border,
+                                                color: colors.text,
+                                            }}
+                                        />
+                                        <div className="flex justify-end">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!newTicketSubject.trim() || !newTicketBody.trim()) {
+                                                        showToast('لطفاً موضوع و متن تیکت را وارد کنید.');
+                                                        return;
+                                                    }
+                                                    updateAppState((prev) => {
+                                                        const updated = createSupportTicketInState(
+                                                            prev.supportTickets,
+                                                            newTicketSubject,
+                                                            newTicketDept,
+                                                            newTicketPriority,
+                                                            newTicketBody,
+                                                            prev.userProfile.name
+                                                        );
+                                                        if (updated[0]) {
+                                                            setSelectedTicketId(updated[0].id);
+                                                        }
+                                                        return {
+                                                            ...prev,
+                                                            supportTickets: updated,
+                                                        };
+                                                    });
+                                                    setNewTicketSubject('');
+                                                    setNewTicketBody('');
+                                                    showToast('تیکت شما ثبت شد و در پنل پشتیبانی سایت نیز قابل مشاهده است.');
+                                                }}
+                                                className="px-4 py-2 rounded-xl bg-[#153F31] text-white text-xs font-black inline-flex items-center gap-1.5"
+                                            >
+                                                <Send className="w-3.5 h-3.5 text-[#D6F39A]" />
+                                                <span>ارسال و ثبت تیکت</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Tickets List & Active Thread */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div className="space-y-2">
+                                            {supportTickets.map((tk) => {
+                                                const isSelected = activeTicket?.id === tk.id;
+                                                return (
+                                                    <div
+                                                        key={tk.id}
+                                                        onClick={() => setSelectedTicketId(tk.id)}
+                                                        className="rounded-2xl border p-3.5 cursor-pointer transition space-y-1.5"
+                                                        style={{
+                                                            backgroundColor: isSelected
+                                                                ? colors.primarySoft
+                                                                : colors.surface,
+                                                            borderColor: isSelected
+                                                                ? colors.primary
+                                                                : colors.border,
+                                                        }}
+                                                    >
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span
+                                                                className="font-black text-xs"
+                                                                style={{ color: colors.text }}
+                                                            >
+                                                                {tk.subject}
+                                                            </span>
+                                                            <span
+                                                                className={`px-2 py-0.5 rounded-full text-[10px] font-black shrink-0 ${
+                                                                    tk.status === 'answered'
+                                                                        ? 'bg-emerald-500/15 text-emerald-700'
+                                                                        : 'bg-amber-500/15 text-amber-700'
+                                                                }`}
+                                                            >
+                                                                {tk.status === 'answered'
+                                                                    ? 'پاسخ داده شده'
+                                                                    : 'در انتظار پاسخ'}
+                                                            </span>
+                                                        </div>
+                                                        <div
+                                                            className="text-[11px] flex items-center justify-between"
+                                                            style={{ color: colors.muted }}
+                                                        >
+                                                            <span>{tk.department}</span>
+                                                            <span>
+                                                                {faNum(tk.messages.length)} پیام · {tk.createdAt}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {activeTicket && (
+                                            <div
+                                                className="rounded-2xl border p-4 flex flex-col justify-between space-y-3"
+                                                style={{
+                                                    backgroundColor: colors.surface,
+                                                    borderColor: colors.border,
+                                                }}
+                                            >
+                                                <div className="space-y-2">
+                                                    <div
+                                                        className="font-black text-xs border-b pb-2"
+                                                        style={{
+                                                            color: colors.text,
+                                                            borderColor: colors.border,
+                                                        }}
+                                                    >
+                                                        گفتگوی تیکت: {activeTicket.subject}
+                                                    </div>
+                                                    <div className="space-y-2 max-h-56 overflow-y-auto">
+                                                        {activeTicket.messages.map((m) => (
+                                                            <div
+                                                                key={m.id}
+                                                                className="p-2.5 rounded-xl text-xs space-y-1"
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        m.sender === 'student'
+                                                                            ? colors.primarySoft
+                                                                            : colors.surfaceAlt,
+                                                                    color: colors.text,
+                                                                }}
+                                                            >
+                                                                <div className="flex items-center justify-between text-[10px] font-bold">
+                                                                    <span style={{ color: colors.primary }}>
+                                                                        {m.senderName}
+                                                                    </span>
+                                                                    <span style={{ color: colors.muted }}>
+                                                                        {m.time}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="leading-5">{m.text}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 pt-2 border-t" style={{ borderColor: colors.border }}>
+                                                    <input
+                                                        type="text"
+                                                        value={ticketReplyDraft}
+                                                        onChange={(e) => setTicketReplyDraft(e.target.value)}
+                                                        placeholder={
+                                                            previewRole === 'instructor'
+                                                                ? 'پاسخ پشتیبان / ادمین به تیکت...'
+                                                                : 'ارسال پیام تکمیلی در این تیکت...'
+                                                        }
+                                                        className="flex-1 rounded-xl border px-3 py-2 text-xs outline-none"
+                                                        style={{
+                                                            backgroundColor: colors.surfaceAlt,
+                                                            borderColor: colors.border,
+                                                            color: colors.text,
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (!ticketReplyDraft.trim()) return;
+                                                            const isSup = previewRole === 'instructor';
+                                                            updateAppState((prev) => ({
+                                                                ...prev,
+                                                                supportTickets: replyToSupportTicketInState(
+                                                                    prev.supportTickets,
+                                                                    activeTicket.id,
+                                                                    ticketReplyDraft,
+                                                                    isSup ? 'support' : 'student',
+                                                                    isSup
+                                                                        ? 'پشتیبانی آموزش (ادمین)'
+                                                                        : prev.userProfile.name
+                                                                ),
+                                                            }));
+                                                            setTicketReplyDraft('');
+                                                            showToast('پاسخ شما در تیکت ثبت شد.');
+                                                        }}
+                                                        className="px-3 py-2 rounded-xl bg-[#153F31] text-white text-xs font-bold shrink-0"
+                                                    >
+                                                        ارسال
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
 
                         {/* ==================== PROFILE SCREEN (حساب من — کارنامه شخصی، پرونده استعدادیابی، تنظیمات و شخصی‌سازی) ==================== */}
                         {activeScreen === 'profile' && (
@@ -6248,6 +7111,25 @@ export default function MobileAppPreview() {
                                                 style={{ color: colors.muted }}
                                             />
                                         </button>
+
+                                        <Link
+                                            href="/admin/courses/100/edit"
+                                            className="w-full px-3.5 py-2.5 rounded-2xl border flex items-center justify-between text-right text-xs font-bold transition hover:opacity-85"
+                                            style={{
+                                                backgroundColor: colors.surface,
+                                                borderColor: colors.border,
+                                                color: colors.primary,
+                                            }}
+                                        >
+                                            <span className="flex items-center gap-2.5">
+                                                <Crown className="w-4 h-4 text-amber-500" />
+                                                <span>ویرایش دوره پریمیوم VIP در پنل مدیریت سایت</span>
+                                            </span>
+                                            <ChevronLeft
+                                                className="w-4 h-4"
+                                                style={{ color: colors.muted }}
+                                            />
+                                        </Link>
                                     </div>
                                 </div>
                             </div>
@@ -6752,7 +7634,14 @@ export default function MobileAppPreview() {
                                                 </div>
                                                 <button
                                                     type="button"
-                                                    onClick={handleToggleGroupChatByAdmin}
+                                                    onClick={() => {
+                                                        setGroupChatEnabled((prev) => !prev);
+                                                        showToast(
+                                                            !groupChatEnabled
+                                                                ? 'ارسال پیام در گروه تخصصی دوره فعال شد.'
+                                                                : 'ارسال پیام در گروه تخصصی دوره توسط ادمین غیرفعال شد.'
+                                                        );
+                                                    }}
                                                     className={`px-3 py-1.5 rounded-xl text-[11px] font-black shrink-0 inline-flex items-center gap-1 ${
                                                         groupChatEnabled
                                                             ? 'bg-emerald-500/15 text-emerald-600'
@@ -6761,7 +7650,7 @@ export default function MobileAppPreview() {
                                                 >
                                                     {groupChatEnabled ? (
                                                         <>
-                                                            <Unlock className="w-3.5 h-3.5" />
+                                                            <CheckCircle2 className="w-3.5 h-3.5" />
                                                             <span>فعال (امکان چت)</span>
                                                         </>
                                                     ) : (
@@ -7014,119 +7903,230 @@ export default function MobileAppPreview() {
                             </div>
                         )}
 
-                        {/* ==================== ADMIN SCREEN ==================== */}
-                        {activeScreen === 'admin' && (
-                            <div className="space-y-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveScreen('profile')}
-                                    className="inline-flex items-center gap-1.5 text-xs font-bold"
-                                    style={{ color: colors.primary }}
-                                >
-                                    <ArrowRight className="w-4 h-4" />
-                                    <span>بازگشت به حساب من</span>
-                                </button>
-                                <h1
-                                    className="font-black text-xl"
-                                    style={{ color: colors.text }}
-                                >
-                                    پنل مدیریت کل سایت (Admin)
-                                </h1>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {[
-                                        { label: 'اعضای VIP آینده نوجوان', value: '۲۴ نفر' },
-                                        { label: 'میانگین حضور در کلاس', value: '۹۲٪' },
-                                        { label: 'فروش ماه جاری', value: '۱۸۴ میلیون' },
-                                        { label: 'تیکت‌های باز', value: '۷' },
-                                    ].map((stat) => (
-                                        <div
-                                            key={stat.label}
-                                            className="rounded-2xl border p-4"
+                        {/* ==================== ADMIN SCREEN (پنل مدیریت داینامیک سایت و اپلیکیشن) ==================== */}
+                        {activeScreen === 'admin' && (() => {
+                            const presentCount = vipStudents.filter(
+                                (s) => s.status !== 'absent'
+                            ).length;
+                            const attendanceAvg = Math.round(
+                                (presentCount / Math.max(1, vipStudents.length)) * 100
+                            );
+                            const openTicketsCount = supportTickets.filter(
+                                (t) => t.status === 'open'
+                            ).length;
+                            const totalWalletVolume = walletOrders.reduce(
+                                (acc, o) => acc + o.amount,
+                                0
+                            );
+                            return (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('profile')}
+                                            className="inline-flex items-center gap-1.5 text-xs font-bold"
+                                            style={{ color: colors.primary }}
+                                        >
+                                            <ArrowRight className="w-4 h-4" />
+                                            <span>بازگشت به حساب من</span>
+                                        </button>
+                                        <Link
+                                            href="/admin/dashboard"
+                                            className="px-3 py-1.5 rounded-xl bg-[#123E30] text-[#D6F39A] text-xs font-bold"
+                                        >
+                                            پنل مدیریت کامل وب‌سایت
+                                        </Link>
+                                    </div>
+
+                                    <h1
+                                        className="font-black text-xl"
+                                        style={{ color: colors.text }}
+                                    >
+                                        پنل مدیریت یکپارچه سایت و اپلیکیشن (Admin)
+                                    </h1>
+
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        {[
+                                            {
+                                                label: 'اعضای فعال دوره VIP',
+                                                value: `${faNum(vipStudents.length)} نفر`,
+                                            },
+                                            {
+                                                label: 'حضور لحظه‌ای در کلاس',
+                                                value: `${faNum(attendanceAvg)}٪`,
+                                            },
+                                            {
+                                                label: 'گردش کیف پول و سفارش‌ها',
+                                                value: formatPrice(totalWalletVolume),
+                                            },
+                                            {
+                                                label: 'تیکت‌های منتظر پاسخ',
+                                                value: `${faNum(openTicketsCount)} مورد`,
+                                            },
+                                        ].map((stat) => (
+                                            <div
+                                                key={stat.label}
+                                                className="rounded-2xl border p-4"
+                                                style={{
+                                                    backgroundColor: colors.surface,
+                                                    borderColor: colors.border,
+                                                }}
+                                            >
+                                                <div
+                                                    className="text-xs"
+                                                    style={{ color: colors.muted }}
+                                                >
+                                                    {stat.label}
+                                                </div>
+                                                <div
+                                                    className="font-black text-base mt-1"
+                                                    style={{ color: colors.primary }}
+                                                >
+                                                    {stat.value}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Dynamic Coach Evaluation Editor (Directly updates Student Profile & Website /profile) */}
+                                    <div
+                                        className="rounded-[22px] border p-4 space-y-3"
+                                        style={{
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span
+                                                className="font-black text-xs"
+                                                style={{ color: colors.text }}
+                                            >
+                                                ویرایش نمرات استعدادیابی دانش‌پذیر ({userProfile.name})
+                                            </span>
+                                            <span
+                                                className="text-[10px] font-bold"
+                                                style={{ color: colors.primary }}
+                                            >
+                                                همگام با صفحه پروفایل سایت
+                                            </span>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {talentDimensions.map((dim) => (
+                                                <div key={dim.id} className="space-y-1">
+                                                    <div className="flex items-center justify-between text-xs font-bold">
+                                                        <span style={{ color: colors.text }}>
+                                                            {dim.title}
+                                                        </span>
+                                                        <span style={{ color: colors.primary }}>
+                                                            {faNum(dim.score)}٪
+                                                        </span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min={40}
+                                                        max={100}
+                                                        value={dim.score}
+                                                        onChange={(e) => {
+                                                            const nextScore = Number(e.target.value);
+                                                            updateAppState((prev) => ({
+                                                                ...prev,
+                                                                talentDimensions:
+                                                                    prev.talentDimensions.map((d) =>
+                                                                        d.id === dim.id
+                                                                            ? { ...d, score: nextScore }
+                                                                            : d
+                                                                    ),
+                                                            }));
+                                                        }}
+                                                        className="w-full accent-[#153F31] cursor-pointer"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('vipManage')}
+                                            className="w-full py-3.5 rounded-2xl bg-[#123E30] text-[#D6F39A] font-black text-xs inline-flex items-center justify-center gap-2"
+                                        >
+                                            <Settings className="w-4 h-4" />
+                                            <span>مدیریت حضور و غیاب و جلسات دوره VIP</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveScreen('support')}
+                                            className="w-full py-3.5 rounded-2xl border font-black text-xs inline-flex items-center justify-center gap-2"
                                             style={{
                                                 backgroundColor: colors.surface,
                                                 borderColor: colors.border,
+                                                color: colors.text,
                                             }}
                                         >
-                                            <div
-                                                className="text-xs"
-                                                style={{ color: colors.muted }}
-                                            >
-                                                {stat.label}
-                                            </div>
-                                            <div
-                                                className="font-black text-lg mt-1"
-                                                style={{ color: colors.primary }}
-                                            >
-                                                {stat.value}
-                                            </div>
-                                        </div>
-                                    ))}
+                                            <MessageCircle className="w-4 h-4" style={{ color: colors.primary }} />
+                                            <span>پاسخگویی به تیکت‌های پشتیبانی ({faNum(supportTickets.length)})</span>
+                                        </button>
+                                    </div>
                                 </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveScreen('vipManage')}
-                                    className="w-full py-3.5 rounded-2xl bg-[#123E30] text-[#D6F39A] font-black text-xs inline-flex items-center justify-center gap-2"
-                                >
-                                    <Settings className="w-4 h-4" />
-                                    <span>مدیریت کامل دوره پریمیوم «طراحی آینده نوجوان»</span>
-                                </button>
-                            </div>
-                        )}
+                            );
+                        })()}
                     </div>
 
-                    {/* RoshdTabBar (6 Tabs including گفتگو) */}
+                    {/* Sticky Bottom RoshdTabBar (6 Tabs including گفتگو) */}
                     <div
-                        className="border-t px-1.5 pt-2 pb-3 flex items-center justify-around shrink-0"
+                        className="sticky bottom-0 z-40 border-t px-2 pt-2 pb-3 flex items-center justify-around shrink-0 shadow-lg"
                         style={{
                             backgroundColor: colors.surface,
                             borderColor: colors.border,
                         }}
                     >
-                        {[
-                            { id: 'home' as ScreenId, label: 'خانه', Icon: Home },
-                            { id: 'courses' as ScreenId, label: 'دوره‌ها', Icon: GraduationCap },
-                            { id: 'chat' as ScreenId, label: 'گفتگو', Icon: MessageSquare },
-                            { id: 'shop' as ScreenId, label: 'فروشگاه', Icon: ShoppingBag },
-                            { id: 'dashboard' as ScreenId, label: 'رشد من', Icon: Leaf },
-                            { id: 'profile' as ScreenId, label: 'حساب من', Icon: User },
-                        ].map((tab) => {
-                            const active = activeTab === tab.id;
-                            const TabIcon = tab.Icon;
-                            return (
-                                <button
-                                    key={tab.id}
-                                    type="button"
-                                    onClick={() => setActiveScreen(tab.id)}
-                                    className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[52px]"
-                                >
-                                    <div
-                                        className="w-10 h-[28px] rounded-[14px] flex items-center justify-center transition relative"
-                                        style={{
-                                            backgroundColor: active
-                                                ? colors.primarySoft
-                                                : 'transparent',
-                                        }}
+                        <div className="w-full max-w-3xl mx-auto flex items-center justify-around">
+                            {[
+                                { id: 'home' as ScreenId, label: 'خانه', Icon: Home },
+                                { id: 'courses' as ScreenId, label: 'دوره‌ها', Icon: GraduationCap },
+                                { id: 'chat' as ScreenId, label: 'گفتگو', Icon: MessageSquare },
+                                { id: 'shop' as ScreenId, label: 'فروشگاه', Icon: ShoppingBag },
+                                { id: 'dashboard' as ScreenId, label: 'رشد من', Icon: Leaf },
+                                { id: 'profile' as ScreenId, label: 'حساب من', Icon: User },
+                            ].map((tab) => {
+                                const active = activeTab === tab.id;
+                                const TabIcon = tab.Icon;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        type="button"
+                                        onClick={() => setActiveScreen(tab.id)}
+                                        className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[52px]"
                                     >
-                                        <TabIcon
-                                            className="w-4.5 h-4.5"
+                                        <div
+                                            className="w-12 h-[30px] rounded-[15px] flex items-center justify-center transition relative"
                                             style={{
+                                                backgroundColor: active
+                                                    ? colors.primarySoft
+                                                    : 'transparent',
+                                            }}
+                                        >
+                                            <TabIcon
+                                                className="w-4.5 h-4.5"
+                                                style={{
+                                                    color: active ? colors.primary : colors.muted,
+                                                }}
+                                            />
+                                        </div>
+                                        <span
+                                            className="text-[11px]"
+                                            style={{
+                                                fontWeight: active ? 700 : 400,
                                                 color: active ? colors.primary : colors.muted,
                                             }}
-                                        />
-                                    </div>
-                                    <span
-                                        className="text-[10px]"
-                                        style={{
-                                            fontWeight: active ? 700 : 400,
-                                            color: active ? colors.primary : colors.muted,
-                                        }}
-                                    >
-                                        {tab.label}
-                                    </span>
-                                </button>
-                            );
-                        })}
+                                        >
+                                            {tab.label}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>

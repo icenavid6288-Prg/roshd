@@ -17,50 +17,43 @@ import {
 } from 'lucide-react';
 import UserDashboardLayout from '@/Layouts/UserDashboardLayout';
 import AutomatedRemindersWidget from '@/Components/Dashboard/AutomatedRemindersWidget';
-import { formatNumber, formatDate } from '@/lib/format';
-import type { PageProps } from '@/types';
-
-interface ReminderLog {
-    id: number;
-    title: string;
-    channel: 'sms' | 'eitaa' | 'in_app';
-    recipient: string;
-    sent_at: string;
-    status: 'delivered' | 'pending';
-    target_url?: string;
-}
-
-const PAST_LOGS: ReminderLog[] = [
-    {
-        id: 1,
-        title: 'یادآوری جلسه تحلیل استعدادیابی با دکتر بیدی (۱ ساعت قبل)',
-        channel: 'sms',
-        recipient: '۰۹۱۲۳۴۵۶۷۸۹ (دانش‌آموز و والد)',
-        sent_at: '۱۴۰۳/۰۸/۱۰ ساعت ۱۵:۰۰',
-        status: 'delivered',
-        target_url: '/dashboard/sessions',
-    },
-    {
-        id: 2,
-        title: 'یادآوری استمرار دوره: درس ۲ هوش‌های چندگانه گاردنر',
-        channel: 'sms',
-        recipient: '۰۹۱۲۳۴۵۶۷۸۹',
-        sent_at: '۱۴۰۳/۰۸/۰۸ ساعت ۱۸:۰۰',
-        status: 'delivered',
-        target_url: '/courses/future-path-design',
-    },
-    {
-        id: 3,
-        title: 'یادآوری تکمیل تکلیف تحلیل ارزش‌های فردی',
-        channel: 'eitaa',
-        recipient: '@user_bidi',
-        sent_at: '۱۴۰۳/۰۸/۰۵ ساعت ۱۷:۳۰',
-        status: 'delivered',
-        target_url: '/dashboard/assignments',
-    },
-];
+import { formatNumber } from '@/lib/format';
+import { addReminderToState, useDynamicAppStore } from '@/lib/dynamicAppStore';
 
 export default function RemindersIndex() {
+    const { appState, updateAppState } = useDynamicAppStore();
+    const { reminders, reminderLogs, userProfile } = appState;
+    const [newTitle, setNewTitle] = useState('');
+    const [newTime, setNewTime] = useState('۱۸:۳۰');
+    const [newDays, setNewDays] = useState('هر روز · ۶۰ دقیقه قبل');
+
+    const handleAddReminder = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newTitle.trim()) return;
+        updateAppState((prev) => ({
+            ...prev,
+            reminders: addReminderToState(prev.reminders, newTitle, newTime, newDays, 'sms'),
+        }));
+        setNewTitle('');
+    };
+
+    const handleTestSms = () => {
+        updateAppState((prev) => ({
+            ...prev,
+            reminderLogs: [
+                {
+                    id: Date.now(),
+                    title: 'پیامک تست یادآوری جلسه و برنامه هفتگی رشد',
+                    recipient: `${userProfile.phone} (دانش‌پذیر) و ${userProfile.parentPhone} (والدین)`,
+                    sentAt: 'هم‌اکنون · تحویل فوری',
+                    channel: 'sms',
+                    status: 'delivered',
+                },
+                ...prev.reminderLogs,
+            ],
+        }));
+    };
+
     return (
         <UserDashboardLayout>
             <Head title="یادآوری‌های خودکار دوره‌ها و جلسات" />
@@ -74,7 +67,7 @@ export default function RemindersIndex() {
                         <div>
                             <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/10 px-3.5 py-1 text-xs font-black text-amber-300">
                                 <Sparkles className="size-3.5" />
-                                سیستم انگیزش و استمرار هوشمند
+                                سیستم انگیزش و استمرار هوشمند (همگام با اپلیکیشن)
                             </div>
                             <h1 className="mt-3 text-2xl font-black text-white md:text-3xl">
                                 یادآوری خودکار دوره‌ها و جلسات کوچینگ
@@ -84,15 +77,87 @@ export default function RemindersIndex() {
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md">
-                            <span className="text-3xl font-black text-emerald-300 font-mono">+۶۴٪</span>
-                            <div className="text-xs text-white/70">
-                                <strong>تکمیل دوره‌ها</strong>
-                                <span className="block text-[0.68rem] text-white/50">با پیامک‌های به‌موقع</span>
-                            </div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={handleTestSms}
+                                className="rounded-xl bg-[#D6F39A] px-4 py-2.5 text-xs font-black text-[#123E30] transition hover:brightness-105"
+                            >
+                                ارسال پیامک تست آنی
+                            </button>
+                            <Link
+                                href="/mobile-app?screen=reminders"
+                                className="rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-xs font-black text-white"
+                            >
+                                مشاهده در اپلیکیشن
+                            </Link>
                         </div>
                     </div>
                 </header>
+
+                {/* Active Smart Reminders Synced with App */}
+                <section className="rounded-3xl border border-white/80 bg-white/85 p-6 shadow-soft space-y-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <h3 className="text-base font-black text-navy">
+                            یادآورهای فعال من ({formatNumber(reminders.filter((r) => r.enabled).length)} فعال)
+                        </h3>
+                        <form onSubmit={handleAddReminder} className="flex flex-wrap items-center gap-2">
+                            <input
+                                type="text"
+                                value={newTitle}
+                                onChange={(e) => setNewTitle(e.target.value)}
+                                placeholder="عنوان یادآور جدید..."
+                                className="rounded-xl border border-navy/15 bg-white px-3.5 py-2 text-xs text-navy outline-none focus:border-brand-500"
+                            />
+                            <input
+                                type="text"
+                                value={newTime}
+                                onChange={(e) => setNewTime(e.target.value)}
+                                placeholder="ساعت (۱۸:۳۰)"
+                                className="w-24 rounded-xl border border-navy/15 bg-white px-3 py-2 text-xs text-navy outline-none focus:border-brand-500"
+                            />
+                            <button
+                                type="submit"
+                                className="rounded-xl bg-brand-600 px-4 py-2 text-xs font-black text-white"
+                            >
+                                + افزودن یادآور
+                            </button>
+                        </form>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                        {reminders.map((rem) => (
+                            <div
+                                key={rem.id}
+                                onClick={() =>
+                                    updateAppState((prev) => ({
+                                        ...prev,
+                                        reminders: prev.reminders.map((r) =>
+                                            r.id === rem.id ? { ...r, enabled: !r.enabled } : r
+                                        ),
+                                    }))
+                                }
+                                className="flex cursor-pointer items-center justify-between rounded-2xl border border-navy/10 bg-[#fafbf7] p-4 transition hover:border-brand-300"
+                            >
+                                <div>
+                                    <div className="text-sm font-black text-navy">{rem.title}</div>
+                                    <div className="mt-1 text-xs text-navy/55">
+                                        ساعت {rem.time} · {rem.days}
+                                    </div>
+                                </div>
+                                <span
+                                    className={`rounded-full px-3 py-1 text-xs font-black ${
+                                        rem.enabled
+                                            ? 'bg-emerald-50 text-emerald-700'
+                                            : 'bg-navy/5 text-navy/50'
+                                    }`}
+                                >
+                                    {rem.enabled ? 'فعال' : 'غیرفعال'}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </section>
 
                 {/* Main Automation Widget */}
                 <AutomatedRemindersWidget />
@@ -114,12 +179,12 @@ export default function RemindersIndex() {
                             </div>
                         </div>
                         <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                            ۳ مورد ارسال موفق
+                            {formatNumber(reminderLogs.length)} مورد ارسال موفق
                         </span>
                     </div>
 
                     <div className="mt-5 space-y-3">
-                        {PAST_LOGS.map((log) => (
+                        {reminderLogs.map((log) => (
                             <div
                                 key={log.id}
                                 className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-navy/5 bg-soft-gray/40 p-4 transition-all hover:bg-white dark:border-white/5 dark:bg-white/[0.02]"
@@ -135,7 +200,7 @@ export default function RemindersIndex() {
                                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[0.68rem] text-navy/50 dark:text-white/50">
                                             <span>تحویل به: {log.recipient}</span>
                                             <span>·</span>
-                                            <span>زمان ارسال: {log.sent_at}</span>
+                                            <span>زمان ارسال: {log.sentAt}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -144,14 +209,6 @@ export default function RemindersIndex() {
                                     <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-[0.65rem] font-black text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
                                         تحویل به مخابرات (موفق)
                                     </span>
-                                    {log.target_url && (
-                                        <Link
-                                            href={log.target_url}
-                                            className="text-xs font-bold text-brand-700 hover:underline dark:text-brand-300"
-                                        >
-                                            ورود مستقیم ←
-                                        </Link>
-                                    )}
                                 </div>
                             </div>
                         ))}

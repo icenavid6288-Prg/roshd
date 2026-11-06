@@ -22,7 +22,10 @@ class AppIconController extends Controller
             }
         }
 
-        $fallback = public_path('images/pwa-icon.svg');
+        $fallback = public_path('pwa-512x512.png');
+        if (! is_file($fallback)) {
+            $fallback = public_path('images/roshd-logo.png');
+        }
         abort_unless(is_file($fallback), 404);
 
         return response()->file($fallback, ['Cache-Control' => 'no-cache, must-revalidate']);

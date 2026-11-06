@@ -29,7 +29,8 @@ import {
 import { useState, type ReactNode } from 'react';
 import ServicesHealthWidget from '@/Components/ServicesHealthWidget';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { formatNumber, toFa } from '@/lib/format';
+import { formatNumber, formatPrice, toFa } from '@/lib/format';
+import { useDynamicAppStore } from '@/lib/dynamicAppStore';
 import type { PageProps } from '@/types';
 
 interface DashboardProps {
@@ -72,12 +73,14 @@ const TIME_RANGES: { key: TimeRange; label: string }[] = [
 
 export default function Dashboard() {
     const { stats, revenueSeries, registrationsSeries, leadFunnel } = usePage<PageProps & DashboardProps>().props;
+    const { appState } = useDynamicAppStore();
+    const { courses: dynamicCourses, vipConfig } = appState;
     const [timeRange, setTimeRange] = useState<TimeRange>('30d');
 
     const cards = [
         { label: 'کاربران فعال', value: stats.users, icon: Users, tone: 'text-brand-600 bg-brand-100', change: '+۱۲٪', isUp: true },
         { label: 'دانش‌آموزان همراه', value: stats.students, icon: GraduationCap, tone: 'text-emerald-600 bg-emerald-100', change: '+۱۵٪', isUp: true },
-        { label: 'دوره‌ها و کارگاه‌ها', value: stats.courses, icon: BookOpen, tone: 'text-blue-600 bg-blue-100', change: '۲ جدید', isUp: true },
+        { label: 'دوره‌ها و کارگاه‌ها', value: dynamicCourses.length, icon: BookOpen, tone: 'text-blue-600 bg-blue-100', change: 'داینامیک', isUp: true },
         { label: 'محصولات و کتاب‌ها', value: stats.products, icon: ShoppingBag, tone: 'text-purple-600 bg-purple-100', change: 'پرفروش', isUp: true },
         { label: 'لیدهای جدید (۷ روز)', value: stats.newLeads, icon: PhoneCall, tone: 'text-gold bg-[#f7eed2]', change: '+۲۴٪', isUp: true },
         { label: 'درآمد کل (تومان)', value: stats.revenue, icon: Wallet, tone: 'text-brand-600 bg-brand-100', change: '+۱۸.۵٪', isUp: true },
@@ -125,23 +128,22 @@ export default function Dashboard() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Link
-                            href="/admin/users"
+                            href="/admin/courses/100/edit"
+                            className="inline-flex items-center gap-2 rounded-xl bg-[#D6F39A] px-4 py-2.5 text-xs font-black text-[#10382B] shadow-xs transition-colors hover:opacity-95"
+                        >
+                            <Sparkles className="size-4" /> ویرایش دوره پریمیوم VIP ({formatPrice(vipConfig.discountPrice)})
+                        </Link>
+                        <Link
+                            href="/admin/courses"
                             className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-black text-deep-green shadow-xs transition-colors hover:bg-brand-100"
                         >
-                            <Users className="size-4" /> کاربران <ArrowLeft className="size-3.5" />
+                            <BookOpen className="size-4" /> مدیریت دوره‌ها ({toFa(dynamicCourses.length)}) <ArrowLeft className="size-3.5" />
                         </Link>
                         <Link
                             href="/admin/courses/create"
                             className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition-colors hover:bg-white/20"
                         >
                             <BookOpen className="size-4" /> دوره جدید
-                        </Link>
-                        <Link
-                            href="/admin/settings"
-                            className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-white transition-colors hover:bg-white/20"
-                            aria-label="تنظیمات"
-                        >
-                            <Settings className="size-4" />
                         </Link>
                     </div>
                 </div>

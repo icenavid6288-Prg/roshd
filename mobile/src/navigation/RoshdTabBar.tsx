@@ -8,7 +8,8 @@ import { useTheme } from '../context/ThemeContext';
 
 const tabs: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; active: keyof typeof Ionicons.glyphMap }> = {
  Home: { label: 'خانه', icon: 'home-outline', active: 'home' },
- Courses: { label: 'یادگیری', icon: 'school-outline', active: 'school' },
+ Courses: { label: 'دوره‌ها', icon: 'school-outline', active: 'school' },
+ Chat: { label: 'گفتگو', icon: 'chatbubbles-outline', active: 'chatbubbles' },
  Shop: { label: 'فروشگاه', icon: 'bag-handle-outline', active: 'bag-handle' },
  Dashboard: { label: 'رشد من', icon: 'leaf-outline', active: 'leaf' },
  ProfileTab: { label: 'حساب من', icon: 'person-outline', active: 'person' },

@@ -599,10 +599,12 @@
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    width: 2.45rem;
-    height: 2.45rem;
-    border-radius: 0.8rem;
-    background: linear-gradient(135deg, var(--color-brand-500), var(--color-deep-green));
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.85rem;
+    overflow: hidden;
+    background: #57A33D;
+    box-shadow: 0 6px 14px -4px rgb(21 63 49 / 0.35);
     color: #fff;
 }
 

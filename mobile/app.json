@@ -7,25 +7,34 @@
       "policy": "appVersion"
     },
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "markaz",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#57A33D"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ir.markaz.mobile",
-      "buildNumber": "4"
+      "buildNumber": "4",
+      "icon": "./assets/icon.png"
     },
     "android": {
       "package": "ir.markaz.mobile",
+      "icon": "./assets/icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#57a332",
-        "foregroundImage": "./assets/roshd-logo.png"
+        "backgroundColor": "#57A33D",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": true,
       "edgeToEdgeEnabled": true,
       "versionCode": 4
     },
     "web": {
-      "favicon": "./assets/roshd-logo.png"
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-status-bar",

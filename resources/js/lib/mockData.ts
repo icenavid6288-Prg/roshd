@@ -1,6 +1,7 @@
 export const mockSite = {
     name: 'مرکز رشد و کارآفرینی دکتر بیدی',
     tagline: 'آکادمی آموزش، کوچینگ، محصولات رشد فردی و استعدادیابی',
+    slogan: 'همراه شما در مسیر استعدادیابی، توسعه فردی، مهارت‌آموزی و کوچینگ حرفه‌ای.',
     description: 'همراه شما در مسیر استعدادیابی، توسعه فردی، مهارت‌آموزی و کوچینگ حرفه‌ای.',
     logo: '/images/brand-logo.png',
     phone: '۰۲۱-۸۸۹۹۰۰۱۱',
@@ -8,6 +9,29 @@ export const mockSite = {
     address: 'تهران، خیابان ولیعصر، مرکز رشد و نوآوری دکتر بیدی',
     instagram: 'https://instagram.com/markazbidi',
     eitaa: 'https://eitaa.com/markazbidi',
+    hero: {
+        title: 'مسیر استعدادیابی، کوچینگ و طراحی آینده نوجوان',
+        subtitle: 'همراه خانواده‌ها برای کشف استعدادهای ذاتی و مهارت‌آموزی نسل آینده',
+        cta_primary: 'دریافت مشاوره رایگان',
+        cta_secondary: 'مشاهده دوره‌ها',
+    },
+    social: {
+        instagram: 'https://instagram.com/markazbidi',
+        eitaa: 'https://eitaa.com/markazbidi',
+    },
+    contact: {
+        phone: '۰۲۱-۸۸۹۹۰۰۱۱',
+        email: 'info@markazbidi.ir',
+        eitaa: '@markazbidi',
+        address: 'تهران، خیابان ولیعصر، مرکز رشد و نوآوری دکتر بیدی',
+        working_hours: 'شنبه تا پنج‌شنبه — ساعت ۹ صبح تا ۲۰',
+    },
+    enamad: {
+        enabled: false,
+        title: 'نماد اعتماد الکترونیکی',
+        image_url: '',
+        link_url: '',
+    },
 };
 
 export const mockMenus = {
@@ -766,6 +790,8 @@ export function getMockPageData(component: string, cleanPath = '/'): Record<stri
                 email: 'navid@roshd.ir',
                 phone: '09123456789',
                 role: 'admin',
+                roles: ['super-admin', 'admin'],
+                permissions: ['manage all'],
                 unread_notifications: 2,
             },
         },
@@ -1161,6 +1187,123 @@ export function getMockPageData(component: string, cleanPath = '/'): Record<stri
                 links: [],
             },
             recommendations: mockCourses.slice(1).map((c) => ({ ...c, type: 'course' as const })),
+        };
+    }
+
+    if (component === 'Admin/Dashboard' || component.startsWith('Admin/')) {
+        if (component === 'Admin/Courses/Index') {
+            return {
+                ...base,
+                courses: {
+                    data: mockCourses.map((c) => ({
+                        id: c.id,
+                        title: c.title,
+                        slug: c.slug,
+                        level: c.is_vip ? 'advanced' : 'intermediate',
+                        price: c.price,
+                        discount_price: c.discount_price,
+                        is_published: true,
+                        is_featured: true,
+                        is_in_person: Boolean(c.is_vip),
+                        is_vip: Boolean(c.is_vip),
+                        students_count: c.students_count,
+                        instructor: { user: { name: c.instructor?.name ?? 'دکتر علیرضا بیدی' } },
+                        category: { name: c.category },
+                    })),
+                    links: [],
+                    total: mockCourses.length,
+                },
+                filters: { search: '', status: '' },
+            };
+        }
+
+        if (component === 'Admin/Courses/Form') {
+            const match = cleanPath.match(/\/admin\/courses\/([^/]+)\/edit/);
+            const courseId = match ? Number(match[1]) : null;
+            const found = courseId ? mockCourses.find((c) => c.id === courseId) || mockCourses[0] : null;
+            return {
+                ...base,
+                course: found
+                    ? {
+                          id: found.id,
+                          title: found.title,
+                          subtitle: found.summary,
+                          slug: found.slug,
+                          description: found.description,
+                          level: found.is_vip ? 'advanced' : 'intermediate',
+                          price: found.price,
+                          discount_price: found.discount_price,
+                          duration_minutes: 2400,
+                          thumbnail: found.thumbnail,
+                          trailer_url: '',
+                          instructor_id: 1,
+                          category_id: 1,
+                          certificate_enabled: true,
+                          is_published: true,
+                          is_featured: true,
+                          is_in_person: Boolean(found.is_vip),
+                          location: mockVipFlagshipDefaults.in_person_location,
+                          schedule: [
+                              { day: 'سه‌شنبه', time: '۱۷:۰۰ تا ۱۹:۰۰', label: 'کارگاه حضوری VIP' },
+                              { day: 'پنج‌شنبه', time: '۱۸:۳۰ تا ۲۰:۰۰', label: 'کلاس آنلاین VIP' },
+                          ],
+                          max_students: mockVipFlagshipDefaults.capacity,
+                          in_person_description: mockVipFlagshipDefaults.description,
+                          seo: {
+                              title: found.title,
+                              description: found.summary,
+                              keywords: 'طراحی آینده نوجوان، استعدادیابی، دوره VIP',
+                          },
+                      }
+                    : null,
+                categories: [
+                    { id: 1, name: 'نوجوانان و والدین' },
+                    { id: 2, name: 'استعدادیابی بزرگسالان' },
+                    { id: 3, name: 'کوچینگ حرفه‌ای' },
+                    { id: 4, name: 'کارآفرینی' },
+                ],
+                instructors: [
+                    { id: 1, name: 'دکتر علیرضا بیدی', user: { name: 'دکتر علیرضا بیدی و ۴ مدرس تخصصی' } },
+                    { id: 2, name: 'دکتر محمدرضا صادقی', user: { name: 'دکتر محمدرضا صادقی' } },
+                    { id: 3, name: 'استاد سارا کریمی', user: { name: 'استاد سارا کریمی' } },
+                    { id: 4, name: 'مهندس نیما رحیمی', user: { name: 'مهندس نیما رحیمی' } },
+                ],
+            };
+        }
+
+        return {
+            ...base,
+            stats: {
+                users: 12540,
+                students: 4820,
+                instructors: 12,
+                coaches: 8,
+                courses: mockCourses.length,
+                products: mockProducts.length,
+                leads: 340,
+                sessions: 1280,
+                revenue: 485000000,
+                orders: 920,
+                activeUsers: 1840,
+                newLeads: 46,
+            },
+            revenueSeries: [
+                { date: 'فروردین', value: 120000000 },
+                { date: 'اردیبهشت', value: 165000000 },
+                { date: 'خرداد', value: 200000000 },
+            ],
+            registrationsSeries: [
+                { date: 'فروردین', value: 140 },
+                { date: 'اردیبهشت', value: 210 },
+                { date: 'خرداد', value: 260 },
+            ],
+            leadFunnel: [
+                { status: 'new', count: 340 },
+                { status: 'contacted', count: 260 },
+                { status: 'consultation', count: 180 },
+                { status: 'registered', count: 115 },
+                { status: 'customer', count: 84 },
+            ],
         };
     }
 

@@ -55,9 +55,9 @@ function getInitialPage() {
         }
     }
 
-    let component = pageData?.component || 'Home';
+    let component = pageData?.component || 'MobileApp/Preview';
     if (path === '/' || path === '') {
-        component = 'Home';
+        component = 'MobileApp/Preview';
     } else if (path === '/web' || path === '/home') {
         component = 'Home';
     } else if (!pageData) {
@@ -77,9 +77,11 @@ function getInitialPage() {
         else if (path === '/login') component = 'Auth/Login';
         else if (path === '/register') component = 'Auth/Register';
         else if (path === '/cart') component = 'Cart/Index';
+        else if (path === '/mobile-app' || path === '/dashboard/mobile-app' || path === '/download-app') component = 'MobileApp/Preview';
         else if (path === '/dashboard/reminders') component = 'Dashboard/Reminders';
         else if (path.startsWith('/dashboard')) component = 'Dashboard';
         else if (path === '/admin' || path === '/admin/dashboard') component = 'Admin/Dashboard';
+        else if (path === '/admin/courses/create' || /^\/admin\/courses\/[^/]+\/edit$/.test(path)) component = 'Admin/Courses/Form';
         else if (path === '/admin/courses') component = 'Admin/Courses/Index';
         else if (path === '/admin/users') component = 'Admin/Users/Index';
         else if (path === '/admin/crm') component = 'Admin/Crm/Dashboard';
