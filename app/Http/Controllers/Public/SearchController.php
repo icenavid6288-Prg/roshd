@@ -112,6 +112,7 @@ class SearchController extends Controller
             null,
             ['@type' => 'SearchResultsPage'],
         );
+        $seo['noindex'] = true;
 
         return Inertia::render('Search/Index', [
             'seo' => $seo,
