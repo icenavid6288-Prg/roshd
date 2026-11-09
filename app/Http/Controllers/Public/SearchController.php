@@ -112,6 +112,9 @@ class SearchController extends Controller
             null,
             ['@type' => 'SearchResultsPage'],
         );
+        // Search result pages are useful for visitors but should not compete
+        // with canonical category/content pages in organic search.
+        $seo['noindex'] = true;
 
         return Inertia::render('Search/Index', [
             'seo' => $seo,
