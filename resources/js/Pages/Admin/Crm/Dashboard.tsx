@@ -4,7 +4,6 @@ import {
     MessageSquareQuote, PhoneCall, RefreshCw, ShoppingBag, StickyNote, Target, TrendingUp, UserPlus, Users,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 
@@ -128,17 +127,27 @@ export default function CrmDashboard() {
                     <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-emerald-500" /> مشتری: {trend_totals.customers}</span>
                 </div>
             </div>
-            <div className="crm-trend-chart mt-5 h-64 w-full" dir="ltr">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={trend} margin={{ top: 8, right: 8, left: -18, bottom: 0 }} barGap={2}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={4} axisLine={false} tickLine={false} />
-                        <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={34} />
-                        <Tooltip cursor={{ fill: 'rgba(44,154,108,0.08)' }} content={<TrendTooltip />} />
-                        <Bar dataKey="new" name="لید جدید" fill="#2c9a6c" radius={[3, 3, 0, 0]} maxBarSize={10} />
-                        <Bar dataKey="customers" name="مشتری" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={10} />
-                    </BarChart>
-                </ResponsiveContainer>
+            <div className="crm-trend-chart mt-5 h-64 w-full flex items-end gap-1.5 pt-4 pb-2 px-1 border-b border-navy/10" dir="ltr">
+                {(() => {
+                    const maxDay = Math.max(1, ...trend.map((d) => Math.max(d.new, d.customers)));
+                    return trend.map((day, idx) => (
+                        <div key={`${day.label}-${idx}`} className="flex-1 flex flex-col items-center justify-end h-full gap-1 group" title={`${day.label}: لید ${day.new} | مشتری ${day.customers}`}>
+                            <div className="w-full flex items-end justify-center gap-0.5 flex-1">
+                                <div
+                                    className="w-2 rounded-t bg-[#2c9a6c] transition-all"
+                                    style={{ height: `${Math.max(4, Math.round((day.new / maxDay) * 100))}%` }}
+                                />
+                                <div
+                                    className="w-2 rounded-t bg-[#10b981] transition-all"
+                                    style={{ height: `${Math.max(4, Math.round((day.customers / maxDay) * 100))}%` }}
+                                />
+                            </div>
+                            {idx % 5 === 0 && (
+                                <span className="text-[9px] font-bold text-navy/45 truncate">{day.label}</span>
+                            )}
+                        </div>
+                    ));
+                })()}
             </div>
         </section>
 
@@ -231,21 +240,6 @@ export default function CrmDashboard() {
         <section className="rounded-2xl border border-brand-100 bg-brand-50/60 p-4">
             <div className="flex items-start gap-2 text-[0.7rem] leading-6 text-brand-900/70"><ArrowLeft className="mt-0.5 size-4 shrink-0 text-brand-500" aria-hidden /><p>این داشبورد خودکار ساخته می‌شود: فرم تماس، ثبت‌نام، آنبوردینگ، خرید موفق و یادآوری‌های خودکار هرکدام لید می‌سازند و در همین قیف و تاریخچه دیده می‌شوند.</p></div>
         </section>
-    </div>;
-}
-
-function TrendTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name?: string; value?: number; color?: string }>; label?: string }) {
-    if (!active || !payload || payload.length === 0) return null;
-    const rows = payload.filter((item) => item.value !== undefined && item.value > 0);
-    return <div className="rounded-xl border border-navy/10 bg-white px-3.5 py-2.5 shadow-soft">
-        <div className="text-[0.62rem] font-black text-navy/45">{label}</div>
-        <div className="mt-1.5 space-y-1">
-            {rows.length > 0 ? rows.map((item) => <div key={item.name} className="flex items-center gap-2 text-[0.68rem] font-black text-navy">
-                <span className="size-2 rounded-sm" style={{ background: item.color }} />
-                <span className="text-navy/55">{item.name === 'new' ? 'لید جدید' : 'مشتری'}</span>
-                <span dir="ltr">{item.value}</span>
-            </div>) : <div className="text-[0.65rem] font-bold text-navy/40">بدون فعالیت در این روز</div>}
-        </div>
     </div>;
 }
 

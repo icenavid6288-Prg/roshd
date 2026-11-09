@@ -33,6 +33,12 @@ export default defineConfig(({ mode }) => {
         optimizeDeps: {
             entries: ['resources/js/app.tsx'],
         },
+        build: {
+            target: 'es2020',
+            cssMinify: true,
+            sourcemap: false,
+            emptyOutDir: true,
+        },
         server: {
             host: '0.0.0.0',
             port: 3000,

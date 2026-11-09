@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Field, PrimaryButton, Screen } from '../components';
 import { api, getBaseUrl, setBaseUrl } from '../api/client';
 import { useTheme } from '../context/ThemeContext';
@@ -9,9 +10,9 @@ export type MobileLogoStyle = 'lotus' | 'crown' | 'crystal' | 'eagle' | 'monogra
 export type MobileThemePalette = 'instagram' | 'telegram' | 'emerald' | 'cyberpunk' | 'gold';
 
 export function SettingsScreen() {
-    const { colors, isDark, toggleTheme } = useTheme();
+    const { colors } = useTheme();
     const [appName, setAppName] = useState('بهار زندگی');
-    const [appTagline, setAppTagline] = useState('آکادمی رشد و سیستم‌سازی ذهن');
+    const [appTagline, setAppTagline] = useState('آکادمی رشد');
     const [selectedLogo, setSelectedLogo] = useState<MobileLogoStyle>('lotus');
     const [selectedTheme, setSelectedTheme] = useState<MobileThemePalette>('instagram');
     const [url, setUrl] = useState('');
@@ -23,7 +24,7 @@ export function SettingsScreen() {
     }, []);
 
     const saveBranding = () => {
-        setStatus(`✓ نام اپلیکیشن به «${appName}» و لوگوی ${selectedLogo} با موفقیت ذخیره شد`);
+        setStatus(`«${appName}» ذخیره شد`);
     };
 
     const saveAndTestServer = async () => {
@@ -32,9 +33,9 @@ export function SettingsScreen() {
         await setBaseUrl(url);
         try {
             const res = await api<{ status: string; app?: string }>('/api/v1/health', { auth: false });
-            setStatus(`✓ اتصال به سرور برقرار شد (${res.app || 'سامانه مرکز رشد'})`);
+            setStatus(`متصل شد (${res.app || 'سرور'})`);
         } catch {
-            setStatus('✓ حالت دمو و آفلاین هوشمند فعال است');
+            setStatus('حالت آفلاین فعال است');
         } finally {
             setTesting(false);
         }
@@ -45,65 +46,64 @@ export function SettingsScreen() {
             <ScrollView contentContainerStyle={styles.container}>
                 {/* Branding Section */}
                 <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                    <Text style={[styles.title, { color: colors.text }]}>شخصی‌سازی نام و لوگوی اپلیکیشن</Text>
-                    <Text style={[styles.subtitle, { color: colors.muted }]}>
-                        نام، شعار، آیکون و تم رنگی اپلیکیشن را مطابق سلیقه خود تغییر دهید.
-                    </Text>
-
-                    <Field
-                        label="نام اصلی اپلیکیشن"
-                        value={appName}
-                        onChangeText={setAppName}
-                        placeholder="مثال: بهار زندگی، آکادمی رشد و..."
-                    />
-
-                    <Field
-                        label="شعار / زیرعنوان اپلیکیشن"
-                        value={appTagline}
-                        onChangeText={setAppTagline}
-                        placeholder="مثال: آکادمی رشد و سیستم‌سازی ذهن"
-                    />
-
-                    {/* Logo Picker */}
-                    <Text style={[styles.label, { color: colors.text, marginTop: spacing.sm }]}>
-                        انتخاب آیکون و استایل لوگو
-                    </Text>
-                    <View style={styles.gridRow}>
-                        {[
-                            { id: 'lotus' as MobileLogoStyle, label: 'نیلوفر', icon: '🌸' },
-                            { id: 'crown' as MobileLogoStyle, label: 'تاج طلا', icon: '👑' },
-                            { id: 'crystal' as MobileLogoStyle, label: 'کریستال', icon: '💎' },
-                            { id: 'eagle' as MobileLogoStyle, label: 'رشد و اوج', icon: '⚡' },
-                            { id: 'monogram' as MobileLogoStyle, label: 'مونوگرام', icon: '🔤' },
-                        ].map((item) => (
-                            <TouchableOpacity
-                                key={item.id}
-                                onPress={() => setSelectedLogo(item.id)}
-                                style={[
-                                    styles.logoBtn,
-                                    {
-                                        borderColor: selectedLogo === item.id ? colors.primary : colors.border,
-                                        backgroundColor: selectedLogo === item.id ? colors.primarySoft : colors.surfaceAlt,
-                                    },
-                                ]}
-                            >
-                                <Text style={styles.logoIcon}>{item.icon}</Text>
-                                <Text style={[styles.logoText, { color: colors.text }]}>{item.label}</Text>
-                            </TouchableOpacity>
-                        ))}
+                    <View style={styles.iconHeaderRow}>
+                        <Ionicons name="color-palette-outline" size={20} color={colors.primary} />
+                        <Text style={[styles.title, { color: colors.text }]}>برندینگ و ظاهر</Text>
                     </View>
 
-                    {/* Theme Palettes */}
-                    <Text style={[styles.label, { color: colors.text, marginTop: spacing.md }]}>
-                        پالت رنگی رابط کاربری (UI Theme)
-                    </Text>
+                    <Field
+                        label="نام اپلیکیشن"
+                        value={appName}
+                        onChangeText={setAppName}
+                    />
+
+                    <Field
+                        label="شعار کوتاه"
+                        value={appTagline}
+                        onChangeText={setAppTagline}
+                    />
+
+                    {/* Visual Ionicons Logo Picker instead of emojis */}
+                    <View style={styles.gridRow}>
+                        {[
+                            { id: 'lotus' as MobileLogoStyle, label: 'نیلوفر', icon: 'flower-outline' as const },
+                            { id: 'crown' as MobileLogoStyle, label: 'تاج', icon: 'ribbon-outline' as const },
+                            { id: 'crystal' as MobileLogoStyle, label: 'کریستال', icon: 'diamond-outline' as const },
+                            { id: 'eagle' as MobileLogoStyle, label: 'اوج', icon: 'flash-outline' as const },
+                            { id: 'monogram' as MobileLogoStyle, label: 'نشان', icon: 'sparkles-outline' as const },
+                        ].map((item) => {
+                            const active = selectedLogo === item.id;
+                            return (
+                                <TouchableOpacity
+                                    key={item.id}
+                                    onPress={() => setSelectedLogo(item.id)}
+                                    style={[
+                                        styles.logoBtn,
+                                        {
+                                            borderColor: active ? colors.primary : colors.border,
+                                            backgroundColor: active ? colors.primarySoft : colors.surfaceAlt,
+                                        },
+                                    ]}
+                                >
+                                    <Ionicons
+                                        name={item.icon}
+                                        size={22}
+                                        color={active ? colors.primary : colors.muted}
+                                    />
+                                    <Text style={[styles.logoText, { color: colors.text }]}>{item.label}</Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
+                    {/* Compact Color Swatches */}
                     <View style={styles.themeCol}>
                         {[
-                            { id: 'instagram' as MobileThemePalette, label: 'اینستاگرام سانست (Sunset Glow)', color: '#E1306C' },
-                            { id: 'telegram' as MobileThemePalette, label: 'تلگرام رویال (Royal Blue Glass)', color: '#2481CC' },
-                            { id: 'emerald' as MobileThemePalette, label: 'امرالد پرستیژ (Emerald Luxury)', color: '#166534' },
-                            { id: 'cyberpunk' as MobileThemePalette, label: 'سایبرپانک نئون (Neon Violet)', color: '#7B2CBF' },
-                            { id: 'gold' as MobileThemePalette, label: 'امپریال گلد (Imperial Gold)', color: '#D4AF37' },
+                            { id: 'instagram' as MobileThemePalette, label: 'سانست', color: '#E1306C' },
+                            { id: 'telegram' as MobileThemePalette, label: 'رویال', color: '#2481CC' },
+                            { id: 'emerald' as MobileThemePalette, label: 'زمرد', color: '#166534' },
+                            { id: 'cyberpunk' as MobileThemePalette, label: 'نئون', color: '#7B2CBF' },
+                            { id: 'gold' as MobileThemePalette, label: 'طلایی', color: '#D4AF37' },
                         ].map((th) => (
                             <TouchableOpacity
                                 key={th.id}
@@ -122,18 +122,22 @@ export function SettingsScreen() {
                         ))}
                     </View>
 
-                    <PrimaryButton title="ذخیره تنظیمات نام و برندینگ" onPress={saveBranding} />
+                    <PrimaryButton
+                        title="ذخیره ظاهر"
+                        icon="checkmark-circle-outline"
+                        onPress={saveBranding}
+                    />
                 </View>
 
                 {/* Server Connection Section */}
                 <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                    <Text style={[styles.title, { color: colors.text }]}>تنظیمات سرور و ارتباط</Text>
-                    <Text style={[styles.subtitle, { color: colors.muted }]}>
-                        نشانی سرور مرکزی را جهت همگام‌سازی ابری وارد نمایید.
-                    </Text>
+                    <View style={styles.iconHeaderRow}>
+                        <Ionicons name="server-outline" size={20} color={colors.primary} />
+                        <Text style={[styles.title, { color: colors.text }]}>سرور</Text>
+                    </View>
 
                     <Field
-                        label="نشانی سرور (Base URL)"
+                        label="Base URL"
                         value={url}
                         onChangeText={setUrl}
                         autoCapitalize="none"
@@ -142,7 +146,12 @@ export function SettingsScreen() {
                         style={{ textAlign: 'left' }}
                     />
 
-                    <PrimaryButton title="بررسی اتصال سرور" onPress={saveAndTestServer} loading={testing} />
+                    <PrimaryButton
+                        title="تست اتصال"
+                        icon="pulse-outline"
+                        onPress={saveAndTestServer}
+                        loading={testing}
+                    />
                 </View>
 
                 {status ? (
@@ -152,6 +161,7 @@ export function SettingsScreen() {
                             { backgroundColor: colors.successSoft, borderColor: colors.primary },
                         ]}
                     >
+                        <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
                         <Text style={[styles.statusText, { color: colors.primary }]}>{status}</Text>
                     </View>
                 ) : null}
@@ -168,11 +178,15 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         gap: spacing.sm,
     },
+    iconHeaderRow: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 4,
+    },
     title: { ...typography.title, fontSize: 16 },
-    subtitle: { ...typography.small, marginBottom: spacing.xs },
-    label: { ...typography.small, fontWeight: '700' },
     gridRow: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         flexWrap: 'wrap',
         gap: spacing.sm,
     },
@@ -185,31 +199,38 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
         alignItems: 'center',
         justifyContent: 'center',
+        gap: 4,
     },
-    logoIcon: { fontSize: 20, marginBottom: 2 },
     logoText: { fontSize: 10, fontWeight: '700' },
     themeCol: {
+        flexDirection: 'row-reverse',
+        flexWrap: 'wrap',
         gap: spacing.xs,
-        marginBottom: spacing.sm,
+        marginVertical: spacing.xs,
     },
     themeRow: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: spacing.md,
+        gap: 6,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
         borderRadius: radius.md,
         borderWidth: 1.5,
     },
-    themeLabel: { fontSize: 12, fontWeight: '600' },
+    themeLabel: { fontSize: 12, fontWeight: '700' },
     colorDot: {
-        width: 18,
-        height: 18,
-        borderRadius: 9,
+        width: 14,
+        height: 14,
+        borderRadius: 7,
     },
     statusBox: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
         padding: spacing.md,
         borderRadius: radius.md,
         borderWidth: 1,
     },
-    statusText: { ...typography.small, fontWeight: '700', textAlign: 'center' },
+    statusText: { ...typography.small, fontWeight: '700' },
 });

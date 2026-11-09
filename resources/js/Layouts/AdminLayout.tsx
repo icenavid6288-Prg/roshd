@@ -87,8 +87,10 @@ const nav: NavGroup[] = [
         id: 'academy',
         section: 'آموزش و آکادمی',
         items: [
-            { title: 'دوره‌ها و کارگاه‌ها', href: '/admin/courses', icon: GraduationCap, permission: 'view courses' },
-            { title: 'سرفصل‌ها و درس‌ها', href: '/admin/content/lessons', icon: BookOpen, permission: 'view lessons' },
+            { title: 'دوره‌ها و دوره پریمیوم VIP', href: '/admin/courses', icon: GraduationCap, permission: 'view courses' },
+            { title: 'سرفصل‌ها و ماژول‌های دوره', href: '/admin/content/modules', icon: FolderTree, permission: 'view lessons' },
+            { title: 'جلسات و درس‌های ویدئویی', href: '/admin/content/lessons', icon: BookOpen, permission: 'view lessons' },
+            { title: 'فعال‌سازی دوره دانش‌پذیران', href: '/admin/content/enrollments', icon: Users, permission: 'view courses' },
             { title: 'آزمون‌ها و کوئیزها', href: '/admin/quizzes', icon: ListChecks, permission: 'view lessons' },
             { title: 'تکالیف دانش‌آموزان', href: '/admin/assignments', icon: NotebookPen, permission: 'view lessons' },
             { title: 'گواهینامه‌های پایان دوره', href: '/admin/certificates', icon: Award, permission: 'view certificates' },

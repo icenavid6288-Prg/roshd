@@ -48,7 +48,7 @@ export const mockMenus = {
         { id: 1, title: 'دوره‌های استعدادیابی', url: '/courses' },
         { id: 2, title: 'رزرو وقت کوچینگ', url: '/coaching' },
         { id: 3, title: 'فروشگاه کتاب و ابزار رشد', url: '/shop' },
-        { id: 4, title: 'پیش‌نمایش اپلیکیشن موبایل', url: '/' },
+        { id: 4, title: 'اپلیکیشن جامع رشد', url: '/' },
     ],
 };
 

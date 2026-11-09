@@ -57,55 +57,56 @@ export function SessionsScreen() {
         }
     };
 
-    if (loading) return <Loading label="در حال دریافت جلسات کوچینگ…" />;
+    if (loading) return <Loading />;
 
     return (
         <Screen>
             <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
                 <View style={styles.headerRow}>
-                    <View style={{ flex: 1 }}>
-                        <Text style={[styles.title, { color: colors.text }]}>جلسات کوچینگ من</Text>
-                        <Text style={[styles.subtitle, { color: colors.muted }]}>
-                            جلسات مشاوره اختصاصی و پیگیری اهداف استراتژیک
-                        </Text>
+                    <View style={styles.iconTitleRow}>
+                        <Ionicons name="calendar-outline" size={24} color={colors.primary} />
+                        <Text style={[styles.title, { color: colors.text }]}>جلسات کوچینگ</Text>
                     </View>
                     <Pressable
                         onPress={() => setShowForm((v) => !v)}
                         style={[styles.newBtn, { backgroundColor: colors.primary }]}
                     >
-                        <Text style={styles.newBtnText}>{showForm ? 'بستن فرم' : '+ رزرو جلسه'}</Text>
+                        <Ionicons
+                            name={showForm ? 'close-circle-outline' : 'add-circle-outline'}
+                            size={18}
+                            color="#FFFFFF"
+                        />
+                        <Text style={styles.newBtnText}>{showForm ? 'بستن' : 'رزرو'}</Text>
                     </Pressable>
                 </View>
 
                 {showForm ? (
                     <View style={[styles.formCard, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
-                        <Text style={[styles.formTitle, { color: colors.text }]}>رزرو جلسه کوچینگ جدید</Text>
                         <Field
                             label="موضوع جلسه"
                             value={title}
                             onChangeText={setTitle}
-                            placeholder="مثلاً: بررسی استراتژی فروش و قیمت‌گذاری"
+                            placeholder="موضوع مشاوره…"
                         />
                         <Field
-                            label="تاریخ پیشنهادی"
+                            label="تاریخ"
                             value={dateLabel}
                             onChangeText={setDateLabel}
-                            placeholder="پنج‌شنبه ۱ خرداد ۱۴۰۴"
                         />
                         <Field
-                            label="بازه زمانی"
+                            label="ساعت"
                             value={timeLabel}
                             onChangeText={setTimeLabel}
-                            placeholder="ساعت ۱۷:۰۰ تا ۱۸:۰۰"
                         />
                         <Field
-                            label="توضیحات یا دغدغه اصلی"
+                            label="یادداشت"
                             value={notes}
                             onChangeText={setNotes}
-                            placeholder="نکات مهمی که کوچ باید پیش از جلسه بداند…"
+                            placeholder="نکات کلیدی…"
                         />
                         <PrimaryButton
-                            title="ثبت نهایی رزرو جلسه"
+                            title="ثبت رزرو"
+                            icon="checkmark-circle-outline"
                             onPress={handleBook}
                             loading={submitting}
                         />
@@ -113,7 +114,7 @@ export function SessionsScreen() {
                 ) : null}
 
                 {sessions.length === 0 ? (
-                    <EmptyState icon="calendar-outline" title="هنوز جلسه‌ای رزرو نشده است" />
+                    <EmptyState icon="calendar-outline" title="جلسه‌ای رزرو نشده" />
                 ) : (
                     sessions.map((s) => {
                         const isUpcoming = s.status === 'upcoming';
@@ -127,39 +128,39 @@ export function SessionsScreen() {
                             >
                                 <View style={styles.sessionTop}>
                                     <Chip
-                                        label={isUpcoming ? 'در انتظار برگزاری' : 'برگزار شده'}
+                                        label={isUpcoming ? 'در انتظار' : 'برگزار شده'}
                                         tone={isUpcoming ? 'gold' : 'primary'}
+                                        icon={isUpcoming ? 'time-outline' : 'checkmark-circle-outline'}
                                     />
-                                    <Text style={[styles.duration, { color: colors.muted }]}>
-                                        {faNum(s.duration_minutes)} دقیقه
-                                    </Text>
+                                    <Chip
+                                        label={`${faNum(s.duration_minutes)} دقیقه`}
+                                        tone="muted"
+                                        icon="hourglass-outline"
+                                    />
                                 </View>
-                                <Text style={[styles.sessionTitle, { color: colors.text }]}>{s.title}</Text>
-                                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
-                                    <Ionicons name="person-outline" size={16} color={colors.primary} />
+                                <Text style={[styles.sessionTitle, { color: colors.text }]} numberOfLines={1}>
+                                    {s.title}
+                                </Text>
+                                <View style={styles.iconTitleRow}>
+                                    <Ionicons name="person-circle-outline" size={18} color={colors.primary} />
                                     <Text style={[styles.coachName, { color: colors.primary }]}>
-                                        {s.coach_name} ({s.coach_title})
+                                        {s.coach_name}
                                     </Text>
                                 </View>
                                 <View style={[styles.dateBox, { backgroundColor: colors.surfaceAlt }]}>
-                                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                                    <View style={styles.iconTitleRow}>
                                         <Ionicons name="calendar-outline" size={15} color={colors.text} />
                                         <Text style={[styles.dateText, { color: colors.text }]}>{s.date_label}</Text>
                                     </View>
-                                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                                    <View style={styles.iconTitleRow}>
                                         <Ionicons name="time-outline" size={15} color={colors.text} />
                                         <Text style={[styles.dateText, { color: colors.text }]}>{s.time_label}</Text>
                                     </View>
                                 </View>
-                                {s.notes ? (
-                                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
-                                        <Ionicons name="document-text-outline" size={15} color={colors.muted} />
-                                        <Text style={[styles.notes, { color: colors.muted }]}>{s.notes}</Text>
-                                    </View>
-                                ) : null}
                                 {isUpcoming && s.meeting_url ? (
                                     <PrimaryButton
-                                        title="ورود به اتاق جلسه آنلاین"
+                                        title="ورود به جلسه آنلاین"
+                                        icon="videocam-outline"
                                         onPress={() => Linking.openURL(s.meeting_url!)}
                                         variant="primary"
                                     />
@@ -176,16 +177,23 @@ export function SessionsScreen() {
 const styles = StyleSheet.create({
     container: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md },
     headerRow: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: spacing.md,
     },
+    iconTitleRow: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 6,
+    },
     title: { ...typography.title },
-    subtitle: { ...typography.small, marginTop: 2 },
     newBtn: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 5,
         paddingHorizontal: 14,
-        paddingVertical: 10,
+        paddingVertical: 9,
         borderRadius: radius.md,
     },
     newBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
@@ -195,7 +203,6 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
         gap: 4,
     },
-    formTitle: { ...typography.subtitle, fontWeight: '700', marginBottom: spacing.sm },
     sessionCard: {
         padding: spacing.lg,
         borderRadius: radius.lg,
@@ -203,18 +210,17 @@ const styles = StyleSheet.create({
         gap: spacing.sm,
     },
     sessionTop: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    duration: { ...typography.small },
-    sessionTitle: { ...typography.subtitle, fontWeight: '700' },
+    sessionTitle: { ...typography.subtitle, fontWeight: '700', textAlign: 'right' },
     coachName: { ...typography.small, fontWeight: '700' },
     dateBox: {
+        flexDirection: 'row-reverse',
+        justifyContent: 'space-between',
         padding: spacing.md,
         borderRadius: radius.md,
-        gap: 4,
     },
     dateText: { ...typography.small, fontWeight: '600' },
-    notes: { ...typography.small },
 });

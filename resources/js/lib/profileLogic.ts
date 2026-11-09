@@ -18,6 +18,10 @@ export interface UserProfileState {
     giftCredit: number;
     parentWeeklyReportEnabled: boolean;
     lastParentReportSentAt: string;
+    vipBadgeActive?: boolean;
+    vipStampCode?: string;
+    avatar?: string;
+    isAuthenticated?: boolean;
 }
 
 export interface WalletOrder {
@@ -72,6 +76,10 @@ export const defaultUserProfile: UserProfileState = {
     giftCredit: 150000,
     parentWeeklyReportEnabled: true,
     lastParentReportSentAt: 'جمعه ۱۴ اردیبهشت · ساعت ۲۰:۰۰',
+    vipBadgeActive: true,
+    vipStampCode: 'VIP-1404-ROSHD',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+    isAuthenticated: false,
 };
 
 export const defaultWalletOrders: WalletOrder[] = [

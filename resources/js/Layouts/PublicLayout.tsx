@@ -254,7 +254,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                     </div>
 
                     <nav className="drawer-nav" aria-label="منوی اصلی">
-                        <Link href="/mobile-app" className="drawer-link" onClick={() => setMobileOpen(false)}>پیش‌نمایش اپلیکیشن موبایل</Link>
+                        <Link href="/mobile-app" className="drawer-link" onClick={() => setMobileOpen(false)}>اپلیکیشن جامع رشد</Link>
                         {menus.header.map((item, i) => {
                             const Icon = menuIconFor(item.url);
                             return (

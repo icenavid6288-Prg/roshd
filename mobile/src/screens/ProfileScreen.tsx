@@ -8,8 +8,6 @@ import { useTheme } from '../context/ThemeContext';
 import type { TabStackNavigation } from '../navigation/types';
 import { faNum } from '../theme';
 
-const formatCurrency = (value: number) => `${faNum(value.toLocaleString('en-US'))} تومان`;
-
 export function ProfileScreen() {
     const navigation = useNavigation<TabStackNavigation>();
     const { user, logout, updateProfile } = useAuth();
@@ -18,20 +16,40 @@ export function ProfileScreen() {
     const [confirmExit, setConfirmExit] = useState(false);
     const [name, setName] = useState(user?.name || '');
     const [phone, setPhone] = useState(user?.phone || '');
-    const [parentPhone, setParentPhone] = useState('09121112233');
     const [city, setCity] = useState(user?.city || 'تهران');
     const [jobTitle, setJobTitle] = useState(user?.job_title || 'پایه یازدهم · طراحی آینده نوجوان');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
-    // Wallet & Orders state
-    const [walletBalance, setWalletBalance] = useState(480000);
-    const [parentReportAuto, setParentReportAuto] = useState(true);
     const [smsTwoHoursBefore, setSmsTwoHoursBefore] = useState(true);
-    const [smsParentAttendance, setSmsParentAttendance] = useState(true);
     const [statusMessage, setStatusMessage] = useState('');
 
-    if (!user) return null;
+    const handleLogout = async () => {
+        try {
+            await logout();
+        } catch {}
+        navigation.navigate('Login');
+    };
+
+    if (!user) {
+        return (
+            <Screen>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 }}>
+                    <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.dangerSoft, alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="log-out-outline" size={32} color={colors.danger} />
+                    </View>
+                    <Text style={{ fontFamily: 'VazirmatnBold', fontSize: 16, color: colors.text, textAlign: 'center' }}>
+                        از حساب کاربری خارج شده‌اید.
+                    </Text>
+                    <PrimaryButton
+                        title="ورود به حساب کاربری"
+                        icon="log-in-outline"
+                        onPress={() => navigation.navigate('Login')}
+                    />
+                </View>
+            </Screen>
+        );
+    }
 
     const saveEdit = async () => {
         setSaving(true);
@@ -44,9 +62,9 @@ export function ProfileScreen() {
                 job_title: jobTitle.trim(),
             });
             setEditing(false);
-            setStatusMessage('مشخصات فردی و پرونده شما ذخیره شد.');
+            setStatusMessage('مشخصات ذخیره شد.');
         } catch {
-            setError('ذخیره انجام نشد. اطلاعات شما باقی مانده؛ دوباره تلاش کنید.');
+            setError('ذخیره انجام نشد.');
         } finally {
             setSaving(false);
         }
@@ -65,47 +83,34 @@ export function ProfileScreen() {
     };
 
     const talentDimensions = [
-        { title: 'تفکر استراتژیک و آینده‌نگری', score: 88 },
-        { title: 'رهبری تیمی و ارتباط موثر', score: 84 },
-        { title: 'حل مسئله خلاق و تصمیم‌گیری', score: 79 },
-    ];
-
-    const orders = [
-        {
-            id: 'INV-404-881',
-            title: 'ثبت‌نام دوره جامع طراحی آینده نوجوان (VIP)',
-            date: '۱۲ فروردین ۱۴۰۴',
-            amount: 3900000,
-        },
-        {
-            id: 'INV-404-904',
-            title: 'جلسه کوچینگ اختصاصی نقشه راه و استعدادیابی',
-            date: '۲۸ فروردین ۱۴۰۴',
-            amount: 680000,
-        },
+        { title: 'تفکر استراتژیک', icon: 'bulb-outline' as const, score: 88 },
+        { title: 'رهبری تیمی', icon: 'people-outline' as const, score: 84 },
+        { title: 'حل مسئله خلاق', icon: 'extension-puzzle-outline' as const, score: 79 },
     ];
 
     return (
         <Screen>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
-                {/* 1. Golden VIP Identity Header with Level & 3 Key Metrics */}
+                {/* 1. Golden VIP Identity Header with Avatar & Visual KPI Tiles */}
                 <View style={s.identity}>
                     <View style={s.row}>
-                        <Avatar name={user.name} uri={user.avatar} size={60} />
+                        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
+                            <Ionicons name="person-circle-outline" size={42} color="#FFFFFF" />
+                        </View>
                         <View style={s.copy}>
                             <View style={s.badgeRow}>
                                 <Text style={s.name}>{user.name}</Text>
                                 <View style={s.vipChip}>
-                                    <Ionicons name="ribbon" size={12} color="#0D2E22" />
-                                    <Text style={s.vipChipText}>VIP-403-892</Text>
+                                    <Ionicons name="shield-checkmark" size={12} color="#0D2E22" />
+                                    <Text style={s.vipChipText}>احراز شده</Text>
                                 </View>
                             </View>
-                            <Text style={s.identityDetail}>
-                                {[city, jobTitle].filter(Boolean).join(' · ')}
-                            </Text>
-                            <Text style={s.identityLabel}>
-                                عضو رسمی دوره طراحی آینده نوجوان
-                            </Text>
+                            <View style={s.metaIconRow}>
+                                <Ionicons name="location-outline" size={13} color="#D3E5D8" />
+                                <Text style={s.identityDetail} numberOfLines={1}>
+                                    {[city, jobTitle].filter(Boolean).join(' · ')}
+                                </Text>
+                            </View>
                         </View>
                         <View style={s.headerActions}>
                             <Pressable
@@ -131,33 +136,37 @@ export function ProfileScreen() {
                     {/* Level Bar */}
                     <View style={s.levelSection}>
                         <View style={s.levelHeader}>
-                            <Text style={s.levelTitle}>سطح ۴: معمار آینده</Text>
-                            <Text style={s.levelSub}>۱٬۴۵۰ از ۲٬۰۰۰ امتیاز رشد (۷۳٪)</Text>
+                            <View style={s.metaIconRow}>
+                                <Ionicons name="flash" size={14} color="#D6F39A" />
+                                <Text style={s.levelTitle}>سطح ۴</Text>
+                            </View>
+                            <Text style={s.levelSub}>{faNum(73)}٪</Text>
                         </View>
                         <View style={s.progressTrack}>
                             <View style={[s.progressFill, { width: '73%' }]} />
                         </View>
                     </View>
 
-                    {/* 3 Key Stats */}
+                    {/* 3 Icon-First Key Stats */}
                     <View style={s.statsRow}>
                         <View style={s.statBox}>
+                            <Ionicons name="time-outline" size={18} color="#D6F39A" />
                             <Text style={s.statValue}>{faNum(42)} ساعت</Text>
-                            <Text style={s.statLabel}>ساعت آموزش</Text>
                         </View>
                         <View style={s.statBox}>
-                            <Text style={[s.statValue, { color: '#FCD34D' }]}>{faNum(95)}٪ حضور</Text>
-                            <Text style={s.statLabel}>نظم کلاس VIP</Text>
+                            <Ionicons name="checkmark-done-circle-outline" size={18} color="#FCD34D" />
+                            <Text style={[s.statValue, { color: '#FCD34D' }]}>{faNum(95)}٪</Text>
                         </View>
                         <View style={s.statBox}>
-                            <Text style={[s.statValue, { color: '#D6F39A' }]}>{faNum(6)} دستاورد</Text>
-                            <Text style={s.statLabel}>نشان و مدرک</Text>
+                            <Ionicons name="trophy-outline" size={18} color="#D6F39A" />
+                            <Text style={[s.statValue, { color: '#D6F39A' }]}>{faNum(6)} نشان</Text>
                         </View>
                     </View>
                 </View>
 
                 {!!statusMessage && (
                     <View style={[s.statusBanner, { backgroundColor: colors.primarySoft }]}>
+                        <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
                         <Text style={[s.caption, { color: colors.primary }]}>{statusMessage}</Text>
                     </View>
                 )}
@@ -169,18 +178,14 @@ export function ProfileScreen() {
                             { backgroundColor: colors.surface, borderColor: colors.border },
                         ]}
                     >
-                        <Text style={[s.sectionTitle, { color: colors.text }]}>
-                            ویرایش مشخصات و پرونده نوجوان
-                        </Text>
+                        <View style={s.sectionHeaderRow}>
+                            <Ionicons name="person-circle-outline" size={20} color={colors.primary} />
+                            <Text style={[s.sectionTitle, { color: colors.text }]}>ویرایش مشخصات</Text>
+                        </View>
                         <Field label="نام و نام خانوادگی" value={name} onChangeText={setName} />
-                        <Field label="پایه تحصیلی و گرایش" value={jobTitle} onChangeText={setJobTitle} />
+                        <Field label="پایه تحصیلی" value={jobTitle} onChangeText={setJobTitle} />
                         <Field label="شهر" value={city} onChangeText={setCity} />
-                        <Field label="شماره موبایل دانش‌پذیر" value={phone} onChangeText={setPhone} />
-                        <Field
-                            label="شماره همراه والدین (جهت گزارش هفتگی)"
-                            value={parentPhone}
-                            onChangeText={setParentPhone}
-                        />
+                        <Field label="شماره موبایل" value={phone} onChangeText={setPhone} />
                         {!!error && (
                             <Text
                                 accessibilityRole="alert"
@@ -190,29 +195,34 @@ export function ProfileScreen() {
                             </Text>
                         )}
                         <PrimaryButton
-                            title="ذخیره تغییرات پروفایل"
+                            title="ذخیره تغییرات"
+                            icon="checkmark-circle-outline"
                             onPress={saveEdit}
                             loading={saving}
                         />
                     </View>
                 )}
 
-                {/* 2. Teen Talent Assessment, Coach Feedback & Parent Dossier */}
+                {/* 2. Visual Talent Assessment Bars */}
                 <View
                     style={[
                         s.panel,
                         { backgroundColor: colors.surface, borderColor: colors.border },
                     ]}
                 >
-                    <Text style={[s.sectionTitle, { color: colors.text }]}>
-                        پرونده استعدادیابی نوجوان و بازخورد کوچ
-                    </Text>
+                    <View style={s.sectionHeaderRow}>
+                        <Ionicons name="analytics-outline" size={20} color={colors.primary} />
+                        <Text style={[s.sectionTitle, { color: colors.text }]}>نیمرخ استعداد</Text>
+                    </View>
                     {talentDimensions.map((dim) => (
-                        <View key={dim.title} style={{ gap: 4 }}>
+                        <View key={dim.title} style={{ gap: 5 }}>
                             <View style={s.betweenRow}>
-                                <Text style={[s.menuTitle, { color: colors.text }]}>
-                                    {dim.title}
-                                </Text>
+                                <View style={s.metaIconRow}>
+                                    <Ionicons name={dim.icon} size={16} color={colors.primary} />
+                                    <Text style={[s.menuTitle, { color: colors.text }]}>
+                                        {dim.title}
+                                    </Text>
+                                </View>
                                 <Text style={[s.menuTitle, { color: colors.primary }]}>
                                     {faNum(dim.score)}٪
                                 </Text>
@@ -235,121 +245,24 @@ export function ProfileScreen() {
                             </View>
                         </View>
                     ))}
-                    <View style={[s.coachNoteBox, { backgroundColor: colors.primarySoft }]}>
-                        <Text style={[s.menuTitle, { color: colors.primary }]}>
-                            آخرین یادداشت اختصاصی مدرس (استاد سارا درس)
-                        </Text>
-                        <Text style={[s.caption, { color: colors.text }]}>
-                            «در کارگاه ترسیم نقشه راه ۹۰ روزه تمرکز و قدرت تحلیل بسیار خوبی داشتی؛ تمرین هدف‌گذاری تابستان را با همین دقت ادامه بده.»
-                        </Text>
-                    </View>
-                    <View style={s.betweenRow}>
-                        <View style={s.copy}>
-                            <Text style={[s.menuTitle, { color: colors.text }]}>
-                                ارسال خودکار کارنامه هفتگی به والدین
-                            </Text>
-                            <Text style={[s.caption, { color: colors.muted }]}>
-                                شماره والدین: {faNum(parentPhone)}
-                            </Text>
-                        </View>
-                        <Switch
-                            value={parentReportAuto}
-                            onValueChange={setParentReportAuto}
-                            trackColor={{ false: colors.border, true: colors.primary }}
-                        />
-                    </View>
                 </View>
 
-                {/* 3. Digital Wallet & Order History */}
+                {/* 3. Visual Preferences (Compact Icon Switches) */}
                 <View
                     style={[
                         s.panel,
                         { backgroundColor: colors.surface, borderColor: colors.border },
                     ]}
                 >
-                    <View style={s.betweenRow}>
-                        <View style={s.copy}>
-                            <Text style={[s.sectionTitle, { color: colors.text }]}>
-                                کیف پول دیجیتال و سفارش‌ها
-                            </Text>
-                            <Text style={[s.caption, { color: colors.muted }]}>
-                                اعتبار هدیه باشگاه: {formatCurrency(150000)}
-                            </Text>
-                        </View>
-                        <Text style={[s.sectionTitle, { color: colors.primary }]}>
-                            {formatCurrency(walletBalance)}
-                        </Text>
+                    <View style={s.sectionHeaderRow}>
+                        <Ionicons name="options-outline" size={20} color={colors.primary} />
+                        <Text style={[s.sectionTitle, { color: colors.text }]}>تنظیمات سریع</Text>
                     </View>
-                    <View style={s.topUpRow}>
-                        <Pressable
-                            accessibilityRole="button"
-                            onPress={() => {
-                                setWalletBalance((b) => b + 200000);
-                                setStatusMessage('کیف پول شما ۲۰۰٬۰۰۰ تومان شارژ شد.');
-                            }}
-                            style={[s.topUpBtn, { backgroundColor: colors.primarySoft }]}
-                        >
-                            <Text style={[s.menuTitle, { color: colors.primary }]}>
-                                + شارژ ۲۰۰٬۰۰۰ تومان
-                            </Text>
-                        </Pressable>
-                        <Pressable
-                            accessibilityRole="button"
-                            onPress={() => {
-                                setWalletBalance((b) => b + 500000);
-                                setStatusMessage('کیف پول شما ۵۰۰٬۰۰۰ تومان شارژ شد.');
-                            }}
-                            style={[s.topUpBtn, { backgroundColor: '#153F31' }]}
-                        >
-                            <Text style={[s.menuTitle, { color: '#FFFFFF' }]}>
-                                + شارژ ۵۰۰٬۰۰۰ تومان
-                            </Text>
-                        </Pressable>
-                    </View>
-                    {orders.map((ord) => (
-                        <View
-                            key={ord.id}
-                            style={[
-                                s.betweenRow,
-                                {
-                                    borderTopWidth: StyleSheet.hairlineWidth,
-                                    borderTopColor: colors.border,
-                                    paddingTop: 10,
-                                },
-                            ]}
-                        >
-                            <View style={s.copy}>
-                                <Text style={[s.menuTitle, { color: colors.text }]}>
-                                    {ord.title}
-                                </Text>
-                                <Text style={[s.caption, { color: colors.muted }]}>
-                                    {ord.date} · {ord.id}
-                                </Text>
-                            </View>
-                            <Text style={[s.menuTitle, { color: colors.primary }]}>
-                                {formatCurrency(ord.amount)}
-                            </Text>
-                        </View>
-                    ))}
-                </View>
-
-                {/* 4. Certificates, Badges & Smart SMS Reminders */}
-                <View
-                    style={[
-                        s.panel,
-                        { backgroundColor: colors.surface, borderColor: colors.border },
-                    ]}
-                >
-                    <Text style={[s.sectionTitle, { color: colors.text }]}>
-                        گواهینامه‌ها و تنظیمات پیامک هوشمند
-                    </Text>
                     <View style={s.betweenRow}>
-                        <View style={s.copy}>
+                        <View style={s.metaIconRow}>
+                            <Ionicons name="notifications-outline" size={18} color={colors.primary} />
                             <Text style={[s.menuTitle, { color: colors.text }]}>
-                                پیامک یادآور ۲ ساعت قبل از کلاس VIP
-                            </Text>
-                            <Text style={[s.caption, { color: colors.muted }]}>
-                                کارگاه‌های حضوری و جلسات آنلاین
+                                یادآور پیامکی جلسات VIP
                             </Text>
                         </View>
                         <Switch
@@ -359,28 +272,9 @@ export function ProfileScreen() {
                         />
                     </View>
                     <View style={s.betweenRow}>
-                        <View style={s.copy}>
-                            <Text style={[s.menuTitle, { color: colors.text }]}>
-                                پیامک ثبت حضور و غیاب به والدین
-                            </Text>
-                            <Text style={[s.caption, { color: colors.muted }]}>
-                                ارسال آنی پس از ثبت توسط مدرس
-                            </Text>
-                        </View>
-                        <Switch
-                            value={smsParentAttendance}
-                            onValueChange={setSmsParentAttendance}
-                            trackColor={{ false: colors.border, true: colors.primary }}
-                        />
-                    </View>
-                    <View style={s.betweenRow}>
-                        <View style={s.copy}>
-                            <Text style={[s.menuTitle, { color: colors.text }]}>
-                                حالت تاریک برنامه
-                            </Text>
-                            <Text style={[s.caption, { color: colors.muted }]}>
-                                نمایش مناسب برای مطالعه در شب
-                            </Text>
+                        <View style={s.metaIconRow}>
+                            <Ionicons name="moon-outline" size={18} color={colors.primary} />
+                            <Text style={[s.menuTitle, { color: colors.text }]}>حالت تاریک</Text>
                         </View>
                         <Switch
                             accessibilityLabel="حالت تاریک"
@@ -391,37 +285,33 @@ export function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* Referral Invite Card */}
+                {/* 4. Referral Invite Card */}
                 <Pressable
                     accessibilityRole="button"
                     onPress={shareReferral}
                     style={({ pressed }) => [s.invite, pressed && s.pressed]}
                 >
-                    <Ionicons name="gift-outline" size={26} color="#214F3A" />
+                    <Ionicons name="gift-outline" size={24} color="#214F3A" />
                     <View style={s.copy}>
-                        <Text style={s.inviteTitle}>باشگاه دعوت دوستان · ۱۵۰٬۰۰۰ تومان هدیه</Text>
+                        <Text style={s.inviteTitle}>دعوت دوستان</Text>
                         <Text style={s.inviteCaption}>
-                            کد اختصاصی: {user.referral_code || 'ROSHD-NAVID'}
+                            {user.referral_code || 'ROSHD-VIP'}
                         </Text>
                     </View>
                     <Ionicons name="share-social-outline" size={20} color="#214F3A" />
                 </Pressable>
 
-                {/* 5. Separated Instructor & Admin Panel Box at the Bottom */}
+                {/* 5. Compact Instructor & Admin Access */}
                 <View
                     style={[
                         s.adminBox,
                         { backgroundColor: colors.surface, borderColor: colors.border },
                     ]}
                 >
-                    <Text style={[s.sectionTitle, { color: colors.text }]}>
-                        دسترسی ویژه کادر آموزشی و مدیریت
-                    </Text>
-                    <Text style={[s.caption, { color: colors.muted }]}>
-                        مجزا از منوی دانش‌پذیر · ویژه مدرس دوره طراحی آینده نوجوان
-                    </Text>
                     <PrimaryButton
-                        title="پنل مدرس: حضور و غیاب و تنظیمات دوره VIP"
+                        title="پنل مدرس و مدیریت"
+                        icon="shield-checkmark-outline"
+                        variant="outline"
                         onPress={() => navigation.navigate('AdminPanel')}
                     />
                 </View>
@@ -433,12 +323,14 @@ export function ProfileScreen() {
                             { backgroundColor: colors.surface, borderColor: colors.border },
                         ]}
                     >
-                        <Text style={[s.menuTitle, { color: colors.text }]}>
-                            از حساب خارج می‌شوید؟
-                        </Text>
-                        <PrimaryButton title="بله، خروج از حساب" variant="danger" onPress={logout} />
                         <PrimaryButton
-                            title="ماندن در حساب"
+                            title="خروج از حساب"
+                            icon="log-out-outline"
+                            variant="danger"
+                            onPress={handleLogout}
+                        />
+                        <PrimaryButton
+                            title="انصراف"
                             variant="outline"
                             onPress={() => setConfirmExit(false)}
                         />
@@ -450,7 +342,7 @@ export function ProfileScreen() {
                         style={s.logout}
                     >
                         <Ionicons name="log-out-outline" size={20} color={colors.danger} />
-                        <Text style={[s.menuTitle, { color: colors.danger }]}>خروج از حساب</Text>
+                        <Text style={[s.menuTitle, { color: colors.danger }]}>خروج</Text>
                     </Pressable>
                 )}
             </ScrollView>
@@ -463,15 +355,15 @@ const s = StyleSheet.create({
         width: '100%',
         maxWidth: 760,
         alignSelf: 'center',
-        padding: 20,
+        padding: 18,
         paddingBottom: 40,
-        gap: 16,
+        gap: 14,
     },
     identity: {
         backgroundColor: '#123E30',
-        borderRadius: 26,
-        padding: 18,
-        gap: 16,
+        borderRadius: 24,
+        padding: 16,
+        gap: 14,
         borderWidth: 1,
         borderColor: '#F59E0B',
     },
@@ -487,19 +379,11 @@ const s = StyleSheet.create({
         gap: 4,
     },
     vipChipText: { fontFamily: 'VazirmatnBold', fontSize: 10, color: '#0D2E22' },
-    copy: { flex: 1, minWidth: 0, gap: 2 },
-    identityLabel: { fontFamily: 'VazirmatnBold', fontSize: 11, color: '#FDE68A', textAlign: 'right' },
+    copy: { flex: 1, minWidth: 0, gap: 4 },
+    metaIconRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6 },
     name: { fontFamily: 'VazirmatnBold', fontSize: 18, color: '#FFFFFF', textAlign: 'right' },
     identityDetail: { fontFamily: 'Vazirmatn', fontSize: 12, color: '#D3E5D8', textAlign: 'right' },
     headerActions: { flexDirection: 'row-reverse', gap: 6 },
-    qrBtn: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
-        backgroundColor: '#FBBF24',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     editBtn: {
         width: 38,
         height: 38,
@@ -511,7 +395,7 @@ const s = StyleSheet.create({
     levelSection: {
         borderTopWidth: 1,
         borderTopColor: 'rgba(255,255,255,0.15)',
-        paddingTop: 12,
+        paddingTop: 10,
         gap: 6,
     },
     levelHeader: {
@@ -520,7 +404,7 @@ const s = StyleSheet.create({
         alignItems: 'center',
     },
     levelTitle: { fontFamily: 'VazirmatnBold', fontSize: 12, color: '#D6F39A' },
-    levelSub: { fontFamily: 'Vazirmatn', fontSize: 11, color: '#D3E5D8' },
+    levelSub: { fontFamily: 'VazirmatnBold', fontSize: 12, color: '#D3E5D8' },
     progressTrack: {
         height: 8,
         borderRadius: 999,
@@ -534,37 +418,35 @@ const s = StyleSheet.create({
     statBox: {
         flex: 1,
         backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 16,
+        borderRadius: 14,
         paddingVertical: 10,
         paddingHorizontal: 8,
         alignItems: 'center',
+        gap: 4,
     },
-    statValue: { fontFamily: 'VazirmatnBold', fontSize: 14, color: '#FFFFFF' },
-    statLabel: { fontFamily: 'Vazirmatn', fontSize: 10, color: '#D3E5D8', marginTop: 2 },
-    statusBanner: { padding: 12, borderRadius: 16 },
-    sectionTitle: { fontFamily: 'VazirmatnBold', fontSize: 16, lineHeight: 26, textAlign: 'right' },
-    panel: { padding: 16, borderRadius: 22, borderWidth: 1, gap: 12 },
+    statValue: { fontFamily: 'VazirmatnBold', fontSize: 13, color: '#FFFFFF' },
+    statusBanner: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 6,
+        padding: 12,
+        borderRadius: 16,
+    },
+    sectionHeaderRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6 },
+    sectionTitle: { fontFamily: 'VazirmatnBold', fontSize: 15, textAlign: 'right' },
+    panel: { padding: 16, borderRadius: 20, borderWidth: 1, gap: 12 },
     betweenRow: {
         flexDirection: 'row-reverse',
         justifyContent: 'space-between',
         alignItems: 'center',
         gap: 10,
     },
-    coachNoteBox: { padding: 12, borderRadius: 16, gap: 4 },
-    topUpRow: { flexDirection: 'row-reverse', gap: 8 },
-    topUpBtn: {
-        flex: 1,
-        paddingVertical: 10,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    menuTitle: { fontFamily: 'VazirmatnBold', fontSize: 13, lineHeight: 22, textAlign: 'right' },
-    caption: { fontFamily: 'Vazirmatn', fontSize: 12, lineHeight: 20, textAlign: 'right' },
+    menuTitle: { fontFamily: 'VazirmatnBold', fontSize: 13, textAlign: 'right' },
+    caption: { fontFamily: 'Vazirmatn', fontSize: 12, textAlign: 'right' },
     invite: {
         backgroundColor: '#E8F2D5',
-        padding: 16,
-        borderRadius: 22,
+        padding: 14,
+        borderRadius: 20,
         flexDirection: 'row-reverse',
         gap: 12,
         alignItems: 'center',
@@ -576,17 +458,16 @@ const s = StyleSheet.create({
         textAlign: 'right',
     },
     inviteCaption: {
-        fontFamily: 'Vazirmatn',
-        fontSize: 12,
+        fontFamily: 'VazirmatnBold',
+        fontSize: 11,
         color: '#4D705B',
         textAlign: 'right',
     },
     adminBox: {
-        padding: 16,
-        borderRadius: 22,
+        padding: 12,
+        borderRadius: 20,
         borderWidth: 1,
         borderStyle: 'dashed',
-        gap: 10,
     },
     logout: {
         flexDirection: 'row-reverse',

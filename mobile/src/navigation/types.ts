@@ -15,6 +15,7 @@ export type RootStackParamList = {
     Goals: undefined;
     Support: undefined;
     AdminPanel: undefined;
+    Upsell: { source?: 'learning' | 'course_detail'; courseSlug?: string; courseTitle?: string } | undefined;
 };
 
 export type TabsParamList = {

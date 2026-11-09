@@ -5,6 +5,7 @@ import {
     Text,
     View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Chip, EmptyState, Field, Loading, PrimaryButton, Screen } from '../components';
 import { api } from '../api/client';
 import type { SupportTicketPayload } from '../api/types';
@@ -49,35 +50,47 @@ export function SupportScreen() {
         }
     };
 
-    if (loading) return <Loading label="در حال دریافت تیکت‌های پشتیبانی…" />;
+    if (loading) return <Loading />;
 
     return (
         <Screen>
             <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
                 <View style={[styles.formCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                    <Text style={[styles.title, { color: colors.text }]}>ارسال تیکت پشتیبانی جدید</Text>
-                    <Text style={[styles.subtitle, { color: colors.muted }]}>
-                        تیم پشتیبانی مرکز رشد در کمتر از ۲ ساعت پاسخ‌گوی شماست.
-                    </Text>
+                    <View style={styles.headerRow}>
+                        <View style={styles.iconRow}>
+                            <Ionicons name="headset-outline" size={22} color={colors.primary} />
+                            <Text style={[styles.title, { color: colors.text }]}>پشتیبانی سریع</Text>
+                        </View>
+                        <Chip label="< ۲ ساعت" tone="gold" icon="flash-outline" />
+                    </View>
                     <Field
-                        label="موضوع درخواست"
+                        label="موضوع"
                         value={subject}
                         onChangeText={setSubject}
-                        placeholder="مثلاً: راهنمایی درباره نحوه دسترسی به جلسات کارگاه"
+                        placeholder="موضوع پیام…"
                     />
                     <Field
-                        label="متن پیام"
+                        label="پیام"
                         value={message}
                         onChangeText={setMessage}
-                        placeholder="سؤال یا درخواست خود را بنویسید…"
+                        placeholder="متن درخواست…"
                         multiline
                     />
-                    <PrimaryButton title="ثبت و ارسال تیکت" onPress={submitTicket} loading={sending} />
+                    <PrimaryButton
+                        title="ارسال تیکت"
+                        icon="paper-plane-outline"
+                        onPress={submitTicket}
+                        loading={sending}
+                    />
                 </View>
 
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>تیکت‌های اخیر شما</Text>
+                <View style={styles.iconRow}>
+                    <Ionicons name="chatbubbles-outline" size={20} color={colors.primary} />
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>تیکت‌ها</Text>
+                </View>
+
                 {tickets.length === 0 ? (
-                    <EmptyState icon="chatbubbles-outline" title="تیکتی ثبت نشده است" />
+                    <EmptyState icon="chatbubbles-outline" title="تیکتی ثبت نشده" />
                 ) : (
                     tickets.map((t) => (
                         <View
@@ -86,15 +99,23 @@ export function SupportScreen() {
                         >
                             <View style={styles.topRow}>
                                 <Chip
-                                    label={t.status === 'answered' ? 'پاسخ داده شده' : 'در حال بررسی'}
+                                    label={t.status === 'answered' ? 'پاسخ داده شد' : 'در بررسی'}
                                     tone={t.status === 'answered' ? 'primary' : 'gold'}
+                                    icon={t.status === 'answered' ? 'checkmark-done' : 'time-outline'}
                                 />
-                                <Text style={[styles.meta, { color: colors.muted }]}>
-                                    #{faNum(t.id)} • {t.updated_at}
-                                </Text>
+                                <View style={styles.iconRow}>
+                                    <Ionicons name="pricetag-outline" size={12} color={colors.muted} />
+                                    <Text style={[styles.meta, { color: colors.muted }]}>
+                                        #{faNum(t.id)} • {t.updated_at}
+                                    </Text>
+                                </View>
                             </View>
-                            <Text style={[styles.ticketSubject, { color: colors.text }]}>{t.subject}</Text>
-                            <Text style={[styles.ticketMessage, { color: colors.muted }]}>{t.last_message}</Text>
+                            <Text style={[styles.ticketSubject, { color: colors.text }]} numberOfLines={1}>
+                                {t.subject}
+                            </Text>
+                            <Text style={[styles.ticketMessage, { color: colors.muted }]} numberOfLines={2}>
+                                {t.last_message}
+                            </Text>
                         </View>
                     ))
                 )}
@@ -109,11 +130,21 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         borderRadius: radius.lg,
         borderWidth: 1,
+        gap: 8,
+    },
+    headerRow: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+    },
+    iconRow: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
         gap: 6,
     },
     title: { ...typography.title },
-    subtitle: { ...typography.small, marginBottom: spacing.sm },
-    sectionTitle: { ...typography.title, marginTop: spacing.sm },
+    sectionTitle: { ...typography.title },
     ticketCard: {
         padding: spacing.lg,
         borderRadius: radius.lg,
@@ -121,11 +152,11 @@ const styles = StyleSheet.create({
         gap: spacing.xs,
     },
     topRow: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
     meta: { ...typography.tiny },
-    ticketSubject: { ...typography.subtitle, fontWeight: '700', marginTop: 4 },
-    ticketMessage: { ...typography.small, marginTop: 2 },
+    ticketSubject: { ...typography.subtitle, fontWeight: '700', marginTop: 4, textAlign: 'right' },
+    ticketMessage: { ...typography.small, marginTop: 2, textAlign: 'right' },
 });

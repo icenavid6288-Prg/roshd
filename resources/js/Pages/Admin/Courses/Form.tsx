@@ -21,7 +21,9 @@ import { Button } from '@/Components/ui/Button';
 import { toFa } from '@/lib/format';
 import {
     saveCourseInState,
+    toggleVipActivationInState,
     useDynamicAppStore,
+    type DynamicLessonItem,
     type DynamicVipFeature,
     type DynamicVipSession,
 } from '@/lib/dynamicAppStore';
@@ -35,6 +37,8 @@ export default function CourseForm() {
     const { appState, updateAppState } = useDynamicAppStore();
     const {
         courses,
+        lessons,
+        enrolledCourseSlugs,
         vipConfig,
         courseItems,
         vipFeatures,
@@ -111,7 +115,7 @@ export default function CourseForm() {
         existingCourse?.max_students ?? vipConfig.capacity ?? 30
     );
 
-    // Local draft of 4 specialized items, VIP features, and VIP sessions
+    // Local draft of 4 specialized items, VIP features, VIP sessions, and video/audio lessons
     const [itemsDraft, setItemsDraft] = useState<CourseItemInstructor[]>(courseItems);
     const [featuresDraft, setFeaturesDraft] = useState<DynamicVipFeature[]>(vipFeatures);
     const [newFeatureTitle, setNewFeatureTitle] = useState('');
@@ -120,9 +124,15 @@ export default function CourseForm() {
     const [newSessionMode, setNewSessionMode] = useState<'in_person' | 'online'>('in_person');
     const [newSessionDate, setNewSessionDate] = useState('سه‌شنبه ۱۶ اردیبهشت ۱۴۰۴');
     const [newSessionTime, setNewSessionTime] = useState('۱۷:۰۰ تا ۱۹:۰۰');
+    const [lessonsDraft, setLessonsDraft] = useState<DynamicLessonItem[]>(lessons);
+    const [newLessonTitle, setNewLessonTitle] = useState('');
+    const [newLessonDuration, setNewLessonDuration] = useState('۴۵ دقیقه');
+    const [newLessonSummary, setNewLessonSummary] = useState('');
+    const [newLessonFree, setNewLessonFree] = useState(false);
     const [groupChatActive, setGroupChatActive] = useState<boolean>(groupChatEnabled);
 
     const [savedMessage, setSavedMessage] = useState<string | null>(null);
+    const isVipEnrolled = enrolledCourseSlugs.includes('designing-teen-future-vip');
 
     // Keep form synced if store hydrates after mount
     useEffect(() => {
@@ -216,6 +226,42 @@ export default function CourseForm() {
         );
     };
 
+    const handleAddLesson = () => {
+        if (!newLessonTitle.trim()) return;
+        const nextNum = lessonsDraft.length + 1;
+        const created: DynamicLessonItem = {
+            id: Date.now(),
+            courseSlug: slug.trim() || existingCourse?.slug || 'designing-teen-future-vip',
+            number: nextNum,
+            title: newLessonTitle.trim(),
+            duration: newLessonDuration.trim() || '۴۵ دقیقه',
+            videoSummary:
+                newLessonSummary.trim() ||
+                `محتوای آموزشی و تمرین عملی جلسه ${toFa(nextNum)}: ${newLessonTitle.trim()}`,
+            is_free: newLessonFree,
+            completed: false,
+            note: '',
+        };
+        setLessonsDraft((prev) => [...prev, created]);
+        setNewLessonTitle('');
+        setNewLessonSummary('');
+        setNewLessonFree(false);
+    };
+
+    const handleToggleLessonFree = (id: number) => {
+        setLessonsDraft((prev) =>
+            prev.map((l) => (l.id === id ? { ...l, is_free: !l.is_free } : l))
+        );
+    };
+
+    const handleDeleteLesson = (id: number) => {
+        setLessonsDraft((prev) =>
+            prev
+                .filter((l) => l.id !== id)
+                .map((l, idx) => ({ ...l, number: idx + 1 }))
+        );
+    };
+
     const submit = (e: FormEvent) => {
         e.preventDefault();
         if (!title.trim()) return;
@@ -232,7 +278,7 @@ export default function CourseForm() {
                           id: 100 + it.itemId,
                           title: `کارگاه تخصصی ${it.itemTitle}`,
                           duration: '۱۲۰ دقیقه',
-                          is_free: false,
+                          is_free: idx === 0,
                       },
                   ],
               }))
@@ -266,6 +312,7 @@ export default function CourseForm() {
                 online_platform: onlinePlatform.trim(),
                 schedule_summary: scheduleSummary.trim(),
                 max_students: Number(maxStudents) || 30,
+                lessons_count: lessonsDraft.length,
                 instructors_count: isVip ? itemsDraft.length : 1,
                 instructor: {
                     id: existingCourse?.instructor?.id ?? 1,
@@ -279,13 +326,17 @@ export default function CourseForm() {
             if (isVip || existingCourse?.id === 100) {
                 return {
                     ...withSavedCourse,
+                    lessons: lessonsDraft,
                     courseItems: itemsDraft,
                     vipFeatures: featuresDraft,
                     vipSessions: sessionsDraft,
                     groupChatEnabled: groupChatActive,
                 };
             }
-            return withSavedCourse;
+            return {
+                ...withSavedCourse,
+                lessons: lessonsDraft,
+            };
         });
 
         setSavedMessage(
@@ -928,6 +979,130 @@ export default function CourseForm() {
                                             onClick={() => handleDeleteSession(sess.id)}
                                             className="rounded-lg p-1.5 text-red-500 hover:bg-red-50"
                                             title="حذف جلسه"
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Course Video/Audio Lessons & VIP Unlock Control */}
+                    <section className="rounded-2xl bg-white p-6 shadow-soft ring-1 ring-navy/5 space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h2 className="flex items-center gap-2 text-sm font-black text-navy">
+                                    <Video className="size-4 text-brand-600" />
+                                    <span>جلسات آموزشی و درس‌های ویدئویی دوره ({toFa(lessonsDraft.length)} درس)</span>
+                                </h2>
+                                <p className="mt-1 text-xs text-navy/55">
+                                    تعیین کنید کدام جلسات در نسخه بتا «پیش‌نمایش رایگان» باشند و کدام جلسات پس از فعال‌سازی دوره پریمیوم باز شوند.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    updateAppState((prev) =>
+                                        toggleVipActivationInState(prev)
+                                    )
+                                }
+                                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-black transition ${
+                                    isVipEnrolled
+                                        ? 'bg-emerald-100 text-emerald-900 ring-1 ring-emerald-300'
+                                        : 'bg-amber-100 text-amber-900 ring-1 ring-amber-300'
+                                }`}
+                            >
+                                <Crown className="size-4" />
+                                <span>
+                                    {isVipEnrolled
+                                        ? 'وضعیت دانش‌پذیر در اپ: دوره VIP فعال است (همه جلسات باز)'
+                                        : 'وضعیت دانش‌پذیر در اپ: قبل از فعال‌سازی (حالت معرفی بتا)'}
+                                </span>
+                            </button>
+                        </div>
+
+                        <div className="grid gap-3 rounded-2xl border border-navy/10 bg-soft-gray/40 p-4 sm:grid-cols-4">
+                            <div className="sm:col-span-2">
+                                <input
+                                    value={newLessonTitle}
+                                    onChange={(e) => setNewLessonTitle(e.target.value)}
+                                    placeholder="عنوان درس جدید (مثلاً: جلسه ۵ — مذاکره و هوش هیجانی)"
+                                    className={inputCls}
+                                />
+                            </div>
+                            <div>
+                                <input
+                                    value={newLessonDuration}
+                                    onChange={(e) => setNewLessonDuration(e.target.value)}
+                                    placeholder="مدت زمان (مثلاً: ۴۵ دقیقه)"
+                                    className={inputCls}
+                                />
+                            </div>
+                            <div className="flex items-center">
+                                <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-navy">
+                                    <input
+                                        type="checkbox"
+                                        checked={newLessonFree}
+                                        onChange={(e) => setNewLessonFree(e.target.checked)}
+                                        className="size-4 rounded border-navy/20 text-brand-600"
+                                    />
+                                    <span>پیش‌نمایش رایگان در نسخه بتا</span>
+                                </label>
+                            </div>
+                            <div className="sm:col-span-3">
+                                <input
+                                    value={newLessonSummary}
+                                    onChange={(e) => setNewLessonSummary(e.target.value)}
+                                    placeholder="خلاصه محتوای آموزشی و نکات کلیدی این جلسه..."
+                                    className={inputCls}
+                                />
+                            </div>
+                            <div className="flex items-center justify-end">
+                                <button
+                                    type="button"
+                                    onClick={handleAddLesson}
+                                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-4 py-3 text-xs font-black text-white hover:bg-brand-700"
+                                >
+                                    <Plus className="size-4" />
+                                    <span>افزودن درس به دوره</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            {lessonsDraft.map((lesson) => (
+                                <div
+                                    key={lesson.id}
+                                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-navy/10 bg-white px-4 py-3 text-xs"
+                                >
+                                    <div className="space-y-0.5 max-w-xl">
+                                        <div className="font-black text-navy">
+                                            درس {toFa(lesson.number)}: {lesson.title}
+                                        </div>
+                                        <div className="text-navy/55 line-clamp-1">
+                                            مدت: {lesson.duration} · {lesson.videoSummary}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleToggleLessonFree(lesson.id)}
+                                            className={`rounded-lg px-2.5 py-1 text-[11px] font-black transition ${
+                                                lesson.is_free
+                                                    ? 'bg-emerald-100 text-emerald-800'
+                                                    : 'bg-amber-100 text-amber-900'
+                                            }`}
+                                        >
+                                            {lesson.is_free
+                                                ? 'پیش‌نمایش رایگان (باز)'
+                                                : '🔒 ویژه اعضای VIP'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteLesson(lesson.id)}
+                                            className="rounded-lg p-1.5 text-red-500 hover:bg-red-50"
+                                            title="حذف درس"
                                         >
                                             <Trash2 className="size-4" />
                                         </button>

@@ -12,6 +12,8 @@ import {
     saveCourseInState,
     deleteCourseFromState,
     updateVipConfigInState,
+    toggleFeatureInState,
+    toggleSessionLockInState,
 } from './dynamicAppStore';
 
 describe('dynamicAppStore — Unified Dynamic Tools & Website Sync', () => {
@@ -192,6 +194,30 @@ describe('dynamicAppStore — Unified Dynamic Tools & Website Sync', () => {
         assert.equal(appJson.expo.icon, './assets/icon.png');
         assert.equal(appJson.expo.android.adaptiveIcon.foregroundImage, './assets/android-icon-foreground.png');
         assert.equal(appJson.expo.android.adaptiveIcon.backgroundColor, '#57A33D');
+    });
+
+    it('manages dynamic feature flags and session lock states without losing state', () => {
+        const initial = createInitialDynamicAppState();
+        assert.equal(initial.featureToggles.isVipEnrolled, false);
+        assert.equal(initial.featureToggles.groupChatEnabled, true);
+
+        // Toggle VIP enrollment on
+        const enrolledState = toggleFeatureInState(initial, 'isVipEnrolled', true);
+        assert.equal(enrolledState.featureToggles.isVipEnrolled, true);
+
+        // Toggle Group chat off
+        const chatDisabledState = toggleFeatureInState(enrolledState, 'groupChatEnabled', false);
+        assert.equal(chatDisabledState.featureToggles.groupChatEnabled, false);
+        assert.equal(chatDisabledState.groupChatEnabled, false);
+
+        // Toggle individual session lock
+        const initialSessions = initial.vipSessions;
+        const sessionId = initialSessions[0].id;
+        const lockedSessions = toggleSessionLockInState(initialSessions, sessionId);
+        assert.equal(lockedSessions.find((s) => s.id === sessionId)?.isLocked, true);
+
+        const unlockedSessions = toggleSessionLockInState(lockedSessions, sessionId);
+        assert.equal(unlockedSessions.find((s) => s.id === sessionId)?.isLocked, false);
     });
 });
 

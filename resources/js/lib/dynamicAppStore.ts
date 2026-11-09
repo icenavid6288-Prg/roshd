@@ -74,6 +74,7 @@ export interface DynamicLessonItem {
     videoSummary: string;
     completed: boolean;
     note: string;
+    is_free?: boolean;
 }
 
 export interface DynamicCourseModuleLesson {
@@ -149,6 +150,22 @@ export interface DynamicVipSession {
     locationOrLink: string;
     status: 'completed' | 'upcoming';
     reminderSent: boolean;
+    isLocked?: boolean;
+}
+
+export interface DynamicFeatureToggles {
+    isVipEnrolled: boolean;
+    allowVipRegistration: boolean;
+    groupChatEnabled: boolean;
+    coachingBookingEnabled: boolean;
+    talentAssessmentEnabled: boolean;
+    podcastsEnabled: boolean;
+    shopEnabled: boolean;
+    supportTicketsEnabled: boolean;
+    sessionsLockedForNonVip: boolean;
+    certificateEnabled: boolean;
+    walletEnabled: boolean;
+    parentReportCardEnabled: boolean;
 }
 
 export interface DynamicVipStudent {
@@ -201,7 +218,23 @@ export interface DynamicAppState {
     vipFeatures: DynamicVipFeature[];
     vipSessions: DynamicVipSession[];
     vipStudents: DynamicVipStudent[];
+    featureToggles: DynamicFeatureToggles;
 }
+
+export const defaultDynamicFeatureToggles: DynamicFeatureToggles = {
+    isVipEnrolled: false,
+    allowVipRegistration: true,
+    groupChatEnabled: true,
+    coachingBookingEnabled: true,
+    talentAssessmentEnabled: true,
+    podcastsEnabled: true,
+    shopEnabled: true,
+    supportTicketsEnabled: true,
+    sessionsLockedForNonVip: true,
+    certificateEnabled: false,
+    walletEnabled: false,
+    parentReportCardEnabled: false,
+};
 
 export const defaultDynamicVipConfig: DynamicVipConfig = {
     title: 'طراحی آینده نوجوان (دوره جامع پریمیوم VIP)',
@@ -714,7 +747,7 @@ export function createInitialDynamicAppState(): DynamicAppState {
             'roshd-90-day-planner',
             'comprehensive-talent-package',
         ],
-        enrolledCourseSlugs: ['designing-teen-future-vip'],
+        enrolledCourseSlugs: ['designing-teen-future-vip', 'clifton-strengths-career-mastery'],
         goals: defaultDynamicGoals,
         reminders: defaultDynamicReminders,
         reminderLogs: defaultDynamicReminderLogs,
@@ -725,10 +758,55 @@ export function createInitialDynamicAppState(): DynamicAppState {
         vipFeatures: defaultDynamicVipFeatures,
         vipSessions: defaultDynamicVipSessions,
         vipStudents: defaultDynamicVipStudents,
+        featureToggles: defaultDynamicFeatureToggles,
     };
 }
 
 // Pure State Mutators (Testable with node:test)
+export function toggleFeatureInState(
+    state: DynamicAppState,
+    featureKey: keyof DynamicFeatureToggles,
+    forcedValue?: boolean
+): DynamicAppState {
+    const nextVal =
+        forcedValue !== undefined ? forcedValue : !state.featureToggles[featureKey];
+    return {
+        ...state,
+        featureToggles: {
+            ...state.featureToggles,
+            [featureKey]: nextVal,
+        },
+        groupChatEnabled:
+            featureKey === 'groupChatEnabled' ? nextVal : state.groupChatEnabled,
+    };
+}
+
+export function toggleSessionLockInState(
+    sessions: DynamicVipSession[],
+    sessionId: number
+): DynamicVipSession[] {
+    return sessions.map((s) =>
+        s.id === sessionId ? { ...s, isLocked: !s.isLocked } : s
+    );
+}
+
+export function toggleVipActivationInState(state: DynamicAppState): DynamicAppState {
+    const vipSlug = 'designing-teen-future-vip';
+    const isEnrolled = state.enrolledCourseSlugs.includes(vipSlug);
+    const nextEnrolledSlugs = isEnrolled
+        ? state.enrolledCourseSlugs.filter((s) => s !== vipSlug)
+        : [...state.enrolledCourseSlugs, vipSlug];
+    const nextEnrolled = !isEnrolled;
+    return {
+        ...state,
+        enrolledCourseSlugs: nextEnrolledSlugs,
+        featureToggles: {
+            ...state.featureToggles,
+            isVipEnrolled: nextEnrolled,
+        },
+    };
+}
+
 export function updateVipConfigInState(
     state: DynamicAppState,
     partialConfig: Partial<DynamicVipConfig>
@@ -1155,6 +1233,7 @@ export function loadDynamicAppState(): DynamicAppState {
             vipFeatures: Array.isArray(parsed.vipFeatures) && parsed.vipFeatures.length > 0 ? parsed.vipFeatures : fallback.vipFeatures,
             vipSessions: Array.isArray(parsed.vipSessions) && parsed.vipSessions.length > 0 ? parsed.vipSessions : fallback.vipSessions,
             vipStudents: Array.isArray(parsed.vipStudents) && parsed.vipStudents.length > 0 ? parsed.vipStudents : fallback.vipStudents,
+            featureToggles: { ...fallback.featureToggles, ...(parsed.featureToggles || {}) },
         };
     } catch {
         return fallback;
@@ -1198,6 +1277,7 @@ export function useDynamicAppStore() {
                             userProfile: { ...fallback.userProfile, ...(data.userProfile || {}) },
                             notifSettings: { ...fallback.notifSettings, ...(data.notifSettings || {}) },
                             vipConfig: { ...fallback.vipConfig, ...(data.vipConfig || {}) },
+                            featureToggles: { ...fallback.featureToggles, ...(data.featureToggles || {}) },
                         };
                         setAppStateInternal(merged);
                         saveDynamicAppState(merged, false);

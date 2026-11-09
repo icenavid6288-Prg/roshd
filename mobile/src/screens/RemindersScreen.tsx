@@ -15,16 +15,16 @@ import { useTheme } from '../context/ThemeContext';
 import { faNum, radius, spacing, typography } from '../theme';
 
 const FREQUENCIES: Array<{ key: ReminderSettingsPayload['course_frequency']; label: string }> = [
-    { key: 'daily', label: 'هر روز' },
+    { key: 'daily', label: 'روزانه' },
     { key: 'every_2_days', label: 'یک روز در میان' },
     { key: 'weekly', label: 'هفتگی' },
 ];
 
 const LEAD_TIMES: Array<{ key: string; label: string }> = [
-    { key: '24h', label: '۲۴ ساعت قبل' },
-    { key: '3h', label: '۳ ساعت قبل' },
-    { key: '1h', label: '۱ ساعت قبل' },
-    { key: '15m', label: '۱۵ دقیقه قبل' },
+    { key: '24h', label: '۲۴ ساعت' },
+    { key: '3h', label: '۳ ساعت' },
+    { key: '1h', label: '۱ ساعت' },
+    { key: '15m', label: '۱۵ دقیقه' },
 ];
 
 export function RemindersScreen() {
@@ -94,21 +94,21 @@ export function RemindersScreen() {
     };
 
     if (!settings) {
-        return <Loading label="در حال بارگذاری تنظیمات یادآوری…" />;
+        return <Loading />;
     }
 
     return (
         <Screen>
             <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-                {/* Hero Banner */}
+                {/* Compact Hero Switch */}
                 <View style={[styles.heroCard, { backgroundColor: colors.primaryDark }]}>
                     <View style={styles.heroHeaderRow}>
+                        <View style={styles.heroIconWrap}>
+                            <Ionicons name="notifications" size={24} color="#D6F39A" />
+                        </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.heroBadge}>افزایش نرخ تکمیل دوره‌ها تا ۳ برابر</Text>
-                            <Text style={styles.heroTitle}>سیستم یادآوری هوشمند</Text>
-                            <Text style={styles.heroSubtitle}>
-                                یادآوری خودکار ادامه درس‌های ناتمام و جلسات کوچینگ رزرو شده روی موبایل شما.
-                            </Text>
+                            <Text style={styles.heroTitle}>یادآور هوشمند</Text>
+                            <Text style={styles.heroBadge}>پیگیری خودکار دروس و جلسات</Text>
                         </View>
                         <Switch
                             value={settings.enabled}
@@ -121,6 +121,7 @@ export function RemindersScreen() {
 
                 {banner ? (
                     <View style={[styles.bannerBox, { backgroundColor: colors.successSoft, borderColor: colors.primary }]}>
+                        <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
                         <Text style={[styles.bannerText, { color: colors.primary }]}>{banner}</Text>
                     </View>
                 ) : null}
@@ -128,14 +129,9 @@ export function RemindersScreen() {
                 {/* Incomplete Courses Section */}
                 <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     <View style={styles.rowBetween}>
-                        <View style={{ flex: 1 }}>
-                            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
-                                <Ionicons name="book-outline" size={20} color={colors.primary} />
-                                <Text style={[styles.cardTitle, { color: colors.text }]}>یادآوری دوره‌های ناتمام</Text>
-                            </View>
-                            <Text style={[styles.cardSubtitle, { color: colors.muted }]}>
-                                پیگیری هوشمند درس‌هایی که نیمه‌تمام رها شده‌اند
-                            </Text>
+                        <View style={styles.iconTitleRow}>
+                            <Ionicons name="book-outline" size={20} color={colors.primary} />
+                            <Text style={[styles.cardTitle, { color: colors.text }]}>دوره‌های ناتمام</Text>
                         </View>
                         <Switch
                             value={settings.incomplete_courses}
@@ -144,7 +140,6 @@ export function RemindersScreen() {
                         />
                     </View>
 
-                    <Text style={[styles.label, { color: colors.text }]}>تناوب ارسال یادآوری:</Text>
                     <View style={styles.chipsRow}>
                         {FREQUENCIES.map((freq) => {
                             const active = settings.course_frequency === freq.key;
@@ -160,6 +155,11 @@ export function RemindersScreen() {
                                         },
                                     ]}
                                 >
+                                    <Ionicons
+                                        name="repeat-outline"
+                                        size={13}
+                                        color={active ? colors.white : colors.muted}
+                                    />
                                     <Text style={{ color: active ? colors.white : colors.text, fontSize: 12, fontWeight: '700' }}>
                                         {freq.label}
                                     </Text>
@@ -169,10 +169,7 @@ export function RemindersScreen() {
                     </View>
 
                     <View style={[styles.timeRow, { backgroundColor: colors.surfaceAlt }]}>
-                        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
-                            <Ionicons name="time-outline" size={16} color={colors.primary} />
-                            <Text style={[styles.timeLabel, { color: colors.text }]}>ساعت ترجیحی مطالعه روزانه:</Text>
-                        </View>
+                        <Ionicons name="time-outline" size={18} color={colors.primary} />
                         <View style={styles.timeOptions}>
                             {['18:00', '20:00', '21:30'].map((t) => {
                                 const active = settings.course_preferred_time === t;
@@ -198,14 +195,9 @@ export function RemindersScreen() {
                 {/* Coaching Sessions Section */}
                 <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     <View style={styles.rowBetween}>
-                        <View style={{ flex: 1 }}>
-                            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
-                                <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-                                <Text style={[styles.cardTitle, { color: colors.text }]}>یادآوری جلسات کوچینگ</Text>
-                            </View>
-                            <Text style={[styles.cardSubtitle, { color: colors.muted }]}>
-                                اعلام زمان جلسه و ارسال لینک ورود به اتاق آنلاین
-                            </Text>
+                        <View style={styles.iconTitleRow}>
+                            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                            <Text style={[styles.cardTitle, { color: colors.text }]}>جلسات کوچینگ</Text>
                         </View>
                         <Switch
                             value={settings.coaching_sessions}
@@ -214,7 +206,6 @@ export function RemindersScreen() {
                         />
                     </View>
 
-                    <Text style={[styles.label, { color: colors.text }]}>زمان‌های اطلاع‌رسانی قبل از شروع جلسه:</Text>
                     <View style={styles.chipsRow}>
                         {LEAD_TIMES.map((lt) => {
                             const active = settings.session_lead_times.includes(lt.key);
@@ -230,6 +221,11 @@ export function RemindersScreen() {
                                         },
                                     ]}
                                 >
+                                    <Ionicons
+                                        name="alarm-outline"
+                                        size={13}
+                                        color={active ? colors.white : colors.muted}
+                                    />
                                     <Text style={{ color: active ? colors.white : colors.text, fontSize: 12, fontWeight: '700' }}>
                                         {lt.label}
                                     </Text>
@@ -239,17 +235,17 @@ export function RemindersScreen() {
                     </View>
                 </View>
 
-                {/* Notification Channels */}
+                {/* Notification Channels Grid */}
                 <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
-                        <Ionicons name="notifications-outline" size={20} color={colors.primary} />
-                        <Text style={[styles.cardTitle, { color: colors.text }]}>کانال‌های دریافت اعلان</Text>
+                    <View style={styles.iconTitleRow}>
+                        <Ionicons name="radio-outline" size={20} color={colors.primary} />
+                        <Text style={[styles.cardTitle, { color: colors.text }]}>کانال‌های اعلان</Text>
                     </View>
                     <View style={styles.channelsGrid}>
                         {[
-                            { key: 'push' as const, label: 'پوش نوتیفیکیشن موبایل', icon: 'notifications-outline' as const },
-                            { key: 'sms' as const, label: 'پیامک (SMS)', icon: 'chatbubble-ellipses-outline' as const },
-                            { key: 'telegram' as const, label: 'ربات تلگرام', icon: 'paper-plane-outline' as const },
+                            { key: 'push' as const, label: 'اعلان موبایل', icon: 'notifications-outline' as const },
+                            { key: 'sms' as const, label: 'پیامک', icon: 'chatbubble-ellipses-outline' as const },
+                            { key: 'telegram' as const, label: 'تلگرام', icon: 'paper-plane-outline' as const },
                             { key: 'email' as const, label: 'ایمیل', icon: 'mail-outline' as const },
                         ].map((ch) => {
                             const active = settings.channels[ch.key];
@@ -258,29 +254,25 @@ export function RemindersScreen() {
                                     key={ch.key}
                                     onPress={() => toggleChannel(ch.key)}
                                     style={[
-                                        styles.channelItem,
+                                        styles.channelTile,
                                         {
                                             backgroundColor: active ? colors.primarySoft : colors.surfaceAlt,
                                             borderColor: active ? colors.primary : colors.border,
                                         },
                                     ]}
                                 >
-                                    <Ionicons name={ch.icon} size={18} color={active ? colors.primary : colors.muted} />
+                                    <Ionicons name={ch.icon} size={22} color={active ? colors.primary : colors.muted} />
                                     <Text style={[styles.channelLabel, { color: colors.text }]}>{ch.label}</Text>
-                                    <Chip label={active ? 'فعال' : 'غیرفعال'} tone={active ? 'primary' : 'muted'} />
                                 </Pressable>
                             );
                         })}
                     </View>
 
                     <View style={[styles.quietRow, { borderTopColor: colors.border }]}>
-                        <View style={{ flex: 1 }}>
-                            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
-                                <Ionicons name="moon-outline" size={16} color={colors.primary} />
-                                <Text style={[styles.label, { color: colors.text, marginTop: 0 }]}>ساعات سکوت شبانه</Text>
-                            </View>
-                            <Text style={[styles.cardSubtitle, { color: colors.muted }]}>
-                                عدم ارسال پیام بین ساعت {faNum(settings.quiet_hours_start)} تا {faNum(settings.quiet_hours_end)}
+                        <View style={styles.iconTitleRow}>
+                            <Ionicons name="moon-outline" size={18} color={colors.primary} />
+                            <Text style={[styles.channelLabel, { color: colors.text }]}>
+                                سکوت شبانه ({faNum(settings.quiet_hours_start)} - {faNum(settings.quiet_hours_end)})
                             </Text>
                         </View>
                         <Switch
@@ -292,30 +284,35 @@ export function RemindersScreen() {
                 </View>
 
                 <PrimaryButton
-                    title={saving ? 'در حال ذخیره…' : 'ارسال یادآوری آزمایشی همین الان'}
+                    title={saving ? 'در حال ذخیره…' : 'ارسال یادآور آزمایشی'}
+                    icon="paper-plane-outline"
                     onPress={sendTestReminder}
                     loading={testing}
                     variant="gold"
                 />
 
-                {/* Recent Logs */}
-                <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
-                        <Ionicons name="list-outline" size={20} color={colors.primary} />
-                        <Text style={[styles.cardTitle, { color: colors.text }]}>تاریخچه آخرین یادآوری‌های ارسالی</Text>
-                    </View>
-                    {settings.recent_logs.map((log) => (
-                        <View key={log.id} style={[styles.logRow, { borderBottomColor: colors.border }]}>
-                            <View style={{ flex: 1, gap: 2 }}>
-                                <Text style={[styles.logTitle, { color: colors.text }]}>{log.title}</Text>
-                                <Text style={[styles.logMeta, { color: colors.muted }]}>
-                                    {log.channel} • {log.sent_at}
-                                </Text>
-                            </View>
-                            <Chip label="ارسال شد" tone="primary" />
+                {/* Compact Recent Logs */}
+                {settings.recent_logs.length > 0 ? (
+                    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                        <View style={styles.iconTitleRow}>
+                            <Ionicons name="time-outline" size={18} color={colors.primary} />
+                            <Text style={[styles.cardTitle, { color: colors.text }]}>آخرین ارسال‌ها</Text>
                         </View>
-                    ))}
-                </View>
+                        {settings.recent_logs.slice(0, 3).map((log) => (
+                            <View key={log.id} style={[styles.logRow, { borderBottomColor: colors.border }]}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[styles.logTitle, { color: colors.text }]} numberOfLines={1}>
+                                        {log.title}
+                                    </Text>
+                                    <Text style={[styles.logMeta, { color: colors.muted }]}>
+                                        {log.channel} • {log.sent_at}
+                                    </Text>
+                                </View>
+                                <Chip label="ارسال شد" tone="primary" icon="checkmark" />
+                            </View>
+                        ))}
+                    </View>
+                ) : null}
             </ScrollView>
         </Screen>
     );
@@ -328,27 +325,34 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
     },
     heroHeaderRow: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         alignItems: 'center',
         gap: spacing.md,
     },
+    heroIconWrap: {
+        width: 46,
+        height: 46,
+        borderRadius: 15,
+        backgroundColor: 'rgba(214,243,154,0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     heroBadge: {
-        color: '#FACC15',
+        color: '#D6F39A',
         fontSize: 11,
         fontWeight: '700',
-        marginBottom: 4,
+        textAlign: 'right',
     },
     heroTitle: {
         ...typography.title,
         color: '#FFFFFF',
-        fontSize: 20,
-    },
-    heroSubtitle: {
-        ...typography.small,
-        color: 'rgba(255,255,255,0.85)',
-        marginTop: 4,
+        fontSize: 18,
+        textAlign: 'right',
     },
     bannerBox: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 6,
         padding: spacing.md,
         borderRadius: radius.md,
         borderWidth: 1,
@@ -364,63 +368,74 @@ const styles = StyleSheet.create({
         gap: spacing.md,
     },
     rowBetween: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: spacing.md,
     },
+    iconTitleRow: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 8,
+    },
     cardTitle: { ...typography.subtitle, fontWeight: '700' },
-    cardSubtitle: { ...typography.small, marginTop: 2 },
-    label: { ...typography.small, fontWeight: '700', marginTop: spacing.xs },
     chipsRow: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         flexWrap: 'wrap',
         gap: spacing.sm,
     },
     choiceBtn: {
-        paddingHorizontal: 14,
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: radius.pill,
         borderWidth: 1,
     },
     timeRow: {
-        padding: spacing.md,
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: spacing.sm,
         borderRadius: radius.md,
-        gap: spacing.sm,
     },
-    timeLabel: { ...typography.small, fontWeight: '600' },
-    timeOptions: { flexDirection: 'row', gap: spacing.sm },
+    timeOptions: { flexDirection: 'row-reverse', gap: spacing.sm },
     timeChip: {
-        paddingHorizontal: 14,
+        paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: radius.md,
     },
-    channelsGrid: { gap: spacing.sm },
-    channelItem: {
-        flexDirection: 'row',
+    channelsGrid: {
+        flexDirection: 'row-reverse',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    channelTile: {
+        width: '48%',
         alignItems: 'center',
-        padding: spacing.md,
+        justifyContent: 'center',
+        paddingVertical: 12,
         borderRadius: radius.md,
         borderWidth: 1,
-        gap: spacing.sm,
+        gap: 6,
     },
-    channelIcon: { fontSize: 18 },
-    channelLabel: { flex: 1, fontSize: 13, fontWeight: '600' },
+    channelLabel: { fontSize: 12, fontWeight: '700' },
     quietRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingTop: spacing.md,
-        borderTopWidth: 1,
-        gap: spacing.md,
-    },
-    logRow: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: spacing.sm,
+        paddingTop: spacing.md,
+        borderTopWidth: 1,
+    },
+    logRow: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: spacing.xs,
         borderBottomWidth: 1,
         gap: spacing.sm,
     },
-    logTitle: { fontSize: 13, fontWeight: '600' },
-    logMeta: { fontSize: 11 },
+    logTitle: { fontSize: 12, fontWeight: '600', textAlign: 'right' },
+    logMeta: { fontSize: 10, textAlign: 'right' },
 });

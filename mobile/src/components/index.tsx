@@ -18,6 +18,8 @@ import { useTheme } from '../context/ThemeContext';
 import type { CoursePayload, ProductPayload } from '../api/types';
 import { resolveAssetUrl } from '../api/client';
 
+export type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
 export function Screen({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
     const { colors } = useTheme();
     return (
@@ -27,12 +29,12 @@ export function Screen({ children, style }: { children: React.ReactNode; style?:
     );
 }
 
-export function Loading({ label = 'در حال بارگذاری…' }: { label?: string }) {
+export function Loading({ label }: { label?: string }) {
     const { colors } = useTheme();
     return (
         <View style={[styles.center, { backgroundColor: colors.bg }]}>
             <View style={[styles.loadingMark, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Image source={require('../../assets/roshd-logo.png')} style={styles.loadingLogo} accessibilityLabel="لوگوی Roshd" />
+                <Image source={require('../../assets/roshd-logo.png')} style={styles.loadingLogo} accessibilityLabel={label || 'لوگوی Roshd'} />
             </View>
             <ActivityIndicator size="small" color={colors.primary} style={styles.loadingSpinner} />
         </View>
@@ -44,7 +46,7 @@ export function EmptyState({
     title,
     subtitle,
 }: {
-    icon?: React.ComponentProps<typeof Ionicons>['name'];
+    icon?: IoniconName;
     title: string;
     subtitle?: string;
 }) {
@@ -74,8 +76,9 @@ export function SectionHeader({
         <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
             {actionLabel && onAction ? (
-                <Pressable onPress={onAction} hitSlop={8}>
-                    <Text style={[styles.sectionAction, { color: colors.primary }]}>{actionLabel} ←</Text>
+                <Pressable onPress={onAction} hitSlop={8} style={styles.sectionActionBtn}>
+                    <Text style={[styles.sectionAction, { color: colors.primary }]}>{actionLabel}</Text>
+                    <Ionicons name="arrow-back" size={14} color={colors.primary} />
                 </Pressable>
             ) : null}
         </View>
@@ -85,9 +88,11 @@ export function SectionHeader({
 export function Chip({
     label,
     tone = 'primary',
+    icon,
 }: {
     label: string;
     tone?: 'primary' | 'gold' | 'muted' | 'danger';
+    icon?: IoniconName;
 }) {
     const { colors } = useTheme();
     const bgMap = {
@@ -104,6 +109,7 @@ export function Chip({
     };
     return (
         <View style={[styles.chip, { backgroundColor: bgMap[tone] }]}>
+            {icon ? <Ionicons name={icon} size={12} color={fgMap[tone]} /> : null}
             <Text style={[styles.chipText, { color: fgMap[tone] }]}>{label}</Text>
         </View>
     );
@@ -121,7 +127,7 @@ export function SearchBar({
     const { colors } = useTheme();
     return (
         <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Ionicons name="search-outline" size={21} color={colors.muted} />
+            <Ionicons name="search-outline" size={20} color={colors.muted} />
             <TextInput
                 value={value}
                 onChangeText={onChangeText}
@@ -131,7 +137,7 @@ export function SearchBar({
             />
             {value.length > 0 ? (
                 <Pressable onPress={() => onChangeText('')} hitSlop={8}>
-                    <Text style={[styles.clearText, { color: colors.muted }]}>✕</Text>
+                    <Ionicons name="close-circle" size={18} color={colors.muted} />
                 </Pressable>
             ) : null}
         </View>
@@ -168,6 +174,11 @@ export function FilterChips({
                             },
                         ]}
                     >
+                        <Ionicons
+                            name={active ? 'checkmark-circle' : 'pricetag-outline'}
+                            size={13}
+                            color={active ? colors.white : colors.muted}
+                        />
                         <Text
                             style={[
                                 styles.filterChipText,
@@ -220,38 +231,16 @@ export function ProgressBar({ value }: { value: number }) {
     );
 }
 
-export function Avatar({ name, uri, size = 44 }: { name: string; uri?: string | null; size?: number }) {
+export function Avatar({ name, uri, size = 44 }: { name?: string; uri?: string | null; size?: number }) {
     const { colors } = useTheme();
-    const [resolved, setResolved] = useState<string | null>(null);
-    useEffect(() => {
-        let mounted = true;
-        resolveAssetUrl(uri).then((u) => {
-            if (mounted) setResolved(u);
-        });
-        return () => {
-            mounted = false;
-        };
-    }, [uri]);
-
-    const initial = (name || '?').trim().charAt(0);
-
-    if (resolved) {
-        return (
-            <Image
-                source={{ uri: resolved }}
-                style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.primarySoft }}
-            />
-        );
-    }
-
     return (
         <View
             style={[
                 styles.avatarFallback,
-                { width: size, height: size, borderRadius: size / 2, backgroundColor: colors.primary },
+                { width: size, height: size, borderRadius: size / 2, backgroundColor: colors.primarySoft },
             ]}
         >
-            <Text style={[styles.avatarInitial, { fontSize: size * 0.42, color: colors.white }]}>{initial}</Text>
+            <Ionicons name="person-circle-outline" size={size * 0.72} color={colors.primary} />
         </View>
     );
 }
@@ -289,34 +278,58 @@ export function CourseCard({
                 pressed && styles.pressed,
             ]}
         >
-            {thumb ? (
-                <Image source={{ uri: thumb }} style={styles.cardThumb} resizeMode="cover" />
-            ) : (
-                <View style={[styles.cardThumb, styles.cardThumbPlaceholder, { backgroundColor: colors.primaryDark }]}>
-                    <Text style={styles.cardThumbPlaceholderText} numberOfLines={2}>
-                        {course.title}
-                    </Text>
-                </View>
-            )}
+            <View style={styles.thumbContainer}>
+                {thumb ? (
+                    <Image source={{ uri: thumb }} style={styles.cardThumb} resizeMode="cover" />
+                ) : (
+                    <View style={[styles.cardThumb, styles.cardThumbPlaceholder, { backgroundColor: colors.primaryDark }]}>
+                        <Ionicons name="school-outline" size={32} color="#D6F39A" />
+                        <Text style={styles.cardThumbPlaceholderText} numberOfLines={1}>
+                            {course.title}
+                        </Text>
+                    </View>
+                )}
+                {course.category ? (
+                    <View style={styles.floatingBadge}>
+                        <Ionicons name="layers-outline" size={11} color="#10382B" />
+                        <Text style={styles.floatingBadgeText}>{course.category}</Text>
+                    </View>
+                ) : null}
+            </View>
+
             <View style={styles.cardBody}>
-                <View style={styles.cardMetaRow}>
-                    {course.category ? <Chip label={course.category} /> : null}
-                    {course.level ? <Chip label={course.level} tone="muted" /> : null}
-                </View>
-                <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
+                <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
                     {course.title}
                 </Text>
-                {course.instructor?.name ? (
-                    <Text style={[styles.cardMeta, { color: colors.muted }]} numberOfLines={1}>
-                        مدرس: {course.instructor.name}
-                    </Text>
-                ) : null}
+
+                <View style={styles.iconMetaRow}>
+                    {course.instructor?.name ? (
+                        <View style={styles.iconMetaItem}>
+                            <Ionicons name="person-circle-outline" size={15} color={colors.primary} />
+                            <Text style={[styles.cardMeta, { color: colors.muted }]} numberOfLines={1}>
+                                {course.instructor.name}
+                            </Text>
+                        </View>
+                    ) : null}
+                    {course.lessons_count ? (
+                        <View style={styles.iconMetaItem}>
+                            <Ionicons name="videocam-outline" size={14} color={colors.muted} />
+                            <Text style={[styles.cardMeta, { color: colors.muted }]}>
+                                {faNum(course.lessons_count)}
+                            </Text>
+                        </View>
+                    ) : null}
+                </View>
+
                 {typeof progress === 'number' ? (
-                    <View style={{ marginTop: spacing.sm, gap: 4 }}>
+                    <View style={{ marginTop: 4, gap: 4 }}>
                         <ProgressBar value={progress} />
-                        <Text style={[styles.progressLabel, { color: colors.muted }]}>
-                            {faNum(progress)}٪ تکمیل شده
-                        </Text>
+                        <View style={styles.progressBadgeRow}>
+                            <Ionicons name="checkmark-done-circle-outline" size={14} color={colors.primary} />
+                            <Text style={[styles.progressLabel, { color: colors.primary }]}>
+                                {faNum(progress)}٪
+                            </Text>
+                        </View>
                     </View>
                 ) : (
                     <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
@@ -325,11 +338,9 @@ export function CourseCard({
                             discount={course.discount_price}
                             isFree={course.is_free}
                         />
-                        {course.lessons_count ? (
-                            <Text style={[styles.cardMeta, { color: colors.muted }]}>
-                                {faNum(course.lessons_count)} جلسه
-                            </Text>
-                        ) : null}
+                        <View style={[styles.goCircle, { backgroundColor: colors.primarySoft }]}>
+                            <Ionicons name="arrow-back" size={14} color={colors.primary} />
+                        </View>
                     </View>
                 )}
             </View>
@@ -369,22 +380,27 @@ export function ProductCard({
                 <Image source={{ uri: image }} style={styles.productImage} resizeMode="cover" />
             ) : (
                 <View style={[styles.productImage, styles.cardThumbPlaceholder, { backgroundColor: colors.primaryDark }]}>
-                    <Text style={styles.cardThumbPlaceholderText} numberOfLines={2}>
+                    <Ionicons name="book-outline" size={28} color="#D6F39A" />
+                    <Text style={styles.cardThumbPlaceholderText} numberOfLines={1}>
                         {product.title}
                     </Text>
                 </View>
             )}
-            <View style={styles.cardBody}>
-                <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
+            <View style={styles.cardBodyCompact}>
+                <Text style={[styles.cardTitle, { color: colors.text, fontSize: 14 }]} numberOfLines={1}>
                     {product.title}
                 </Text>
                 {product.author ? (
-                    <Text style={[styles.cardMeta, { color: colors.muted }]} numberOfLines={1}>
-                        {product.author}
-                    </Text>
+                    <View style={styles.iconMetaItem}>
+                        <Ionicons name="person-outline" size={12} color={colors.muted} />
+                        <Text style={[styles.cardMeta, { color: colors.muted }]} numberOfLines={1}>
+                            {product.author}
+                        </Text>
+                    </View>
                 ) : null}
-                <View style={{ marginTop: spacing.xs }}>
+                <View style={styles.productFooterRow}>
                     <PriceTag priceValue={product.price} discount={product.discount_price} size="sm" />
+                    <Ionicons name="chevron-back-circle-outline" size={18} color={colors.primary} />
                 </View>
             </View>
         </Pressable>
@@ -393,31 +409,43 @@ export function ProductCard({
 
 export function PrimaryButton({
     title,
+    label,
+    icon,
     onPress,
     loading = false,
     variant = 'primary',
+    tone,
     disabled = false,
 }: {
-    title: string;
+    title?: string;
+    label?: string;
+    icon?: IoniconName;
     onPress: () => void;
     loading?: boolean;
-    variant?: 'primary' | 'gold' | 'outline' | 'danger';
+    variant?: 'primary' | 'secondary' | 'gold' | 'outline' | 'danger' | 'subtle';
+    tone?: 'primary' | 'subtle';
     disabled?: boolean;
 }) {
     const { colors } = useTheme();
+    const resolvedVariant = tone === 'subtle' ? 'subtle' : variant;
+    const textLabel = title || label || '';
     const bg =
-        variant === 'gold'
+        resolvedVariant === 'gold' || resolvedVariant === 'secondary'
             ? colors.gold
-            : variant === 'outline'
+            : resolvedVariant === 'outline'
             ? 'transparent'
-            : variant === 'danger'
+            : resolvedVariant === 'subtle'
+            ? colors.surfaceAlt
+            : resolvedVariant === 'danger'
             ? colors.danger
             : colors.primary;
     const fg =
-        variant === 'gold'
+        resolvedVariant === 'gold' || resolvedVariant === 'secondary'
             ? '#0F172A'
-            : variant === 'outline'
+            : resolvedVariant === 'outline'
             ? colors.primary
+            : resolvedVariant === 'subtle'
+            ? colors.text
             : colors.white;
 
     return (
@@ -428,7 +456,7 @@ export function PrimaryButton({
                 styles.button,
                 {
                     backgroundColor: bg,
-                    borderWidth: variant === 'outline' ? 1.5 : 0,
+                    borderWidth: resolvedVariant === 'outline' ? 1.5 : 0,
                     borderColor: colors.primary,
                     opacity: disabled || loading ? 0.6 : pressed ? 0.88 : 1,
                 },
@@ -437,7 +465,10 @@ export function PrimaryButton({
             {loading ? (
                 <ActivityIndicator color={fg} />
             ) : (
-                <Text style={[styles.buttonText, { color: fg }]}>{title}</Text>
+                <View style={styles.buttonContent}>
+                    {icon ? <Ionicons name={icon} size={18} color={fg} /> : null}
+                    <Text style={[styles.buttonText, { color: fg }]}>{textLabel}</Text>
+                </View>
             )}
         </Pressable>
     );
@@ -473,8 +504,19 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: spacing.xl,
     },
-    loadingText: { ...typography.small, marginTop: spacing.md },
-    loadingMark: { width: 104, height: 104, borderRadius: 32, borderWidth: 1, alignItems: 'center', justifyContent: 'center', shadowColor: '#0B3B2B', shadowOpacity: 0.12, shadowRadius: 22, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
+    loadingMark: {
+        width: 104,
+        height: 104,
+        borderRadius: 32,
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#0B3B2B',
+        shadowOpacity: 0.12,
+        shadowRadius: 22,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 5,
+    },
     loadingLogo: { width: 78, height: 78, borderRadius: 23 },
     loadingSpinner: { marginTop: 20 },
     empty: {
@@ -482,7 +524,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: spacing.xxl,
     },
-    emptyIcon: { fontSize: 40, marginBottom: spacing.sm },
     emptyTitle: { ...typography.title, textAlign: 'center' },
     emptySubtitle: {
         ...typography.small,
@@ -498,8 +539,12 @@ const styles = StyleSheet.create({
         marginBottom: spacing.md,
     },
     sectionTitle: { ...typography.title },
+    sectionActionBtn: { flexDirection: 'row-reverse', alignItems: 'center', gap: 4 },
     sectionAction: { ...typography.small, fontWeight: '700' },
     chip: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 4,
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: radius.pill,
@@ -512,24 +557,25 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: radius.md,
         paddingHorizontal: spacing.md,
-        minHeight: 54,
+        minHeight: 50,
         gap: spacing.sm,
     },
-    searchIcon: { fontSize: 15 },
     searchInput: {
         flex: 1,
         fontSize: 14,
         textAlign: 'right',
         paddingVertical: 6,
     },
-    clearText: { fontSize: 14, fontWeight: '700', paddingHorizontal: 4 },
     filterChipsRow: {
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.sm,
         gap: spacing.sm,
     },
     filterChip: {
-        paddingHorizontal: 14,
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 13,
         paddingVertical: 7,
         borderRadius: radius.pill,
         borderWidth: 1,
@@ -554,7 +600,12 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: radius.pill,
     },
-    progressLabel: { ...typography.tiny },
+    progressBadgeRow: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 4,
+    },
+    progressLabel: { ...typography.tiny, fontWeight: '700' },
     avatarFallback: {
         alignItems: 'center',
         justifyContent: 'center',
@@ -565,48 +616,97 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         overflow: 'hidden',
     },
-    cardCompact: { width: 280 },
-    cardThumb: { width: '100%', height: 170 },
+    cardCompact: { width: 256 },
+    thumbContainer: { position: 'relative' },
+    cardThumb: { width: '100%', height: 156 },
     cardThumbPlaceholder: {
         alignItems: 'center',
         justifyContent: 'center',
         padding: spacing.md,
+        gap: 6,
     },
     cardThumbPlaceholderText: {
         color: '#FFFFFF',
         fontWeight: '700',
-        fontSize: 14,
+        fontSize: 13,
         textAlign: 'center',
     },
-    cardBody: { padding: 18, gap: 10 },
-    cardMetaRow: { flexDirection: 'row-reverse', gap: 6, flexWrap: 'wrap' },
+    floatingBadge: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#D6F39A',
+        paddingHorizontal: 9,
+        paddingVertical: 4,
+        borderRadius: radius.pill,
+    },
+    floatingBadgeText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#10382B',
+    },
+    cardBody: { padding: 14, gap: 8 },
+    cardBodyCompact: { padding: 12, gap: 6 },
+    iconMetaRow: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
+    },
+    iconMetaItem: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 4,
+    },
     cardTitle: { ...typography.subtitle },
-    cardMeta: { ...typography.small },
+    cardMeta: { ...typography.small, fontSize: 11 },
     cardFooter: {
-        marginTop: spacing.xs,
-        paddingTop: spacing.sm,
+        marginTop: 2,
+        paddingTop: 8,
         borderTopWidth: 1,
         flexDirection: 'row-reverse',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
+    goCircle: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     productCard: {
-        width: 180,
+        width: 172,
         borderRadius: radius.lg,
         borderWidth: 1,
         overflow: 'hidden',
     },
-    productImage: { width: '100%', height: 150 },
+    productImage: { width: '100%', height: 140 },
+    productFooterRow: {
+        marginTop: 2,
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
     pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
     button: {
-        minHeight: 52,
-        paddingVertical: 14,
-        paddingHorizontal: spacing.xl,
+        minHeight: 50,
+        paddingVertical: 12,
+        paddingHorizontal: spacing.lg,
         borderRadius: radius.md,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    buttonText: { fontSize: 15, fontWeight: '700' },
+    buttonContent: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    buttonText: { fontSize: 14, fontWeight: '700' },
     fieldWrap: { marginBottom: spacing.md },
     fieldLabel: {
         ...typography.small,
@@ -622,3 +722,5 @@ const styles = StyleSheet.create({
         textAlign: 'right',
     },
 });
+
+export { PremiumGuard } from './PremiumGuard';

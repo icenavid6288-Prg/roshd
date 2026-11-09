@@ -8,10 +8,6 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="{{ config('app.name', 'مرکز رشد') }}">
-        <meta name="author" content="مرکز رشد و کارآفرینی دکتر بیدی">
-        <meta name="description" content="مرکز رشد و کارآفرینی دکتر بیدی؛ آموزش مهارت‌های آینده، استعدادیابی، کوچینگ و دوره‌های کاربردی برای نوجوانان و خانواده‌ها.">
-        <meta property="og:site_name" content="مرکز رشد و کارآفرینی دکتر بیدی">
-        <meta property="og:locale" content="fa_IR">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         @if ($cspNonce = request()->attributes->get('csp_nonce'))
             <meta name="csp-nonce" content="{{ $cspNonce }}">
@@ -21,7 +17,7 @@
         <link rel="apple-touch-icon" href="{{ url('/app-icon') }}">
 
         <title inertia>{{ config('app.name', 'مرکز رشد و کارآفرینی دکتر بیدی') }}</title>
-        @if (request()->is('admin', 'admin/*', 'dashboard', 'dashboard/*', 'panel/*', 'profile', 'cart', 'cart/*', 'checkout', 'checkout/*', 'login', 'login/*', 'register', 'forgot-password', 'reset-password', 'verify-email', 'confirm-password', 'search'))
+        @if (request()->is('admin', 'admin/*', 'dashboard', 'dashboard/*', 'panel/*', 'profile', 'cart', 'cart/*', 'checkout', 'checkout/*', 'login', 'login/*', 'register', 'forgot-password', 'reset-password', 'verify-email', 'confirm-password'))
             <meta name="robots" content="noindex, nofollow, noarchive">
         @endif
 

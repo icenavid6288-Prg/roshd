@@ -130,16 +130,27 @@ export interface ContinueLessonBanner {
 export interface HomeData {
     site: {
         name?: string;
+        slogan?: string;
         tagline?: string;
         hero_title?: string;
         hero_subtitle?: string;
         phone?: string;
         email?: string;
     };
-    stats: Array<{ id: number; label: string; value: string; icon?: string | null }>;
+    flagship_course?: (CoursePayload & {
+        enrolled?: boolean;
+        progress_percent?: number;
+    }) | null;
+    next_session?: {
+        id: number;
+        title: string;
+        scheduled_at?: string | null;
+        meeting_link?: string | null;
+    } | null;
+    stats?: Array<{ id: number; label: string; value: string; icon?: string | null }>;
     featured_courses: CoursePayload[];
     featured_products: ProductPayload[];
-    testimonials: Array<{
+    testimonials?: Array<{
         id: number;
         name: string;
         role?: string | null;

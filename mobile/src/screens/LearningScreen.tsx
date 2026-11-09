@@ -19,7 +19,7 @@ import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Learning'>;
 
-export function LearningScreen({ route }: Props) {
+export function LearningScreen({ route, navigation }: Props) {
     const { slug, lessonId } = route.params;
     const { colors } = useTheme();
     const [data, setData] = useState<LearningData | null>(null);
@@ -43,10 +43,9 @@ export function LearningScreen({ route }: Props) {
                 const found = lessonId ? allLessons.find((l) => l.id === lessonId) : allLessons[0];
                 setCurrentLesson(found || allLessons[0] || null);
             })
-            .catch((e) => setError(e instanceof ApiError ? e.message : 'خطا در بارگذاری محتوای دوره'));
+            .catch((e) => setError(e instanceof ApiError ? e.message : 'خطا در بارگذاری دوره'));
     }, [slug, lessonId]);
 
-    // Live study timer
     useEffect(() => {
         const timer = setInterval(() => {
             setStudySeconds((s) => s + 1);
@@ -96,12 +95,30 @@ export function LearningScreen({ route }: Props) {
         return error ? (
             <Screen>
                 <View style={styles.errorBox}>
+                    <Ionicons name="lock-closed-outline" size={44} color={colors.primary} />
                     <Text style={[styles.errorTitle, { color: colors.text }]}>دسترسی محدود</Text>
-                    <Text style={[styles.errorText, { color: colors.muted }]}>{error}</Text>
+                    <View style={{ marginTop: spacing.md, width: '100%', gap: spacing.sm }}>
+                        <PrimaryButton
+                            title="فعال‌سازی دوره VIP"
+                            onPress={() =>
+                                navigation.navigate('Upsell', {
+                                    source: 'learning',
+                                    courseSlug: slug,
+                                })
+                            }
+                            icon="star"
+                        />
+                        <PrimaryButton
+                            title="بازگشت"
+                            variant="outline"
+                            icon="arrow-forward-outline"
+                            onPress={() => navigation.goBack()}
+                        />
+                    </View>
                 </View>
             </Screen>
         ) : (
-            <Loading label="در حال آماده‌سازی اتاق یادگیری…" />
+            <Loading />
         );
     }
 
@@ -113,29 +130,35 @@ export function LearningScreen({ route }: Props) {
             <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
                 <View style={[styles.headerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     <View style={styles.headerTopRow}>
-                        <Chip label={`زمان مطالعه این جلسه: ${formattedTimer}`} tone="gold" />
-                        <Text style={[styles.progressMeta, { color: colors.primary }]}>
-                            {faNum(progress)}٪ تکمیل شده
-                        </Text>
+                        <Chip label={formattedTimer} tone="gold" icon="timer-outline" />
+                        <Chip label={`${faNum(progress)}٪`} tone="primary" icon="pie-chart-outline" />
                     </View>
-                    <Text style={[styles.courseTitle, { color: colors.text }]}>{course.title}</Text>
+                    <Text style={[styles.courseTitle, { color: colors.text }]} numberOfLines={1}>
+                        {course.title}
+                    </Text>
                     <ProgressBar value={progress} />
                 </View>
 
                 {currentLesson ? (
                     <View style={[styles.lessonBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                         <View style={styles.videoPlaceholder}>
-                            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#D6F39A', alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+                            <View style={styles.playCircle}>
                                 <Ionicons name="play" size={26} color="#123E30" />
                             </View>
-                            <Text style={styles.videoTitle}>{currentLesson.title}</Text>
+                            <Text style={styles.videoTitle} numberOfLines={2}>
+                                {currentLesson.title}
+                            </Text>
                             {currentLesson.duration ? (
-                                <Text style={styles.videoDuration}>مدت زمان: {faNum(currentLesson.duration)}</Text>
+                                <View style={styles.iconRow}>
+                                    <Ionicons name="time-outline" size={14} color="#FACC15" />
+                                    <Text style={styles.videoDuration}>{faNum(currentLesson.duration)}</Text>
+                                </View>
                             ) : null}
                             {currentLesson.video_url ? (
-                                <View style={{ marginTop: spacing.md }}>
+                                <View style={{ marginTop: spacing.sm }}>
                                     <PrimaryButton
                                         title="پخش ویدیو"
+                                        icon="play-circle-outline"
                                         variant="gold"
                                         onPress={() => Linking.openURL(currentLesson.video_url!)}
                                     />
@@ -145,35 +168,30 @@ export function LearningScreen({ route }: Props) {
 
                         <View style={styles.lessonActionsRow}>
                             <PrimaryButton
-                                title={
-                                    isCurrentCompleted
-                                        ? 'این درس تکمیل شده (لغو تکمیل)'
-                                        : 'ثبت تکمیل این درس (+XP)'
-                                }
+                                title={isCurrentCompleted ? 'تکمیل شده' : 'ثبت تکمیل درس'}
+                                icon={isCurrentCompleted ? 'checkmark-done-circle' : 'checkmark-circle-outline'}
                                 onPress={toggleComplete}
                                 variant={isCurrentCompleted ? 'outline' : 'primary'}
                             />
                         </View>
 
                         {currentLesson.description ? (
-                            <Text style={[styles.lessonDesc, { color: colors.text }]}>
+                            <Text style={[styles.lessonDesc, { color: colors.muted }]} numberOfLines={2}>
                                 {currentLesson.description}
                             </Text>
                         ) : null}
 
-                        {/* Notes Section */}
+                        {/* Compact Notes Section */}
                         <View style={[styles.notesBox, { borderTopColor: colors.border }]}>
-                            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                            <View style={styles.iconRow}>
                                 <Ionicons name="create-outline" size={18} color={colors.primary} />
-                                <Text style={[styles.notesLabel, { color: colors.text }]}>
-                                    یادداشت‌های من برای این درس
-                                </Text>
+                                <Text style={[styles.notesLabel, { color: colors.text }]}>یادداشت</Text>
                             </View>
                             <TextInput
                                 value={noteText}
                                 onChangeText={setNoteText}
                                 multiline
-                                placeholder="نکات کلیدی یا اقدام‌های اجرایی این درس را یادداشت کنید…"
+                                placeholder="یادداشت کلیدی…"
                                 placeholderTextColor={colors.muted}
                                 style={[
                                     styles.notesInput,
@@ -185,7 +203,8 @@ export function LearningScreen({ route }: Props) {
                                 ]}
                             />
                             <PrimaryButton
-                                title="ذخیره یادداشت"
+                                title="ذخیره"
+                                icon="bookmark-outline"
                                 onPress={saveNote}
                                 loading={savingNote}
                                 variant="gold"
@@ -201,10 +220,13 @@ export function LearningScreen({ route }: Props) {
                                                 { backgroundColor: colors.surfaceAlt, borderColor: colors.border },
                                             ]}
                                         >
-                                            <Text style={[styles.savedNoteMeta, { color: colors.primary }]}>
-                                                {n.lesson_title} • {n.created_at}
-                                            </Text>
-                                            <Text style={[styles.savedNoteContent, { color: colors.text }]}>
+                                            <View style={styles.iconRow}>
+                                                <Ionicons name="document-text-outline" size={13} color={colors.primary} />
+                                                <Text style={[styles.savedNoteMeta, { color: colors.primary }]}>
+                                                    {n.lesson_title}
+                                                </Text>
+                                            </View>
+                                            <Text style={[styles.savedNoteContent, { color: colors.text }]} numberOfLines={2}>
                                                 {n.content}
                                             </Text>
                                         </View>
@@ -216,15 +238,21 @@ export function LearningScreen({ route }: Props) {
                 ) : null}
 
                 <View style={styles.syllabus}>
-                    <Text style={[styles.syllabusTitle, { color: colors.text }]}>فهرست جلسات دوره</Text>
+                    <View style={styles.iconRow}>
+                        <Ionicons name="list-outline" size={20} color={colors.primary} />
+                        <Text style={[styles.syllabusTitle, { color: colors.text }]}>جلسات</Text>
+                    </View>
                     {course.modules?.map((mod, mIdx) => (
                         <View
                             key={mod.id}
                             style={[styles.moduleCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                         >
-                            <Text style={[styles.moduleTitle, { color: colors.primary }]}>
-                                فصل {faNum(mIdx + 1)}: {mod.title}
-                            </Text>
+                            <View style={styles.iconRow}>
+                                <Ionicons name="folder-open-outline" size={16} color={colors.primary} />
+                                <Text style={[styles.moduleTitle, { color: colors.primary }]}>
+                                    فصل {faNum(mIdx + 1)}: {mod.title}
+                                </Text>
+                            </View>
                             {mod.lessons.map((lesson, lIdx) => {
                                 const active = currentLesson?.id === lesson.id;
                                 const done = completedIds.includes(lesson.id);
@@ -238,7 +266,7 @@ export function LearningScreen({ route }: Props) {
                                             active && { backgroundColor: colors.primarySoft },
                                         ]}
                                     >
-                                        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, flex: 1 }}>
+                                        <View style={[styles.iconRow, { flex: 1 }]}>
                                             <Ionicons
                                                 name={done ? 'checkmark-circle' : active ? 'play-circle' : 'ellipse-outline'}
                                                 size={18}
@@ -250,14 +278,18 @@ export function LearningScreen({ route }: Props) {
                                                     { color: active ? colors.primary : colors.text },
                                                     active && styles.lessonItemTextActive,
                                                 ]}
+                                                numberOfLines={1}
                                             >
                                                 {faNum(lIdx + 1)}. {lesson.title}
                                             </Text>
                                         </View>
                                         {lesson.duration ? (
-                                            <Text style={[styles.lessonDuration, { color: colors.muted }]}>
-                                                {faNum(lesson.duration)}
-                                            </Text>
+                                            <View style={styles.iconRow}>
+                                                <Ionicons name="time-outline" size={12} color={colors.muted} />
+                                                <Text style={[styles.lessonDuration, { color: colors.muted }]}>
+                                                    {faNum(lesson.duration)}
+                                                </Text>
+                                            </View>
                                         ) : null}
                                     </Pressable>
                                 );
@@ -274,7 +306,6 @@ const styles = StyleSheet.create({
     container: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg },
     errorBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.sm },
     errorTitle: { ...typography.title },
-    errorText: { ...typography.small, textAlign: 'center' },
     headerCard: {
         borderRadius: radius.lg,
         padding: spacing.lg,
@@ -282,12 +313,11 @@ const styles = StyleSheet.create({
         gap: spacing.sm,
     },
     headerTopRow: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    courseTitle: { ...typography.title },
-    progressMeta: { ...typography.small, fontWeight: '700' },
+    courseTitle: { ...typography.title, textAlign: 'right' },
     lessonBox: {
         borderRadius: radius.lg,
         borderWidth: 1,
@@ -298,25 +328,35 @@ const styles = StyleSheet.create({
         padding: spacing.xl,
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 190,
+        minHeight: 175,
         gap: 6,
     },
-    videoIcon: { fontSize: 36 },
+    playCircle: {
+        width: 54,
+        height: 54,
+        borderRadius: 27,
+        backgroundColor: '#D6F39A',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 4,
+    },
     videoTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', textAlign: 'center' },
     videoDuration: { color: '#FACC15', fontSize: 12 },
+    iconRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6 },
     lessonActionsRow: {
         paddingHorizontal: spacing.lg,
         paddingTop: spacing.md,
     },
-    lessonDesc: { padding: spacing.lg, ...typography.body },
+    lessonDesc: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, ...typography.small, textAlign: 'right' },
     notesBox: {
         padding: spacing.lg,
+        marginTop: spacing.sm,
         borderTopWidth: 1,
         gap: spacing.sm,
     },
     notesLabel: { ...typography.subtitle, fontWeight: '700' },
     notesInput: {
-        minHeight: 90,
+        minHeight: 72,
         borderWidth: 1,
         borderRadius: radius.md,
         padding: spacing.md,
@@ -325,7 +365,7 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
     savedNotesList: {
-        marginTop: spacing.sm,
+        marginTop: spacing.xs,
         gap: spacing.sm,
     },
     savedNoteItem: {
@@ -335,7 +375,7 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     savedNoteMeta: { fontSize: 11, fontWeight: '700' },
-    savedNoteContent: { fontSize: 13, lineHeight: 20 },
+    savedNoteContent: { fontSize: 13, lineHeight: 20, textAlign: 'right' },
     syllabus: { gap: spacing.md },
     syllabusTitle: { ...typography.title },
     moduleCard: {
@@ -344,17 +384,18 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         gap: 6,
     },
-    moduleTitle: { ...typography.subtitle, marginBottom: 4 },
+    moduleTitle: { ...typography.subtitle },
     lessonItem: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingVertical: 10,
         paddingHorizontal: spacing.sm,
         borderRadius: radius.sm,
         borderTopWidth: 1,
+        gap: 8,
     },
-    lessonItemText: { ...typography.body, flex: 1 },
+    lessonItemText: { ...typography.body, flex: 1, textAlign: 'right' },
     lessonItemTextActive: { fontWeight: '700' },
     lessonDuration: { ...typography.tiny },
 });

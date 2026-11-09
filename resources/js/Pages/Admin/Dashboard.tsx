@@ -1,16 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    Area,
-    AreaChart,
-    Bar,
-    BarChart,
-    CartesianGrid,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from 'recharts';
-import {
     ArrowDownRight,
     ArrowLeft,
     ArrowUpRight,
@@ -213,24 +202,28 @@ export default function Dashboard() {
                             رشد +۱۸.۵٪ نسبت به دوره قبل
                         </span>
                     </div>
-                    <ResponsiveContainer width="100%" height={260}>
-                        <AreaChart data={filteredRevenue}>
-                            <defs>
-                                <linearGradient id="revenue" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#2c9a6c" stopOpacity={0.35} />
-                                    <stop offset="95%" stopColor="#2c9a6c" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#eef2f1" vertical={false} />
-                            <XAxis dataKey="date" tick={{ fontSize: 10, fontFamily: 'Vazirmatn' }} tickLine={false} axisLine={false} />
-                            <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={60} />
-                            <Tooltip
-                                contentStyle={{ borderRadius: 12, fontFamily: 'Vazirmatn', direction: 'rtl' }}
-                                formatter={(value) => [`${formatNumber(Number(value ?? 0))} تومان`, 'درآمد']}
-                            />
-                            <Area type="monotone" dataKey="value" stroke="#1d7b56" strokeWidth={2.5} fill="url(#revenue)" />
-                        </AreaChart>
-                    </ResponsiveContainer>
+                    <div className="h-[260px] flex items-end gap-2 pt-6 pb-2 px-2 border-b border-navy/10">
+                        {(() => {
+                            const maxVal = Math.max(1, ...filteredRevenue.map((d) => d.value));
+                            return filteredRevenue.map((item) => {
+                                const heightPct = Math.max(10, Math.round((item.value / maxVal) * 100));
+                                return (
+                                    <div key={item.date} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
+                                        <span className="opacity-0 group-hover:opacity-100 transition text-[10px] font-bold text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded whitespace-nowrap">
+                                            {formatNumber(item.value)}
+                                        </span>
+                                        <div
+                                            className="w-full max-w-[36px] rounded-t-xl bg-gradient-to-t from-[#2c9a6c]/30 to-[#1d7b56] transition-all duration-300 group-hover:opacity-90"
+                                            style={{ height: `${heightPct}%` }}
+                                        />
+                                        <span className="text-[10px] font-bold text-navy/55 truncate max-w-full">
+                                            {item.date}
+                                        </span>
+                                    </div>
+                                );
+                            });
+                        })()}
+                    </div>
                 </div>
 
                 {/* Registrations Chart */}
@@ -244,18 +237,28 @@ export default function Dashboard() {
                             میانگین روزانه: ۲۲ کاربر
                         </span>
                     </div>
-                    <ResponsiveContainer width="100%" height={260}>
-                        <BarChart data={filteredRegistrations}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#eef2f1" vertical={false} />
-                            <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                            <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={30} allowDecimals={false} />
-                            <Tooltip
-                                contentStyle={{ borderRadius: 12, fontFamily: 'Vazirmatn', direction: 'rtl' }}
-                                formatter={(value) => [`${formatNumber(Number(value ?? 0))} نفر`, 'ثبت‌نام']}
-                            />
-                            <Bar dataKey="value" fill="#83d1ab" radius={[6, 6, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    <div className="h-[260px] flex items-end gap-2 pt-6 pb-2 px-2 border-b border-navy/10">
+                        {(() => {
+                            const maxReg = Math.max(1, ...filteredRegistrations.map((d) => d.value));
+                            return filteredRegistrations.map((item) => {
+                                const heightPct = Math.max(10, Math.round((item.value / maxReg) * 100));
+                                return (
+                                    <div key={item.date} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
+                                        <span className="opacity-0 group-hover:opacity-100 transition text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded whitespace-nowrap">
+                                            {formatNumber(item.value)} نفر
+                                        </span>
+                                        <div
+                                            className="w-full max-w-[36px] rounded-t-xl bg-[#83d1ab] transition-all duration-300 group-hover:bg-[#2c9a6c]"
+                                            style={{ height: `${heightPct}%` }}
+                                        />
+                                        <span className="text-[10px] font-bold text-navy/55 truncate max-w-full">
+                                            {item.date}
+                                        </span>
+                                    </div>
+                                );
+                            });
+                        })()}
+                    </div>
                 </div>
             </div>
 

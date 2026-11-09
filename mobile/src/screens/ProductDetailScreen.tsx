@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Chip, Loading, PrimaryButton, PriceTag, Screen } from '../components';
 import { api, ApiError, openSitePage, resolveAssetUrl } from '../api/client';
@@ -16,6 +17,7 @@ export function ProductDetailScreen({ route }: Props) {
     const [product, setProduct] = useState<ProductPayload | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [imageUri, setImageUri] = useState<string | null>(null);
+    const [descExpanded, setDescExpanded] = useState(false);
 
     useEffect(() => {
         api<ProductPayload>(`/api/v1/products/${slug}`)
@@ -37,12 +39,12 @@ export function ProductDetailScreen({ route }: Props) {
         return error ? (
             <Screen>
                 <View style={styles.errorBox}>
-                    <Text style={[styles.errorTitle, { color: colors.text }]}>محصول یافت نشد</Text>
-                    <Text style={[styles.errorText, { color: colors.muted }]}>{error}</Text>
+                    <Ionicons name="alert-circle-outline" size={42} color={colors.danger} />
+                    <Text style={[styles.errorTitle, { color: colors.text }]}>{error}</Text>
                 </View>
             </Screen>
         ) : (
-            <Loading label="در حال دریافت محصول…" />
+            <Loading />
         );
     }
 
@@ -53,40 +55,61 @@ export function ProductDetailScreen({ route }: Props) {
                     <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
                 ) : (
                     <View style={[styles.image, styles.imageFallback, { backgroundColor: colors.primaryDark }]}>
+                        <Ionicons name="book-outline" size={44} color="#D6F39A" />
                         <Text style={styles.imageFallbackText}>{product.title}</Text>
                     </View>
                 )}
 
                 <View style={styles.body}>
                     <View style={styles.chipsRow}>
-                        <Chip label={product.category || (product.type === 'book' ? 'کتاب' : 'محصول')} />
-                        {product.is_featured ? <Chip label="پیشنهاد ویژه" tone="gold" /> : null}
+                        <Chip
+                            label={product.category || (product.type === 'book' ? 'کتاب' : 'محصول')}
+                            icon="book-outline"
+                        />
+                        {product.is_featured ? <Chip label="ویژه" tone="gold" icon="star" /> : null}
                     </View>
 
                     <Text style={[styles.title, { color: colors.text }]}>{product.title}</Text>
-                    {product.author ? (
-                        <Text style={[styles.author, { color: colors.muted }]}>پدیدآورنده: {product.author}</Text>
-                    ) : null}
 
-                    <View style={styles.metaRow}>
+                    {/* Icon-based Meta Grid */}
+                    <View style={styles.metaGrid}>
+                        {product.author ? (
+                            <View style={[styles.metaTile, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                                <Ionicons name="person-outline" size={18} color={colors.primary} />
+                                <Text style={[styles.metaValue, { color: colors.text }]} numberOfLines={1}>
+                                    {product.author}
+                                </Text>
+                            </View>
+                        ) : null}
                         {product.publisher ? (
-                            <Text style={[styles.meta, { color: colors.muted }]}>ناشر: {product.publisher}</Text>
+                            <View style={[styles.metaTile, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                                <Ionicons name="business-outline" size={18} color={colors.primary} />
+                                <Text style={[styles.metaValue, { color: colors.text }]} numberOfLines={1}>
+                                    {product.publisher}
+                                </Text>
+                            </View>
                         ) : null}
                         {product.pages ? (
-                            <Text style={[styles.meta, { color: colors.muted }]}>{faNum(product.pages)} صفحه</Text>
-                        ) : null}
-                        {product.isbn ? (
-                            <Text style={[styles.meta, { color: colors.muted }]}>ISBN: {product.isbn}</Text>
+                            <View style={[styles.metaTile, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                                <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+                                <Text style={[styles.metaValue, { color: colors.text }]}>
+                                    {faNum(product.pages)} ص
+                                </Text>
+                            </View>
                         ) : null}
                     </View>
 
                     <View style={[styles.priceBox, { backgroundColor: colors.primarySoft }]}>
-                        <Text style={[styles.priceLabel, { color: colors.primary }]}>بهای محصول</Text>
+                        <View style={styles.iconRow}>
+                            <Ionicons name="pricetag-outline" size={18} color={colors.primary} />
+                            <Text style={[styles.priceLabel, { color: colors.primary }]}>بهای محصول</Text>
+                        </View>
                         <PriceTag priceValue={product.price} discount={product.discount_price} size="lg" />
                     </View>
 
                     <PrimaryButton
-                        title="ثبت سفارش و خرید از فروشگاه"
+                        title="ثبت سفارش و خرید"
+                        icon="cart-outline"
                         onPress={() =>
                             openSitePage(`/shop/${product.slug}`).catch((e) =>
                                 Alert.alert('خطا', e instanceof ApiError ? e.message : 'خطا در باز کردن صفحه'),
@@ -95,10 +118,28 @@ export function ProductDetailScreen({ route }: Props) {
                     />
 
                     {product.description ? (
-                        <View style={styles.section}>
-                            <Text style={[styles.sectionTitle, { color: colors.text }]}>معرفی و توضیحات</Text>
-                            <Text style={[styles.sectionBody, { color: colors.text }]}>{product.description}</Text>
-                        </View>
+                        <Pressable
+                            onPress={() => setDescExpanded((v) => !v)}
+                            style={[styles.descCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                        >
+                            <View style={styles.descHeader}>
+                                <View style={styles.iconRow}>
+                                    <Ionicons name="reader-outline" size={18} color={colors.primary} />
+                                    <Text style={[styles.sectionTitle, { color: colors.text }]}>معرفی</Text>
+                                </View>
+                                <Ionicons
+                                    name={descExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+                                    size={18}
+                                    color={colors.muted}
+                                />
+                            </View>
+                            <Text
+                                style={[styles.sectionBody, { color: colors.muted }]}
+                                numberOfLines={descExpanded ? undefined : 2}
+                            >
+                                {product.description}
+                            </Text>
+                        </Pressable>
                     ) : null}
                 </View>
             </ScrollView>
@@ -109,24 +150,44 @@ export function ProductDetailScreen({ route }: Props) {
 const styles = StyleSheet.create({
     container: { paddingBottom: spacing.xxl },
     errorBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.sm },
-    errorTitle: { ...typography.title },
-    errorText: { ...typography.small, textAlign: 'center' },
-    image: { width: '100%', height: 240 },
-    imageFallback: { alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-    imageFallbackText: { color: '#FFFFFF', fontSize: 20, fontWeight: '800', textAlign: 'center' },
+    errorTitle: { ...typography.title, textAlign: 'center' },
+    image: { width: '100%', height: 230 },
+    imageFallback: { alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: 8 },
+    imageFallbackText: { color: '#FFFFFF', fontSize: 18, fontWeight: '800', textAlign: 'center' },
     body: { padding: spacing.lg, gap: spacing.md },
-    chipsRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-    title: { ...typography.hero },
-    author: { ...typography.body },
-    metaRow: { flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' },
-    meta: { ...typography.small },
-    priceBox: {
-        borderRadius: radius.lg,
-        padding: spacing.lg,
+    chipsRow: { flexDirection: 'row-reverse', gap: spacing.sm, flexWrap: 'wrap' },
+    title: { ...typography.hero, textAlign: 'right' },
+    metaGrid: { flexDirection: 'row-reverse', gap: spacing.sm },
+    metaTile: {
+        flex: 1,
+        borderRadius: radius.md,
+        paddingVertical: 10,
+        paddingHorizontal: spacing.sm,
+        borderWidth: 1,
+        alignItems: 'center',
         gap: 4,
     },
+    metaValue: { ...typography.small, fontWeight: '700', fontSize: 12 },
+    iconRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6 },
+    priceBox: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderRadius: radius.lg,
+        padding: spacing.lg,
+    },
     priceLabel: { ...typography.small, fontWeight: '700' },
-    section: { marginTop: spacing.md, gap: spacing.sm },
-    sectionTitle: { ...typography.title, fontSize: 17 },
-    sectionBody: { ...typography.body, lineHeight: 26 },
+    descCard: {
+        borderRadius: radius.lg,
+        padding: spacing.md,
+        borderWidth: 1,
+        gap: 6,
+    },
+    descHeader: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    sectionTitle: { ...typography.subtitle, fontWeight: '800' },
+    sectionBody: { ...typography.small, lineHeight: 22, textAlign: 'right' },
 });

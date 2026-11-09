@@ -30,6 +30,7 @@ import { SessionsScreen } from './src/screens/SessionsScreen';
 import { GoalsScreen } from './src/screens/GoalsScreen';
 import { SupportScreen } from './src/screens/SupportScreen';
 import { AdminPanelScreen } from './src/screens/AdminPanelScreen';
+import { UpsellScreen } from './src/screens/UpsellScreen';
 
 // Prepare the app for right-to-left Persian layout.
 I18nManager.allowRTL(true);
@@ -146,6 +147,7 @@ function RootNavigator() {
                         <Stack.Screen name="Goals" component={GoalsScreen} options={{ title: 'آزمون‌ها و گواهینامه‌ها' }} />
                         <Stack.Screen name="Support" component={SupportScreen} options={{ title: 'تیکت و پشتیبانی' }} />
                         <Stack.Screen name="AdminPanel" component={AdminPanelScreen} options={{ title: 'پنل مدیریت کل سایت (Admin)' }} />
+                        <Stack.Screen name="Upsell" component={UpsellScreen} options={{ title: 'عضویت ویژه VIP' }} />
                         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'تنظیمات اتصال' }} />
                     </>
                 ) : (

@@ -32,37 +32,37 @@ const INSTRUCTORS: InstructorItem[] = [
     {
         id: 'inst-1',
         itemNumber: 1,
-        itemTitle: 'آیتم ۱: خودشناسی و کشف استعداد',
+        itemTitle: 'خودشناسی و استعداد',
         name: 'دکتر محمد بیدی',
-        specialty: 'روان‌شناس و راهبر اصلی دوره طراحی آینده',
-        responseTime: 'پاسخگویی زیر ۳۰ دقیقه',
+        specialty: 'راهبر دوره',
+        responseTime: '۳۰ دقیقه',
         online: true,
     },
     {
         id: 'inst-2',
         itemNumber: 2,
-        itemTitle: 'آیتم ۲: تفکر استراتژیک و هدف‌گذاری ۹۰ روزه',
+        itemTitle: 'تفکر استراتژیک',
         name: 'استاد سارا رحیمی',
-        specialty: 'کوچ برنامه‌ریزی و مدیریت زمان نوجوان',
-        responseTime: 'پاسخگویی زیر ۴۵ دقیقه',
+        specialty: 'کوچ برنامه‌ریزی',
+        responseTime: '۴۵ دقیقه',
         online: true,
     },
     {
         id: 'inst-3',
         itemNumber: 3,
-        itemTitle: 'آیتم ۳: ارتباط مؤثر، فن بیان و رهبری تیمی',
+        itemTitle: 'ارتباط و رهبری',
         name: 'استاد امیرحسین کاظمی',
-        specialty: 'مدرس ارتباطات، مذاکره و کار تیمی',
-        responseTime: 'پاسخگویی زیر ۱ ساعت',
+        specialty: 'مدرس ارتباطات',
+        responseTime: '۱ ساعت',
         online: false,
     },
     {
         id: 'inst-4',
         itemNumber: 4,
-        itemTitle: 'آیتم ۴: سواد مالی، کارآفرینی و پروژه نهایی',
+        itemTitle: 'سواد مالی و پروژه',
         name: 'مهندس نیلوفر صادقی',
-        specialty: 'منتور کارآفرینی نوجوان و هوش مالی',
-        responseTime: 'پاسخگویی زیر ۱ ساعت',
+        specialty: 'منتور کارآفرینی',
+        responseTime: '۱ ساعت',
         online: true,
     },
 ];
@@ -72,7 +72,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
         id: 'msg-1',
         senderName: 'دکتر محمد بیدی',
         senderRole: 'instructor',
-        text: 'سلام آرین جان! نمودار استعدادیابی هالند و کلیفتون تو رو بررسی کردم. در بخش تفکر تحلیلی رشد فوق‌العاده‌ای داشتی. هر سؤالی درباره آیتم اول داری همین‌جا بپرس.',
+        text: 'سلام آرین جان! نمودار استعدادیابی تو عالی بود. هر سؤالی درباره آیتم اول داری همین‌جا بپرس.',
         timestamp: '۱۰:۱۵',
         channelId: 'instructors',
         instructorId: 'inst-1',
@@ -81,7 +81,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
         id: 'msg-2',
         senderName: 'استاد سارا رحیمی',
         senderRole: 'instructor',
-        text: 'آرین عزیز، جدول هدف‌گذاری ۹۰ روزه‌ات برای هفته سوم عالی تنظیم شده. فقط اولویت دوم رو کمی دقیق‌تر بنویس.',
+        text: 'جدول هدف‌گذاری ۹۰ روزه‌ات برای هفته سوم عالی تنظیم شده.',
         timestamp: '۱۱:۴۰',
         channelId: 'instructors',
         instructorId: 'inst-2',
@@ -90,7 +90,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
         id: 'msg-3',
         senderName: 'استاد امیرحسین کاظمی',
         senderRole: 'instructor',
-        text: 'تمرین ارائه ۳ دقیقه‌ای تو در کارگاه قبلی خیلی خوب بود! روی زبان بدن در شروع صحبت بیشتر تمرکز کن.',
+        text: 'تمرین ارائه ۳ دقیقه‌ای تو در کارگاه قبلی خیلی خوب بود!',
         timestamp: 'دیروز',
         channelId: 'instructors',
         instructorId: 'inst-3',
@@ -99,24 +99,24 @@ const INITIAL_MESSAGES: ChatMessage[] = [
         id: 'msg-4',
         senderName: 'مهندس نیلوفر صادقی',
         senderRole: 'instructor',
-        text: 'ایده بوم کسب‌وکار نوجوان که طراحی کردی کاملاً قابلیت اجرا در نمایشگاه پایان دوره رو داره.',
+        text: 'ایده بوم کسب‌وکار نوجوان کاملاً قابلیت اجرا در نمایشگاه پایان دوره رو داره.',
         timestamp: 'دیروز',
         channelId: 'instructors',
         instructorId: 'inst-4',
     },
     {
         id: 'msg-5',
-        senderName: 'پارسا محمدی (هم‌دوره‌ای)',
+        senderName: 'پارسا محمدی',
         senderRole: 'peer',
-        text: 'بچه‌ها کسی فایل کاربرگ بوم مدل کسب‌وکار آیتم ۴ رو پر کرده؟ می‌تونیم برای پروژه گروهی سه‌شنبه با هم هماهنگ بشیم.',
+        text: 'بچه‌ها برای پروژه گروهی سه‌شنبه با هم هماهنگ بشیم.',
         timestamp: '۱۲:۰۵',
         channelId: 'course_group',
     },
     {
         id: 'msg-6',
-        senderName: 'پشتیبان دوره (خانم مرادی)',
+        senderName: 'پشتیبان دوره',
         senderRole: 'support',
-        text: 'سلام! لینک ورود به وبینار زنده پنجشنبه و جزوه کارگاه حضوری سه‌شنبه در داشبورد شما فعال شد.',
+        text: 'لینک وبینار پنجشنبه و جزوه کارگاه در داشبورد فعال شد.',
         timestamp: '۰۹:۲۰',
         channelId: 'course_support',
     },
@@ -160,17 +160,18 @@ export function ChatScreen() {
     return (
         <Screen>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.page}>
+                {/* Visual Channel Selector Card */}
                 <View style={[s.headerCard, { backgroundColor: '#123E30' }]}>
-                    <Text style={s.headerTitle}>مرکز گفتگوی دوره طراحی آینده نوجوان</Text>
-                    <Text style={s.headerSub}>
-                        ارتباط مستقیم با ۴ مدرس تخصصی آیتم‌های دوره، گروه هم‌دوره‌ای‌ها و پشتیبان
-                    </Text>
+                    <View style={s.headerTop}>
+                        <Ionicons name="chatbubbles" size={20} color="#D6F39A" />
+                        <Text style={s.headerTitle}>گفتگوی دوره VIP</Text>
+                    </View>
 
                     <View style={s.channelTabs}>
                         {[
-                            { id: 'instructors' as const, label: 'مدرسان (۴ آیتم)' },
-                            { id: 'course_group' as const, label: 'گروه دوره' },
-                            { id: 'course_support' as const, label: 'پشتیبانی دوره' },
+                            { id: 'instructors' as const, label: 'اساتید', icon: 'school-outline' as const },
+                            { id: 'course_group' as const, label: 'گروه', icon: 'people-outline' as const },
+                            { id: 'course_support' as const, label: 'پشتیبانی', icon: 'headset-outline' as const },
                         ].map((ch) => {
                             const active = activeChannel === ch.id;
                             return (
@@ -182,6 +183,11 @@ export function ChatScreen() {
                                         active && { backgroundColor: '#D6F39A' },
                                     ]}
                                 >
+                                    <Ionicons
+                                        name={ch.icon}
+                                        size={15}
+                                        color={active ? '#123E30' : '#D9E6DF'}
+                                    />
                                     <Text
                                         style={[
                                             s.channelTabText,
@@ -214,8 +220,9 @@ export function ChatScreen() {
                                 >
                                     <View style={s.instRow}>
                                         <View style={s.instBadge}>
+                                            <Ionicons name="ribbon-outline" size={11} color="#123E30" />
                                             <Text style={s.instBadgeText}>
-                                                آیتم {faNum(inst.itemNumber)}
+                                                {faNum(inst.itemNumber)}
                                             </Text>
                                         </View>
                                         <View
@@ -229,7 +236,7 @@ export function ChatScreen() {
                                             ]}
                                         />
                                     </View>
-                                    <Text style={[s.instName, { color: colors.text }]}>
+                                    <Text style={[s.instName, { color: colors.text }]} numberOfLines={1}>
                                         {inst.name}
                                     </Text>
                                     <Text
@@ -238,12 +245,15 @@ export function ChatScreen() {
                                     >
                                         {inst.itemTitle}
                                     </Text>
-                                    <Text
-                                        style={[s.instMeta, { color: colors.muted }]}
-                                        numberOfLines={1}
-                                    >
-                                        {inst.responseTime}
-                                    </Text>
+                                    <View style={s.instMetaRow}>
+                                        <Ionicons name="time-outline" size={11} color={colors.muted} />
+                                        <Text
+                                            style={[s.instMeta, { color: colors.muted }]}
+                                            numberOfLines={1}
+                                        >
+                                            {inst.responseTime}
+                                        </Text>
+                                    </View>
                                 </Pressable>
                             );
                         })}
@@ -257,13 +267,13 @@ export function ChatScreen() {
                     ]}
                 >
                     <View style={[s.chatBoxHeader, { borderBottomColor: colors.border }]}>
-                        <Ionicons name="chatbubbles-outline" size={18} color={colors.primary} />
-                        <Text style={[s.chatBoxTitle, { color: colors.text }]}>
+                        <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.primary} />
+                        <Text style={[s.chatBoxTitle, { color: colors.text }]} numberOfLines={1}>
                             {activeChannel === 'instructors'
-                                ? `گفتگو با ${activeInstructor.name} (${activeInstructor.itemTitle})`
+                                ? activeInstructor.name
                                 : activeChannel === 'course_group'
-                                  ? 'گروه تعاملی دانش‌پذیران دوره طراحی آینده'
-                                  : 'پشتیبانی اختصاصی و هماهنگی کلاس‌ها'}
+                                  ? 'گروه دانش‌پذیران'
+                                  : 'پشتیبانی دوره'}
                         </Text>
                     </View>
 
@@ -321,7 +331,7 @@ export function ChatScreen() {
                         <TextInput
                             value={draft}
                             onChangeText={setDraft}
-                            placeholder="پیام یا سؤال خود را بنویسید..."
+                            placeholder="پیام…"
                             placeholderTextColor={colors.muted}
                             style={[
                                 s.input,
@@ -334,7 +344,6 @@ export function ChatScreen() {
                         />
                         <Pressable onPress={handleSend} style={s.sendBtn}>
                             <Ionicons name="send" size={16} color="#123E30" />
-                            <Text style={s.sendBtnText}>ارسال</Text>
                         </Pressable>
                     </View>
                 </View>
@@ -345,20 +354,27 @@ export function ChatScreen() {
 
 const s = StyleSheet.create({
     page: { padding: 16, paddingBottom: 32, gap: 14 },
-    headerCard: { borderRadius: 22, padding: 16, gap: 8 },
+    headerCard: { borderRadius: 22, padding: 14, gap: 10 },
+    headerTop: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8 },
     headerTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
-    headerSub: { color: '#C5D7CA', fontSize: 12, lineHeight: 18 },
     channelTabs: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         gap: 6,
         backgroundColor: '#0B281F',
         padding: 4,
         borderRadius: 14,
-        marginTop: 6,
     },
-    channelTab: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
-    channelTabText: { fontSize: 11, fontWeight: '800' },
-    instructorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    channelTab: {
+        flex: 1,
+        flexDirection: 'row-reverse',
+        justifyContent: 'center',
+        gap: 5,
+        paddingVertical: 8,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    channelTabText: { fontSize: 12, fontWeight: '800' },
+    instructorGrid: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 },
     instructorCard: {
         width: '48%',
         borderWidth: 1.5,
@@ -366,8 +382,11 @@ const s = StyleSheet.create({
         padding: 10,
         gap: 4,
     },
-    instRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    instRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' },
     instBadge: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 3,
         backgroundColor: '#E6F4EA',
         paddingHorizontal: 8,
         paddingVertical: 2,
@@ -375,26 +394,27 @@ const s = StyleSheet.create({
     },
     instBadgeText: { color: '#123E30', fontSize: 10, fontWeight: '800' },
     onlineDot: { width: 8, height: 8, borderRadius: 4 },
-    instName: { fontSize: 13, fontWeight: '800' },
-    instTitle: { fontSize: 11, fontWeight: '700' },
+    instName: { fontSize: 13, fontWeight: '800', textAlign: 'right' },
+    instTitle: { fontSize: 11, fontWeight: '700', textAlign: 'right' },
+    instMetaRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 4 },
     instMeta: { fontSize: 10 },
     chatBox: { borderWidth: 1, borderRadius: 20, overflow: 'hidden' },
     chatBoxHeader: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         alignItems: 'center',
         gap: 8,
         padding: 12,
         borderBottomWidth: 1,
     },
-    chatBoxTitle: { fontSize: 13, fontWeight: '800', flex: 1 },
+    chatBoxTitle: { fontSize: 13, fontWeight: '800', flex: 1, textAlign: 'right' },
     messageList: { padding: 12, gap: 10 },
     messageBubble: { maxWidth: '88%', borderRadius: 16, padding: 12, gap: 4 },
-    msgHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+    msgHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', gap: 12 },
     msgSender: { fontSize: 11, fontWeight: '800' },
     msgTime: { fontSize: 10 },
-    msgText: { fontSize: 12, lineHeight: 20 },
+    msgText: { fontSize: 12, lineHeight: 20, textAlign: 'right' },
     inputRow: {
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         alignItems: 'center',
         gap: 8,
         padding: 10,
@@ -410,13 +430,11 @@ const s = StyleSheet.create({
         textAlign: 'right',
     },
     sendBtn: {
-        flexDirection: 'row',
+        width: 42,
+        height: 40,
         alignItems: 'center',
-        gap: 4,
+        justifyContent: 'center',
         backgroundColor: '#D6F39A',
-        paddingHorizontal: 14,
-        paddingVertical: 10,
         borderRadius: 12,
     },
-    sendBtnText: { color: '#123E30', fontSize: 12, fontWeight: '800' },
 });

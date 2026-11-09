@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { EmptyState, FilterChips, Loading, ProductCard, Screen, SearchBar } from '../components';
+import { FilterChips, Loading, ProductCard, Screen, SearchBar } from '../components';
 import { api, ApiError } from '../api/client';
 import type { Paginated, ProductPayload } from '../api/types';
 import { useTheme } from '../context/ThemeContext';
-import { spacing, typography } from '../theme';
+import { faNum, spacing } from '../theme';
 import type { TabStackNavigation } from '../navigation/types';
 
 const PRODUCT_CATEGORIES = ['همه', 'کتاب چاپی', 'ابزار برنامه‌ریزی', 'محصول دیجیتال'];
@@ -72,11 +72,34 @@ export function ShopScreen() {
     return (
         <Screen>
             <View style={styles.header}>
-                <View style={styles.headingRow}><View style={styles.headingCopy}><Text style={[styles.title, { color: colors.text }]}>فروشگاه رشد</Text><Text style={[styles.subtitle, { color: colors.muted }]}>ابزارهای کوچک برای تغییرهای ماندگار</Text></View><View style={styles.headerIcon}><Ionicons name="bag-handle-outline" size={28} color="#264D35" /></View></View>
+                <View style={styles.headingRow}>
+                    <View style={styles.headerIcon}>
+                        <Ionicons name="bag-handle-outline" size={24} color="#264D35" />
+                    </View>
+                    <View style={styles.headingCopy}>
+                        <Text style={[styles.title, { color: colors.text }]}>فروشگاه رشد</Text>
+                        <View style={styles.iconBadgesRow}>
+                            <View style={[styles.miniPill, { backgroundColor: colors.surfaceAlt }]}>
+                                <Ionicons name="book-outline" size={12} color={colors.primary} />
+                                <Text style={[styles.miniPillText, { color: colors.muted }]}>کتاب</Text>
+                            </View>
+                            <View style={[styles.miniPill, { backgroundColor: colors.surfaceAlt }]}>
+                                <Ionicons name="headset-outline" size={12} color={colors.primary} />
+                                <Text style={[styles.miniPillText, { color: colors.muted }]}>پادکست</Text>
+                            </View>
+                        </View>
+                    </View>
+                    <View style={[styles.countBadge, { backgroundColor: '#E5F0D2' }]}>
+                        <Ionicons name="cube-outline" size={14} color="#264D35" />
+                        <Text style={[styles.countBadgeText, { color: '#264D35' }]}>
+                            {faNum(products.length)}
+                        </Text>
+                    </View>
+                </View>
                 <SearchBar
                     value={search}
                     onChangeText={setSearch}
-                    placeholder="جستجوی کتاب، نویسنده یا ابزار…"
+                    placeholder="جستجوی کتاب یا محصول…"
                 />
             </View>
             <View>
@@ -84,16 +107,22 @@ export function ShopScreen() {
             </View>
 
             {loading ? (
-                <Loading label="در حال دریافت محصولات…" />
+                <Loading />
             ) : error && products.length === 0 ? (
-                <View style={styles.state}><Ionicons name="cloud-offline-outline" size={40} color={colors.muted} /><Text style={[styles.subtitle, { color: colors.text }]}>{error}</Text><Pressable accessibilityRole="button" onPress={() => load(1, true)} style={styles.retry}><Text style={styles.retryText}>دریافت دوباره محصولات</Text></Pressable></View>
+                <View style={styles.state}>
+                    <Ionicons name="cloud-offline-outline" size={40} color={colors.muted} />
+                    <Text style={[styles.stateTitle, { color: colors.text }]}>{error}</Text>
+                    <Pressable accessibilityRole="button" onPress={() => load(1, true)} style={styles.retry}>
+                        <Ionicons name="refresh-outline" size={18} color="#FFFFFF" />
+                        <Text style={styles.retryText}>تلاش مجدد</Text>
+                    </Pressable>
+                </View>
             ) : (
                 <FlatList
                     key={columns}
                     data={products}
                     keyExtractor={(item) => String(item.id)}
                     contentContainerStyle={styles.list}
-                    ListHeaderComponent={<View style={styles.catalogBanner}><Ionicons name="book-outline" size={38} color="#34563A" /><View style={styles.headingCopy}><Text style={styles.bannerTitle}>همراهِ روزهای رشد</Text><Text style={styles.bannerCopy}>کتاب، برنامه‌ریز و ابزارهایی برای مسیر تو</Text></View></View>}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -102,12 +131,19 @@ export function ShopScreen() {
                     onEndReachedThreshold={0.4}
                     numColumns={columns}
                     columnWrapperStyle={columns > 1 ? styles.row : undefined}
-                    ListEmptyComponent={<View style={styles.state}><Ionicons name="bag-outline" size={36} color={colors.muted} /><Text style={[styles.subtitle, { color: colors.text }]}>محصولی با این انتخاب پیدا نشد</Text><Text style={[styles.subtitle, { color: colors.muted }]}>جستجو یا دسته‌بندی را تغییر بده.</Text></View>}
+                    ListEmptyComponent={
+                        <View style={styles.state}>
+                            <Ionicons name="bag-outline" size={38} color={colors.muted} />
+                            <Text style={[styles.stateTitle, { color: colors.text }]}>محصولی یافت نشد</Text>
+                        </View>
+                    }
                     ListFooterComponent={
                         loadingMore ? (
-                            <Loading label="در حال دریافت…" />
+                            <Loading />
                         ) : page >= lastPage && products.length ? (
-                            <Text style={[styles.endText, { color: colors.muted }]}>— پایان فهرست —</Text>
+                            <View style={styles.endRow}>
+                                <Ionicons name="checkmark-done-outline" size={18} color={colors.muted} />
+                            </View>
                         ) : null
                     }
                     renderItem={({ item }) => (
@@ -127,17 +163,65 @@ export function ShopScreen() {
 const styles = StyleSheet.create({
     header: {
         paddingHorizontal: spacing.lg,
-        paddingTop: spacing.lg,
+        paddingTop: spacing.md,
         paddingBottom: spacing.xs,
-        gap: 6,
+        gap: spacing.sm,
     },
-    title: { fontFamily: 'VazirmatnBlack', fontSize: 27, lineHeight: 44, textAlign: 'right' },
-    subtitle: { fontFamily: 'Vazirmatn', fontSize: 14, lineHeight: 25, textAlign: 'right' },
-    headingRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 16, marginBottom: 14 }, headingCopy: { flex: 1, minWidth: 0 }, headerIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: '#E5F0D2', alignItems: 'center', justifyContent: 'center' },
-    catalogBanner: { backgroundColor: '#E7EED9', padding: 22, borderRadius: 26, marginBottom: 22, flexDirection: 'row-reverse', alignItems: 'center', gap: 18 }, bannerTitle: { fontFamily: 'VazirmatnBold', fontSize: 20, lineHeight: 34, textAlign: 'right', color: '#264D35' }, bannerCopy: { fontFamily: 'Vazirmatn', fontSize: 14, lineHeight: 25, textAlign: 'right', color: '#52694A' },
-    state: { alignItems: 'center', padding: 28, gap: 14 }, retry: { paddingVertical: 14, paddingHorizontal: 22, backgroundColor: '#153F31', borderRadius: 16 }, retryText: { fontFamily: 'VazirmatnBold', color: '#FFFFFF', fontSize: 14 },
-    list: { paddingHorizontal: 22, paddingTop: 16, paddingBottom: 40, width: '100%', maxWidth: 820, alignSelf: 'center' },
+    headingRow: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 12,
+    },
+    headerIcon: {
+        width: 46,
+        height: 46,
+        borderRadius: 15,
+        backgroundColor: '#E5F0D2',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headingCopy: { flex: 1, minWidth: 0, gap: 4 },
+    title: { fontFamily: 'VazirmatnBlack', fontSize: 20, textAlign: 'right' },
+    iconBadgesRow: { flexDirection: 'row-reverse', gap: 6 },
+    miniPill: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 10,
+    },
+    miniPillText: { fontFamily: 'VazirmatnBold', fontSize: 10 },
+    countBadge: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+    countBadgeText: { fontFamily: 'VazirmatnBlack', fontSize: 13 },
+    state: { alignItems: 'center', padding: 28, gap: 12 },
+    stateTitle: { fontFamily: 'VazirmatnBold', fontSize: 14, textAlign: 'center' },
+    retry: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 6,
+        paddingVertical: 10,
+        paddingHorizontal: 18,
+        backgroundColor: '#153F31',
+        borderRadius: 14,
+    },
+    retryText: { fontFamily: 'VazirmatnBold', color: '#FFFFFF', fontSize: 13 },
+    list: {
+        paddingHorizontal: 18,
+        paddingTop: 10,
+        paddingBottom: 36,
+        width: '100%',
+        maxWidth: 820,
+        alignSelf: 'center',
+    },
     row: { gap: spacing.md },
     itemWrap: { flex: 1, marginBottom: spacing.md },
-    endText: { textAlign: 'center', fontSize: 12, paddingVertical: spacing.lg },
+    endRow: { alignItems: 'center', paddingVertical: spacing.md },
 });
